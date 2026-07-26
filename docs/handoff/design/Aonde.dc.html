@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  body { margin:0; background:#f7f7f5; color:#18181b; font-family:'Archivo',Helvetica,sans-serif; -webkit-font-smoothing:antialiased; }
+  a { color:#4d7c0f; text-decoration:none; }
+  a:hover { color:#3f6212; text-decoration:underline; }
+  * { box-sizing:border-box; }
+  input::placeholder { color:#a3a39e; }
+  @keyframes kenburns { 0% { transform:scale(1.04) translate(0,0); } 100% { transform:scale(1.16) translate(-1.5%,-1.5%); } }
+</style>
+</helmet>
+
+<header style="position:sticky; top:0; z-index:50; background:rgba(247,247,245,0.92); backdrop-filter:blur(12px); border-bottom:1px solid #e7e7e3;">
+  <div style="max-width:1200px; margin:0 auto; padding:0 32px; height:68px; display:flex; align-items:center; justify-content:space-between; gap:24px;">
+    <div onClick="{{ goHome }}" style="display:flex; align-items:baseline; gap:2px; cursor:pointer;">
+      <span style="font-family:'Instrument Serif',serif; font-size:30px; letter-spacing:-0.5px;">aonde</span>
+      <span style="width:8px; height:8px; border-radius:50%; background:#84cc16; display:inline-block; transform:translateY(-2px);"></span>
+    </div>
+    <nav style="display:flex; gap:28px; font-size:15px; font-weight:500; color:#44443f;">
+      <span onClick="{{ goResults }}" style="cursor:pointer;" style-hover="color:#18181b">Passagens</span>
+      <span onClick="{{ goOfertas }}" style="cursor:pointer; display:flex; align-items:center; gap:6px;" style-hover="color:#18181b">Ofertas <span style="background:#84cc16; color:#18181b; font-size:10px; font-weight:700; letter-spacing:0.04em; padding:2px 6px; border-radius:999px;">HOJE</span></span>
+      <span style="cursor:pointer;" style-hover="color:#18181b">Hotéis</span>
+      <span onClick="{{ goHome }}" style="cursor:pointer;" style-hover="color:#18181b">Guias de destino</span>
+    </nav>
+    <div style="display:flex; align-items:center; gap:20px;">
+      <div style="display:flex; flex-direction:column; align-items:flex-end; line-height:1.25;">
+        <span style="font-size:11px; color:#8a8a84; letter-spacing:0.04em; text-transform:uppercase;">Atendimento · WhatsApp</span>
+        <span style="font-size:14px; font-weight:600;">0800 942 0842</span>
+      </div>
+      <button style="background:#18181b; color:#fff; border:none; border-radius:999px; padding:10px 20px; font-family:'Archivo',sans-serif; font-size:14px; font-weight:600; cursor:pointer;" style-hover="background:#2d2d29">Minha conta</button>
+    </div>
+  </div>
+</header>
+
+<sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+<main>
+  <!-- HERO cinematográfico -->
+  <section style="position:relative; height:620px; overflow:hidden; background:#18181b;">
+    <sc-for list="{{ heroBgs }}" as="bg" hint-placeholder-count="3">
+      <div style="position:absolute; inset:0; opacity:{{ bg.opacity }}; transition:opacity 1.2s ease;">
+        <div style="position:absolute; inset:0; animation:kenburns 12s ease-out both;">
+          <image-slot id="{{ bg.slotId }}" shape="rect" src="{{ bg.src }}" credit="{{ bg.credit }}" credit-href="{{ bg.creditHref }}" placeholder="{{ bg.foto }}"></image-slot>
+        </div>
+      </div>
+    </sc-for>
+    <div style="position:absolute; inset:0; background:linear-gradient(90deg, rgba(24,24,27,0.82) 0%, rgba(24,24,27,0.55) 40%, rgba(24,24,27,0.15) 100%); pointer-events:none;"></div>
+    <div style="position:relative; max-width:1200px; margin:0 auto; padding:0 32px; height:100%; display:flex; flex-direction:column; justify-content:center;">
+      <p style="margin:0 0 14px; font-size:13px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:#a3e635;">Passagens · Hotéis · Experiências</p>
+      <h1 style="margin:0; font-family:'Instrument Serif',serif; font-weight:400; font-size:76px; line-height:1.0; letter-spacing:-1.5px; color:#fbfbfa; max-width:760px; text-shadow:0 2px 30px rgba(0,0,0,0.35);">Aonde você quer <em style="font-style:italic;">estar</em> na próxima semana?</h1>
+      <p style="margin:22px 0 0; font-size:19px; color:#e7e7e3; max-width:520px; line-height:1.5; text-wrap:pretty;">Compare voos, hotéis e experiências pelo Brasil e América do Sul — com parcelamento em até 12x e pagamento por Pix.</p>
+      <div style="display:flex; gap:10px; margin-top:32px;">
+        <sc-for list="{{ heroBgs }}" as="bg" hint-placeholder-count="3">
+          <button onClick="{{ bg.select }}" style="border:none; background:transparent; padding:0; cursor:pointer; display:flex; flex-direction:column; gap:8px; opacity:{{ bg.tabOpacity }}; transition:opacity 0.3s;">
+            <span style="font-size:14px; font-weight:600; color:#fbfbfa; letter-spacing:0.02em;">{{ bg.label }}</span>
+            <span style="width:{{ bg.barW }}; height:3px; border-radius:2px; background:#a3e635; transition:width 0.4s;"></span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="position:absolute; bottom:20px; right:32px; background:rgba(24,24,27,0.6); backdrop-filter:blur(8px); color:#f7f7f5; border-radius:12px; padding:9px 15px; font-size:13px; font-weight:600; pointer-events:none;">{{ heroLegenda }}</div>
+  </section>
+
+  <!-- SEARCH CARD -->
+  <section style="max-width:1200px; margin:-52px auto 0; position:relative; z-index:10; padding:0 32px 24px;">
+    <div style="background:#fff; border:1px solid #e7e7e3; border-radius:20px; box-shadow:0 24px 48px -32px rgba(24,24,27,0.25); overflow:hidden;">
+      <div style="display:flex; gap:4px; padding:12px 16px 0; border-bottom:1px solid #f0f0ed;">
+        <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="4">
+          <button onClick="{{ tab.select }}" style="border:none; background:{{ tab.bg }}; color:{{ tab.color }}; font-family:'Archivo',sans-serif; font-size:14px; font-weight:600; padding:10px 18px; border-radius:10px 10px 0 0; cursor:pointer; border-bottom:2px solid {{ tab.border }};">{{ tab.label }}</button>
+        </sc-for>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; padding:20px; align-items:end;">
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:12px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#8a8a84;">Origem</span>
+          <input value="São Paulo · GRU" style="border:1px solid #dededa; border-radius:12px; padding:13px 14px; font-family:'Archivo',sans-serif; font-size:15px; background:#fbfbfa; color:#18181b;">
+        </label>
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:12px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#8a8a84;">Destino</span>
+          <input value="Recife · REC" style="border:1px solid #dededa; border-radius:12px; padding:13px 14px; font-family:'Archivo',sans-serif; font-size:15px; background:#fbfbfa; color:#18181b;">
+        </label>
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:12px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#8a8a84;">Ida</span>
+          <input value="12 ago 2026" style="border:1px solid #dededa; border-radius:12px; padding:13px 14px; font-family:'Archivo',sans-serif; font-size:15px; background:#fbfbfa; color:#18181b;">
+        </label>
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:12px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#8a8a84;">Volta</span>
+          <input value="19 ago 2026" style="border:1px solid #dededa; border-radius:12px; padding:13px 14px; font-family:'Archivo',sans-serif; font-size:15px; background:#fbfbfa; color:#18181b;">
+        </label>
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:12px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#8a8a84;">Passageiros</span>
+          <input value="2 adultos" style="border:1px solid #dededa; border-radius:12px; padding:13px 14px; font-family:'Archivo',sans-serif; font-size:15px; background:#fbfbfa; color:#18181b;">
+        </label>
+        <button onClick="{{ goResults }}" style="background:#4d7c0f; color:#fff; border:none; border-radius:12px; padding:14px 20px; font-family:'Archivo',sans-serif; font-size:15px; font-weight:700; cursor:pointer; white-space:nowrap; min-width:150px;" style-hover="background:#3f6212">Buscar voos</button>
+      </div>
+    </div>
+    <div style="display:flex; gap:28px; padding:18px 8px 0; font-size:14px; color:#6b6b66; flex-wrap:wrap;">
+      <span style="display:flex; align-items:center; gap:8px;"><span style="width:6px; height:6px; border-radius:50%; background:#84cc16;"></span>Em até 12x sem juros no cartão</span>
+      <span style="display:flex; align-items:center; gap:8px;"><span style="width:6px; height:6px; border-radius:50%; background:#84cc16;"></span>5% de desconto no Pix</span>
+      <span style="display:flex; align-items:center; gap:8px;"><span style="width:6px; height:6px; border-radius:50%; background:#84cc16;"></span>Atendimento humano por WhatsApp, todos os dias</span>
+    </div>
+  </section>
+
+  <!-- OFERTAS DA SEMANA -->
+  <section style="max-width:1200px; margin:0 auto; padding:72px 32px 0;">
+    <div style="display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+      <div>
+        <h2 style="margin:0; font-family:'Instrument Serif',serif; font-weight:400; font-size:40px; letter-spacing:-0.5px;">Ofertas da semana</h2>
+        <p style="margin:10px 0 0; font-size:16px; color:#6b6b66;">Tarifas negociadas com as companhias — válidas até <strong style="color:#18181b;">domingo, 23h59</strong>, ou enquanto durarem os assentos.</p>
+      </div>
+      <a href="#" style="font-size:15px; font-weight:600;">Ver todas as ofertas →</a>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:20px; margin-top:28px;">
+      <sc-for list="{{ ofertas }}" as="of" hint-placeholder-count="4">
+        <article onClick="{{ goResults }}" style="background:#fff; border:1px solid #e7e7e3; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; cursor:pointer; transition:box-shadow 0.2s;" style-hover="box-shadow:0 16px 32px -24px rgba(24,24,27,0.35)">
+          <div style="height:160px; position:relative;">
+            <image-slot id="{{ of.slotId }}" shape="rect" placeholder="{{ of.foto }}"></image-slot>
+            <span style="position:absolute; top:12px; right:12px; background:#84cc16; color:#18181b; font-size:13px; font-weight:700; padding:5px 12px; border-radius:999px; pointer-events:none;">{{ of.desconto }}</span>
+            <span style="position:absolute; top:12px; left:12px; background:rgba(24,24,27,0.75); color:#f7f7f5; font-size:12px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; padding:5px 12px; border-radius:999px; pointer-events:none;">{{ of.tag }}</span>
+          </div>
+          <div style="padding:16px 18px 18px; display:flex; flex-direction:column; gap:6px; flex:1;">
+            <span style="font-size:12px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#8a8a84;">{{ of.rota }}</span>
+            <h3 style="margin:0; font-size:19px; font-weight:600; letter-spacing:-0.2px;">{{ of.cidade }}</h3>
+            <span style="font-size:13px; color:#6b6b66;">{{ of.periodo }}</span>
+            <div style="margin-top:auto; padding-top:10px; display:flex; align-items:baseline; gap:8px;">
+              <span style="font-size:14px; color:#a3a39e; text-decoration:line-through;">{{ of.de }}</span>
+              <span style="font-size:23px; font-weight:700; color:#3f6212; margin-left:auto;">{{ of.preco }}</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+              <span style="font-size:13px; color:#6b6b66;">12x de {{ of.parcela }}</span>
+              <span style="font-size:13px; font-weight:700; color:#4d7c0f;">Ver voos →</span>
+            </div>
+          </div>
+        </article>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- ESTILOS DE VIAGEM (scroll com imagem que muda) -->
+  <section style="max-width:1200px; margin:0 auto; padding:96px 32px 40px;">
+    <p style="margin:0 0 10px; font-size:13px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:#4d7c0f;">Para cada estilo de viagem</p>
+    <h2 style="margin:0 0 8px; font-family:'Instrument Serif',serif; font-weight:400; font-size:44px; letter-spacing:-0.5px; max-width:600px; line-height:1.08;">Praia, história ou neve — a imagem muda, o cuidado é o mesmo.</h2>
+    <div style="display:grid; grid-template-columns:1fr 1.1fr; gap:56px; margin-top:40px; align-items:start;">
+      <div style="display:flex; flex-direction:column;">
+        <sc-for list="{{ trips }}" as="t" hint-placeholder-count="3">
+          <div data-trip="{{ $index }}" style="padding:56px 0; border-top:1px solid #e7e7e3; opacity:{{ t.textOpacity }}; transition:opacity 0.4s;">
+            <span style="font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#4d7c0f;">{{ t.numero }}</span>
+            <h3 style="margin:12px 0 10px; font-family:'Instrument Serif',serif; font-weight:400; font-size:34px; letter-spacing:-0.4px;">{{ t.titulo }}</h3>
+            <p style="margin:0 0 18px; font-size:16px; line-height:1.6; color:#6b6b66; text-wrap:pretty;">{{ t.desc }}</p>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <sc-for list="{{ t.chips }}" as="c" hint-placeholder-count="3">
+                <span style="border:1px solid #dededa; background:#fff; border-radius:999px; padding:7px 14px; font-size:13px; font-weight:600; color:#44443f;">{{ c }}</span>
+              </sc-for>
+            </div>
+            <p style="margin:18px 0 0;"><a href="#">{{ t.cta }} →</a></p>
+          </div>
+        </sc-for>
+      </div>
+      <div style="position:sticky; top:96px; height:560px;">
+        <sc-for list="{{ trips }}" as="t" hint-placeholder-count="3">
+          <div style="position:absolute; inset:0; opacity:{{ t.imgOpacity }}; transition:opacity 0.6s;">
+            <image-slot id="{{ t.slotId }}" shape="rounded" radius="24" src="{{ t.src }}" credit="{{ t.credit }}" credit-href="{{ t.creditHref }}" placeholder="{{ t.foto }}"></image-slot>
+            <div style="position:absolute; bottom:16px; right:16px; background:rgba(24,24,27,0.75); backdrop-filter:blur(8px); color:#f7f7f5; border-radius:12px; padding:9px 15px; font-size:13px; font-weight:600; pointer-events:none;">{{ t.legenda }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROTEIROS / REVISTA -->
+  <section style="background:#18181b; color:#f7f7f5; margin-top:56px;">
+    <div style="max-width:1200px; margin:0 auto; padding:72px 32px;">
+      <div style="display:flex; align-items:baseline; justify-content:space-between; gap:16px;">
+        <div>
+          <p style="margin:0 0 10px; font-size:13px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:#a3e635;">Revista Aonde · Roteiros prontos</p>
+          <h2 style="margin:0; font-family:'Instrument Serif',serif; font-weight:400; font-size:44px; letter-spacing:-0.5px;">5 dias, dia a dia, com onde comer</h2>
+          <p style="margin:14px 0 0; font-size:16px; color:#a1a1a6; max-width:560px; line-height:1.5;">Roteiros escritos por quem conhece o destino: pontos turísticos na ordem certa e um bom restaurante para cada dia. É só seguir.</p>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:24px; margin-top:36px;">
+        <sc-for list="{{ guias }}" as="g" hint-placeholder-count="3">
+          <article onClick="{{ g.abrir }}" style="display:flex; flex-direction:column; gap:14px; cursor:pointer; border-radius:16px;" style-hover="transform:translateY(-3px)">
+            <div style="height:240px; position:relative;">
+              <image-slot id="{{ g.slotId }}" shape="rounded" radius="14" src="{{ g.src }}" credit="{{ g.credit }}" credit-href="{{ g.creditHref }}" placeholder="{{ g.foto }}"></image-slot>
+              <span style="position:absolute; top:12px; left:12px; background:#a3e635; color:#18181b; font-size:12px; font-weight:700; letter-spacing:0.04em; padding:5px 12px; border-radius:999px; pointer-events:none;">ROTEIRO DE 5 DIAS</span>
+            </div>
+            <div>
+              <span style="font-size:12px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#a3e635;">{{ g.tag }}</span>
+              <h3 style="margin:8px 0 6px; font-family:'Instrument Serif',serif; font-weight:400; font-size:26px; line-height:1.15; letter-spacing:-0.3px;">{{ g.titulo }}</h3>
+              <p style="margin:0 0 10px; font-size:15px; line-height:1.5; color:#a1a1a6; text-wrap:pretty;">{{ g.resumo }}</p>
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <span style="font-size:14px; font-weight:600; color:#a3e635;">Ler o roteiro completo →</span>
+                <span style="font-size:12px; font-weight:600; color:#71717a; border:1px solid #3f3f42; border-radius:999px; padding:3px 10px;">melhor preço em {{ g.melhorMes }}</span>
+              </div>
+            </div>
+          </article>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXPERIENCIAS -->
+  <section style="max-width:1200px; margin:0 auto; padding:80px 32px 0;">
+    <h2 style="margin:0; font-family:'Instrument Serif',serif; font-weight:400; font-size:40px; letter-spacing:-0.5px;">Além da passagem</h2>
+    <p style="margin:12px 0 0; font-size:17px; color:#6b6b66; max-width:520px; line-height:1.5;">Monte a viagem completa: hospedagem, carro e seguro em um só lugar, com uma única fatura.</p>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:20px; margin-top:32px;">
+      <sc-for list="{{ extras }}" as="ex" hint-placeholder-count="3">
+        <article style="background:#fff; border:1px solid #e7e7e3; border-radius:16px; padding:26px; display:flex; flex-direction:column; gap:10px; cursor:pointer;" style-hover="border-color:#84cc16">
+          <span style="width:38px; height:38px; border-radius:10px; background:#f1f8e4; color:#4d7c0f; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:700;">{{ ex.sigla }}</span>
+          <h3 style="margin:6px 0 0; font-size:20px; font-weight:600; letter-spacing:-0.2px;">{{ ex.titulo }}</h3>
+          <p style="margin:0; font-size:15px; color:#6b6b66; line-height:1.5; text-wrap:pretty;">{{ ex.desc }}</p>
+          <span style="margin-top:6px; font-size:14px; font-weight:600; color:#4d7c0f;">{{ ex.cta }} →</span>
+        </article>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- CONFIANCA -->
+  <section style="max-width:1200px; margin:0 auto; padding:72px 32px 88px;">
+    <div style="background:#fff; border:1px solid #e7e7e3; border-radius:20px; padding:40px; display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:32px; align-items:center;">
+      <h2 style="margin:0; font-family:'Instrument Serif',serif; font-weight:400; font-size:30px; line-height:1.15; letter-spacing:-0.3px;">Viajar bem começa com confiança.</h2>
+      <div>
+        <p style="margin:0; font-size:26px; font-weight:700; color:#3f6212;">12x</p>
+        <p style="margin:4px 0 0; font-size:14px; color:#6b6b66; line-height:1.4;">sem juros no cartão, ou 5% off no Pix</p>
+      </div>
+      <div>
+        <p style="margin:0; font-size:26px; font-weight:700; color:#3f6212;">7 dias</p>
+        <p style="margin:4px 0 0; font-size:14px; color:#6b6b66; line-height:1.4;">por semana, atendimento humano por WhatsApp</p>
+      </div>
+      <div>
+        <p style="margin:0; font-size:26px; font-weight:700; color:#3f6212;">1 fatura</p>
+        <p style="margin:4px 0 0; font-size:14px; color:#6b6b66; line-height:1.4;">voo, hotel e carro juntos, sem surpresa</p>
+      </div>
+    </div>
+  </section>
+</main>
+</sc-if>
+
+<sc-if value="{{ isGuia }}" hint-placeholder-val="{{ false }}">
+<main>
+  <section style="max-width:1200px; margin:0 auto; padding:40px 32px 0;">
+    <p style="margin:0 0 20px; font-size:14px; color:#8a8a84;"><a href="#" onClick="{{ goHome }}">Início</a> · <a href="#" onClick="{{ goHome }}">Guias de destino</a> · <span style="color:#44443f;">{{ guiaAtual.breadcrumb }}</span></p>
+    <div style="position:relative; height:420px;">
+      <image-slot id="{{ guiaAtual.heroSlot }}" shape="rounded" radius="24" src="{{ guiaAtual.heroSrc }}" credit="{{ guiaAtual.heroCredit }}" credit-href="{{ guiaAtual.heroCreditHref }}" placeholder="{{ guiaAtual.heroFoto }}"></image-slot>
+      <div style="position:absolute; left:24px; bottom:24px; display:flex; gap:10px; pointer-events:none;">
+        <span style="background:#a3e635; color:#18181b; font-size:12px; font-weight:700; letter-spacing:0.04em; padding:6px 14px; border-radius:999px;">ROTEIRO DE 5 DIAS</span>
+        <span style="background:rgba(24,24,27,0.75); backdrop-filter:blur(8px); color:#f7f7f5; font-size:12px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; padding:6px 14px; border-radius:999px;">{{ guiaAtual.tag }}</span>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:1.4fr 1fr; gap:48px; margin-top:36px; align-items:start;">
+      <div>
+        <h1 style="margin:0; font-family:'Instrument Serif',serif; font-weight:400; font-size:54px; line-height:1.05; letter-spacing:-1px;">{{ guiaAtual.titulo }}</h1>
+        <p style="margin:18px 0 0; font-size:18px; line-height:1.6; color:#44443f; text-wrap:pretty;">{{ guiaAtual.intro }}</p>
+      </div>
+      <aside style="background:#fff; border:1px solid #e7e7e3; border-radius:16px; padding:24px; display:flex; flex-direction:column; gap:14px; position:sticky; top:92px;">
+        <h3 style="margin:0; font-size:16px; font-weight:700;">Na prática</h3>
+        <sc-for list="{{ guiaAtual.meta }}" as="m" hint-placeholder-count="4">
+          <div style="display:flex; justify-content:space-between; gap:12px; font-size:14px; border-bottom:1px solid #f0f0ed; padding-bottom:10px;">
+            <span style="color:#8a8a84;">{{ m.k }}</span>
+            <span style="font-weight:600; text-align:right;">{{ m.v }}</span>
+          </div>
+        </sc-for>
+        <button onClick="{{ goResults }}" style="background:#4d7c0f; color:#fff; border:none; border-radius:12px; padding:14px 20px; font-family:'Archivo',sans-serif; font-size:15px; font-weight:700; cursor:pointer;" style-hover="background:#3f6212">{{ guiaAtual.ctaVoos }}</button>
+        <span style="font-size:13px; color:#6b6b66; text-align:center;">a partir de <strong style="color:#3f6212;">{{ guiaAtual.preco }}</strong> ida e volta · 12x sem juros</span>
+      </aside>
+    </div>
+  </section>
+
+  <section style="max-width:1200px; margin:0 auto; padding:56px 32px 40px;">
+    <h2 style="margin:0 0 28px; font-family:'Instrument Serif',serif; font-weight:400; font-size:36px; letter-spacing:-0.5px;">O roteiro, dia a dia</h2>
+    <div style="display:flex; flex-direction:column; gap:20px; max-width:860px;">
+      <sc-for list="{{ guiaAtual.dias }}" as="d" hint-placeholder-count="5">
+        <article style="background:#fff; border:1px solid #e7e7e3; border-radius:16px; padding:28px; display:grid; grid-template-columns:64px 1fr; gap:24px;">
+          <div style="width:56px; height:56px; border-radius:14px; background:#18181b; color:#a3e635; display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1;">
+            <span style="font-size:10px; font-weight:700; letter-spacing:0.08em;">DIA</span>
+            <span style="font-size:24px; font-weight:700;">{{ d.n }}</span>
+          </div>
+          <div>
+            <h3 style="margin:0 0 6px; font-size:22px; font-weight:600; letter-spacing:-0.3px;">{{ d.titulo }}</h3>
+            <p style="margin:0 0 14px; font-size:15px; color:#6b6b66; line-height:1.55; text-wrap:pretty;">{{ d.desc }}</p>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <sc-for list="{{ d.pontos }}" as="p" hint-placeholder-count="3">
+                <div style="display:flex; gap:10px; font-size:15px; line-height:1.5;">
+                  <span style="color:#4d7c0f; font-weight:700; flex-shrink:0;">•</span>
+                  <span><strong>{{ p.nome }}</strong> — {{ p.nota }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-top:16px; background:#f1f8e4; border-radius:12px; padding:14px 18px; display:flex; gap:12px; align-items:baseline;">
+              <span style="font-size:12px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#4d7c0f; white-space:nowrap;">Onde comer</span>
+              <span style="font-size:15px; color:#3f4a2a; line-height:1.5;"><strong>{{ d.restaurante }}</strong> · {{ d.restauranteNota }}</span>
+            </div>
+          </div>
+        </article>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- OTIMIZADOR DE DATAS -->
+  <section style="max-width:1200px; margin:0 auto; padding:16px 32px 40px;">
+    <div style="display:flex; align-items:flex-end; gap:24px; flex-wrap:wrap; margin-bottom:24px;">
+      <div>
+        <p style="margin:0 0 8px; font-size:13px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:#4d7c0f;">Otimizador de datas</p>
+        <h2 style="margin:0; font-family:'Instrument Serif',serif; font-weight:400; font-size:36px; letter-spacing:-0.5px;">Quando ir e por quanto</h2>
+      </div>
+      <p style="margin:0; font-size:15px; color:#6b6b66; max-width:460px; line-height:1.5; text-wrap:pretty;">Monitoramos as tarifas GRU → {{ optDestName }} todos os dias e comparamos com Google Flights, Kayak e Skyscanner. O mês em verde é o mais barato do ano.</p>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:24px; align-items:start;">
+      <div style="background:#fff; border:1px solid #e7e7e3; border-radius:16px; padding:24px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+          <span style="font-size:13px; font-weight:700;">Preço por mês · ida e volta</span>
+          <span style="display:flex; align-items:center; gap:6px; font-size:12px; color:#8a8a84;">mais barato <span style="width:14px; height:10px; border-radius:3px; background:#4d7c0f;"></span><span style="width:14px; height:10px; border-radius:3px; background:#f8e3ce;"></span> mais caro</span>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(80px, 1fr)); gap:8px;">
+          <sc-for list="{{ optCells }}" as="c" hint-placeholder-count="12">
+            <div style="background:{{ c.bg }}; color:{{ c.color }}; border:1px solid {{ c.border }}; border-radius:10px; padding:11px 6px; text-align:center;">
+              <div style="font-size:12px; font-weight:600; opacity:0.8;">{{ c.mon }}</div>
+              <div style="font-size:14px; font-weight:700; margin-top:3px;">{{ c.price }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <p style="margin:16px 0 0; font-size:12px; color:#a3a39e; line-height:1.5;">Valores por pessoa, classe econômica. Atualizados nas últimas 24h — a data exata pode variar até a reserva.</p>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div style="background:#18181b; color:#f7f7f5; border-radius:16px; padding:24px;">
+          <span style="font-size:12px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:#a3e635;">Melhor janela para viajar</span>
+          <h3 style="margin:10px 0 8px; font-family:'Instrument Serif',serif; font-weight:400; font-size:30px; letter-spacing:-0.4px;">{{ optWindow.label }}</h3>
+          <div style="display:flex; align-items:baseline; gap:8px;">
+            <span style="font-size:30px; font-weight:700; color:#a3e635;">{{ optWindow.price }}</span>
+            <span style="font-size:14px; color:#a1a1a6;">ida e volta</span>
+          </div>
+          <span style="display:inline-block; margin:12px 0; background:rgba(163,230,53,0.15); color:#a3e635; font-size:13px; font-weight:700; padding:5px 12px; border-radius:999px;">economize {{ optWindow.save }} vs. a média</span>
+          <p style="margin:0 0 18px; font-size:14px; color:#a1a1a6; line-height:1.5; text-wrap:pretty;">{{ optWindow.note }}</p>
+          <button onClick="{{ goResults }}" style="width:100%; background:#a3e635; color:#18181b; border:none; border-radius:12px; padding:14px; font-family:'Archivo',sans-serif; font-size:15px; font-weight:700; cursor:pointer;" style-hover="background:#bef264">Ver voos nessas datas →</button>
+        </div>
+        <div style="background:#fff; border:1px solid #e7e7e3; border-radius:16px; padding:22px;">
+          <span style="font-size:13px; font-weight:700;">Comparado com outros sites</span>
+          <div style="display:flex; flex-direction:column; gap:8px; margin-top:14px;">
+            <sc-for list="{{ optSources }}" as="s" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; background:{{ s.bg }}; border:1px solid {{ s.border }}; border-radius:10px; padding:12px 14px;">
+                <div style="display:flex; flex-direction:column; gap:2px;">
+                  <span style="font-size:15px; font-weight:700; color:{{ s.color }};">{{ s.name }}</span>
+                  <span style="font-size:12px; color:#8a8a84;">{{ s.note }}</span>
+                </div>
+                <span style="font-size:17px; font-weight:700; color:{{ s.color }}; white-space:nowrap;">{{ s.price }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <p style="margin:14px 0 0; font-size:12px; color:#a3a39e; line-height:1.5;">Preços de referência de parceiros, para comparação. No Aonde o valor já inclui 12x sem juros e 5% de desconto no Pix.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="max-width:1200px; margin:0 auto; padding:16px 32px 88px;">
+    <div style="background:#18181b; color:#f7f7f5; border-radius:20px; padding:44px; display:flex; align-items:center; justify-content:space-between; gap:32px; flex-wrap:wrap;">
+      <div>
+        <h2 style="margin:0; font-family:'Instrument Serif',serif; font-weight:400; font-size:34px; letter-spacing:-0.4px;">{{ guiaAtual.ctaTitulo }}</h2>
+        <p style="margin:10px 0 0; font-size:16px; color:#a1a1a6;">Voo + hotel na mesma reserva, em até 12x sem juros ou 5% off no Pix.</p>
+      </div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <button onClick="{{ goResults }}" style="background:#a3e635; color:#18181b; border:none; border-radius:12px; padding:15px 26px; font-family:'Archivo',sans-serif; font-size:15px; font-weight:700; cursor:pointer; white-space:nowrap;" style-hover="background:#bef264">{{ guiaAtual.ctaVoos }}</button>
+        <button onClick="{{ goHome }}" style="background:transparent; color:#f7f7f5; border:1px solid #3f3f42; border-radius:12px; padding:15px 26px; font-family:'Archivo',sans-serif; font-size:15px; font-weight:600; cursor:pointer; white-space:nowrap;" style-hover="border-color:#a3e635">Outros roteiros</button>
+      </div>
+    </div>
+  </section>
+</main>
+</sc-if>
+
+<sc-if value="{{ isOfertas }}" hint-placeholder-val="{{ false }}">
+<main>
+  <!-- FILTRO DE ORIGEM (fixo) -->
+  <div style="position:sticky; top:68px; z-index:40; background:#fff; border-bottom:1px solid #e7e7e3;">
+    <div style="max-width:1200px; margin:0 auto; padding:14px 32px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+      <span style="font-size:13px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#8a8a84;">Partindo de</span>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <sc-for list="{{ origins }}" as="o" hint-placeholder-count="5">
+          <button onClick="{{ o.select }}" style="border:1px solid {{ o.border }}; background:{{ o.bg }}; color:{{ o.color }}; border-radius:999px; padding:8px 16px; font-family:'Archivo',sans-serif; font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap;">{{ o.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- HERO NEWSLETTER -->
+  <section style="max-width:1200px; margin:0 auto; padding:32px 32px 8px;">
+    <div style="background:#18181b; color:#f7f7f5; border-radius:20px; padding:40px; display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:32px; align-items:center;">
+      <div>
+        <p style="margin:0 0 12px; font-size:13px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:#a3e635;">Alertas de preço</p>
+        <h1 style="margin:0; font-family:'Instrument Serif',serif; font-weight:400; font-size:44px; line-height:1.05; letter-spacing:-0.8px;">Os achados de passagem antes que acabem</h1>
+        <p style="margin:16px 0 0; font-size:16px; color:#a1a1a6; line-height:1.5; max-width:440px; text-wrap:pretty;">Preços muito abaixo da média e erros de tarifa, garimpados todos os dias. Receba no e-mail e no WhatsApp os que saem da sua cidade.</p>
+      </div>
+      <div>
+        <sc-if value="{{ subscribed }}" hint-placeholder-val="{{ false }}">
+          <div style="background:rgba(163,230,53,0.14); border:1px solid #3f6212; border-radius:14px; padding:24px; text-align:center;">
+            <p style="margin:0; font-size:18px; font-weight:700; color:#a3e635;">Tudo certo! ✓</p>
+            <p style="margin:8px 0 0; font-size:14px; color:#d4d4d1;">Você vai receber os próximos achados que saem da sua cidade. É só ficar de olho no e-mail.</p>
+          </div>
+        </sc-if>
+        <sc-if value="{{ notSubscribed }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <input value="" placeholder="Seu melhor e-mail" style="border:1px solid #3f3f42; background:#26262a; border-radius:12px; padding:14px 16px; font-family:'Archivo',sans-serif; font-size:15px; color:#f7f7f5;">
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+              <input value="" placeholder="WhatsApp (opcional)" style="flex:1; min-width:140px; border:1px solid #3f3f42; background:#26262a; border-radius:12px; padding:14px 16px; font-family:'Archivo',sans-serif; font-size:15px; color:#f7f7f5;">
+              <select style="border:1px solid #3f3f42; background:#26262a; border-radius:12px; padding:14px 16px; font-family:'Archivo',sans-serif; font-size:15px; color:#f7f7f5;"><option>GRU</option><option>VCP</option><option>GIG</option><option>CNF</option><option>BSB</option><option>POA</option></select>
+            </div>
+            <button onClick="{{ subscribe }}" style="background:#a3e635; color:#18181b; border:none; border-radius:12px; padding:15px; font-family:'Archivo',sans-serif; font-size:15px; font-weight:700; cursor:pointer;" style-hover="background:#bef264">Quero receber os alertas</button>
+            <span style="font-size:12px; color:#8a8a84; text-align:center;">Grátis. Sem spam. Cancele quando quiser.</span>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEED -->
+  <section style="max-width:1200px; margin:0 auto; padding:32px 32px 0;">
+    <div style="display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:24px;">
+      <h2 style="margin:0; font-family:'Instrument Serif',serif; font-weight:400; font-size:34px; letter-spacing:-0.5px;">Achados de hoje</h2>
+      <span style="font-size:14px; color:#8a8a84;">{{ feedCount }} ofertas ativas · atualizado agora</span>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:20px;">
+      <sc-for list="{{ ofertasFeed }}" as="o" hint-placeholder-count="8">
+        <article onClick="{{ o.abrir }}" style="background:#fff; border:1px solid #e7e7e3; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; cursor:pointer; transition:box-shadow 0.2s;" style-hover="box-shadow:0 16px 32px -24px rgba(24,24,27,0.35)">
+          <div style="height:132px; position:relative;">
+            <image-slot id="{{ o.slotId }}" shape="rect" placeholder="foto: {{ o.cidade }}"></image-slot>
+            <span style="position:absolute; top:12px; left:12px; background:{{ o.badgeBg }}; color:{{ o.badgeColor }}; font-size:12px; font-weight:700; letter-spacing:0.02em; padding:5px 12px; border-radius:999px; pointer-events:none;">{{ o.badge }}</span>
+            <span style="position:absolute; top:12px; right:12px; background:rgba(24,24,27,0.72); color:#f7f7f5; font-size:12px; font-weight:600; padding:4px 10px; border-radius:999px; pointer-events:none;">{{ o.publicado }}</span>
+          </div>
+          <div style="padding:18px; display:flex; flex-direction:column; gap:4px; flex:1;">
+            <span style="font-family:'Archivo',monospace; font-size:13px; font-weight:600; letter-spacing:0.06em; color:#8a8a84;">{{ o.origem }} → {{ o.destino }}</span>
+            <h3 style="margin:2px 0 6px; font-size:20px; font-weight:600; letter-spacing:-0.2px;">{{ o.cidade }}</h3>
+            <div style="display:flex; align-items:baseline; gap:8px;">
+              <span style="font-size:32px; font-weight:700; color:#3f6212; letter-spacing:-0.5px;">{{ o.preco }}</span>
+              <span style="font-size:13px; color:#8a8a84;">ida e volta</span>
+            </div>
+            <span style="font-size:13px; color:#6b6b66; margin-top:2px;">{{ o.cia }} · {{ o.datas }}</span>
+            <span style="margin-top:12px; font-size:14px; font-weight:700; color:#4d7c0f;">Ver oferta →</span>
+          </div>
+        </article>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- COMO FUNCIONA -->
+  <section style="max-width:1200px; margin:0 auto; padding:72px 32px 88px;">
+    <h2 style="margin:0 0 8px; font-family:'Instrument Serif',serif; font-weight:400; font-size:34px; letter-spacing:-0.5px;">Como a gente acha essas tarifas</h2>
+    <p style="margin:0 0 32px; font-size:16px; color:#6b6b66; max-width:520px; line-height:1.5;">Transparência total: nada de preço milagroso sem explicação. Veja como o Aonde garimpa e por que você pode confiar.</p>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:20px;">
+      <sc-for list="{{ comoFunciona }}" as="cf" hint-placeholder-count="3">
+        <div style="background:#fff; border:1px solid #e7e7e3; border-radius:16px; padding:26px;">
+          <span style="display:inline-flex; width:36px; height:36px; border-radius:10px; background:#f1f8e4; color:#4d7c0f; align-items:center; justify-content:center; font-size:16px; font-weight:700;">{{ cf.n }}</span>
+          <h3 style="margin:14px 0 6px; font-size:19px; font-weight:600;">{{ cf.titulo }}</h3>
+          <p style="margin:0; font-size:15px; color:#6b6b66; line-height:1.55; text-wrap:pretty;">{{ cf.desc }}</p>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin:24px 0 0; font-size:13px; color:#a3a39e; line-height:1.6; max-width:640px;">O Aonde recebe comissão de parceiros quando você compra pelo nosso link — sem custo extra para você. Isso mantém o serviço de alertas gratuito. Só indicamos tarifas que nós mesmos compraríamos.</p>
+  </section>
+</main>
+</sc-if>
+
+<sc-if value="{{ isOferta }}" hint-placeholder-val="{{ false }}">
+<main>
+  <section style="max-width:1200px; margin:0 auto; padding:32px 32px 0;">
+    <p style="margin:0 0 20px; font-size:14px; color:#8a8a84;"><a href="#" onClick="{{ goOfertas }}">Início</a> · <a href="#" onClick="{{ goOfertas }}">Ofertas</a> · <span style="color:#44443f;">{{ ofertaAtual.cidade }}</span></p>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:40px; align-items:start;">
+      <div>
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+          <span style="background:{{ ofertaAtual.badgeBg }}; color:{{ ofertaAtual.badgeColor }}; font-size:13px; font-weight:700; padding:5px 14px; border-radius:999px;">{{ ofertaAtual.badge }}</span>
+          <span style="font-size:13px; color:#8a8a84;">publicado {{ ofertaAtual.publicado }}</span>
+        </div>
+        <span style="font-family:'Archivo',monospace; font-size:15px; font-weight:600; letter-spacing:0.06em; color:#8a8a84;">{{ ofertaAtual.origem }} → {{ ofertaAtual.destino }}</span>
+        <h1 style="margin:6px 0 0; font-family:'Instrument Serif',serif; font-weight:400; font-size:52px; line-height:1.02; letter-spacing:-1px;">{{ ofertaAtual.cidade }}</h1>
+        <p style="margin:2px 0 0; font-size:17px; color:#6b6b66;">{{ ofertaAtual.local }} · {{ ofertaAtual.cia }}</p>
+        <div style="display:flex; align-items:baseline; gap:14px; margin:24px 0 6px; flex-wrap:wrap;">
+          <span style="font-size:56px; font-weight:700; color:#3f6212; letter-spacing:-1.5px; line-height:1;">{{ ofertaAtual.preco }}</span>
+          <span style="font-size:18px; color:#a3a39e; text-decoration:line-through;">{{ ofertaAtual.media }}</span>
+        </div>
+        <span style="display:inline-block; background:#f1f8e4; color:#3f6212; font-size:14px; font-weight:700; padding:6px 14px; border-radius:999px;">você economiza {{ ofertaAtual.economia }} · ida e volta</span>
+        <p style="margin:24px 0 0; font-size:17px; line-height:1.6; color:#44443f; text-wrap:pretty;">{{ ofertaAtual.texto }}</p>
+
+        <div style="margin-top:28px; position:relative; height:280px;">
+          <image-slot id="print-{{ ofertaAtual.id }}" shape="rounded" radius="14" placeholder="print do preço encontrado (prova da tarifa)"></image-slot>
+          <span style="position:absolute; top:12px; left:12px; background:rgba(24,24,27,0.75); backdrop-filter:blur(8px); color:#f7f7f5; font-size:12px; font-weight:600; padding:5px 12px; border-radius:999px; pointer-events:none;">Prova do preço · captura de tela</span>
+        </div>
+
+        <h2 style="margin:36px 0 14px; font-size:22px; font-weight:700;">Datas com o preço disponível</h2>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <sc-for list="{{ ofertaAtual.flex }}" as="f" hint-placeholder-count="3">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; background:#fff; border:1px solid #e7e7e3; border-radius:12px; padding:14px 18px;">
+              <span style="font-size:15px; font-weight:600;">{{ f.d }}</span>
+              <span style="font-size:17px; font-weight:700; color:#3f6212;">{{ f.p }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <h2 style="margin:36px 0 14px; font-size:22px; font-weight:700;">Antes de comprar</h2>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <sc-for list="{{ ofertaAtual.dicas }}" as="d" hint-placeholder-count="3">
+            <div style="display:flex; gap:10px; font-size:15px; line-height:1.5; color:#44443f;">
+              <span style="color:#4d7c0f; font-weight:700; flex-shrink:0;">•</span>
+              <span>{{ d }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <aside style="position:sticky; top:92px; display:flex; flex-direction:column; gap:16px;">
+        <div style="background:#fff; border:1px solid #e7e7e3; border-radius:16px; padding:24px; box-shadow:0 24px 48px -34px rgba(24,24,27,0.3);">
+          <span style="font-size:13px; color:#8a8a84;">a partir de</span>
+          <p style="margin:2px 0 0; font-size:36px; font-weight:700; color:#3f6212; letter-spacing:-1px;">{{ ofertaAtual.preco }}</p>
+          <p style="margin:2px 0 16px; font-size:14px; color:#6b6b66;">ida e volta · {{ ofertaAtual.datas }}</p>
+          <button onClick="{{ goResults }}" style="width:100%; background:#4d7c0f; color:#fff; border:none; border-radius:12px; padding:16px; font-family:'Archivo',sans-serif; font-size:16px; font-weight:700; cursor:pointer;" style-hover="background:#3f6212">Ver oferta na {{ ofertaAtual.cia }} →</button>
+          <p style="margin:12px 0 0; font-size:12px; color:#a3a39e; line-height:1.5; text-align:center;">Você será levado ao site do parceiro. O Aonde pode receber comissão, sem custo extra para você.</p>
+        </div>
+        <div style="background:#18181b; color:#f7f7f5; border-radius:16px; padding:22px;">
+          <p style="margin:0 0 4px; font-size:15px; font-weight:700;">Não perca a próxima</p>
+          <p style="margin:0 0 14px; font-size:13px; color:#a1a1a6; line-height:1.5;">Alertas de preço da sua cidade, direto no e-mail e WhatsApp.</p>
+          <button onClick="{{ goOfertas }}" style="width:100%; background:transparent; color:#a3e635; border:1px solid #3f3f42; border-radius:12px; padding:12px; font-family:'Archivo',sans-serif; font-size:14px; font-weight:600; cursor:pointer;" style-hover="border-color:#a3e635">Ativar alertas grátis</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section style="max-width:1200px; margin:0 auto; padding:56px 32px 88px;">
+    <h2 style="margin:0 0 24px; font-family:'Instrument Serif',serif; font-weight:400; font-size:30px; letter-spacing:-0.5px;">Outras ofertas parecidas</h2>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:20px;">
+      <sc-for list="{{ ofertasRelacionadas }}" as="o" hint-placeholder-count="3">
+        <article onClick="{{ o.abrir }}" style="background:#fff; border:1px solid #e7e7e3; border-radius:16px; padding:20px; display:flex; flex-direction:column; gap:4px; cursor:pointer;" style-hover="border-color:#84cc16">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <span style="font-family:'Archivo',monospace; font-size:13px; font-weight:600; letter-spacing:0.06em; color:#8a8a84;">{{ o.origem }} → {{ o.destino }}</span>
+            <span style="background:{{ o.badgeBg }}; color:{{ o.badgeColor }}; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px;">{{ o.badge }}</span>
+          </div>
+          <h3 style="margin:2px 0 4px; font-size:19px; font-weight:600;">{{ o.cidade }}</h3>
+          <span style="font-size:26px; font-weight:700; color:#3f6212; letter-spacing:-0.5px;">{{ o.preco }}</span>
+          <span style="font-size:13px; color:#6b6b66;">{{ o.cia }} · {{ o.datas }}</span>
+        </article>
+      </sc-for>
+    </div>
+  </section>
+</main>
+</sc-if>
+
+<sc-if value="{{ isResults }}" hint-placeholder-val="{{ false }}">
+<main>
+  <section style="background:#18181b; color:#f7f7f5;">
+    <div style="max-width:1200px; margin:0 auto; padding:28px 32px; display:flex; align-items:center; gap:28px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <span style="font-family:'Instrument Serif',serif; font-size:26px;">GRU</span>
+        <span style="color:#84cc16; font-size:18px;">⇄</span>
+        <span style="font-family:'Instrument Serif',serif; font-size:26px;">REC</span>
+      </div>
+      <span style="font-size:15px; color:#a1a1a6;">12 – 19 ago · 2 adultos · Econômica</span>
+      <button onClick="{{ goHome }}" style="margin-left:auto; background:transparent; color:#a3e635; border:1px solid #3f3f42; border-radius:999px; padding:9px 18px; font-family:'Archivo',sans-serif; font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap;" style-hover="border-color:#a3e635">Alterar busca</button>
+    </div>
+  </section>
+
+  <section style="max-width:1200px; margin:0 auto; padding:32px 32px 88px; display:grid; grid-template-columns:minmax(220px, 260px) minmax(0, 1fr); gap:28px; align-items:start;">
+    <aside style="background:#fff; border:1px solid #e7e7e3; border-radius:16px; padding:22px; display:flex; flex-direction:column; gap:22px; position:sticky; top:92px;">
+      <h3 style="margin:0; font-size:16px; font-weight:700;">Filtrar resultados</h3>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <span style="font-size:12px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#8a8a84;">Paradas</span>
+        <label style="display:flex; align-items:center; gap:10px; font-size:15px; cursor:pointer;"><input type="checkbox" defaultChecked="{{ true }}" style="accent-color:#4d7c0f; width:16px; height:16px;">Voo direto</label>
+        <label style="display:flex; align-items:center; gap:10px; font-size:15px; cursor:pointer;"><input type="checkbox" defaultChecked="{{ true }}" style="accent-color:#4d7c0f; width:16px; height:16px;">1 parada</label>
+        <label style="display:flex; align-items:center; gap:10px; font-size:15px; cursor:pointer;"><input type="checkbox" style="accent-color:#4d7c0f; width:16px; height:16px;">2+ paradas</label>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <span style="font-size:12px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#8a8a84;">Companhias</span>
+        <label style="display:flex; align-items:center; gap:10px; font-size:15px; cursor:pointer;"><input type="checkbox" defaultChecked="{{ true }}" style="accent-color:#4d7c0f; width:16px; height:16px;">Azul</label>
+        <label style="display:flex; align-items:center; gap:10px; font-size:15px; cursor:pointer;"><input type="checkbox" defaultChecked="{{ true }}" style="accent-color:#4d7c0f; width:16px; height:16px;">GOL</label>
+        <label style="display:flex; align-items:center; gap:10px; font-size:15px; cursor:pointer;"><input type="checkbox" defaultChecked="{{ true }}" style="accent-color:#4d7c0f; width:16px; height:16px;">LATAM</label>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <span style="font-size:12px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#8a8a84;">Horário de partida</span>
+        <label style="display:flex; align-items:center; gap:10px; font-size:15px; cursor:pointer;"><input type="checkbox" defaultChecked="{{ true }}" style="accent-color:#4d7c0f; width:16px; height:16px;">Manhã (6h – 12h)</label>
+        <label style="display:flex; align-items:center; gap:10px; font-size:15px; cursor:pointer;"><input type="checkbox" defaultChecked="{{ true }}" style="accent-color:#4d7c0f; width:16px; height:16px;">Tarde (12h – 18h)</label>
+        <label style="display:flex; align-items:center; gap:10px; font-size:15px; cursor:pointer;"><input type="checkbox" style="accent-color:#4d7c0f; width:16px; height:16px;">Noite (18h – 0h)</label>
+      </div>
+      <div style="border-top:1px solid #f0f0ed; padding-top:16px; font-size:13px; color:#6b6b66; line-height:1.5;">Precisa de ajuda para escolher? <a href="#">Fale no WhatsApp</a></div>
+    </aside>
+
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <span style="font-size:15px; color:#6b6b66;">{{ resultCount }} voos encontrados · ordenar por</span>
+        <sc-for list="{{ sorts }}" as="s" hint-placeholder-count="3">
+          <button onClick="{{ s.select }}" style="border:1px solid {{ s.border }}; background:{{ s.bg }}; color:{{ s.color }}; border-radius:999px; padding:7px 15px; font-family:'Archivo',sans-serif; font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap;">{{ s.label }}</button>
+        </sc-for>
+      </div>
+      <sc-for list="{{ voos }}" as="v" hint-placeholder-count="5">
+        <article style="background:#fff; border:1px solid {{ v.borda }}; border-radius:16px; padding:22px 24px; display:flex; flex-wrap:wrap; gap:20px; align-items:center; position:relative;">
+          <sc-if value="{{ v.melhor }}" hint-placeholder-val="{{ false }}">
+            <span style="position:absolute; top:-11px; left:20px; background:#84cc16; color:#18181b; font-size:12px; font-weight:700; letter-spacing:0.04em; padding:4px 12px; border-radius:999px;">MELHOR PREÇO</span>
+          </sc-if>
+          <div style="display:flex; flex-direction:column; gap:4px; width:110px; flex-shrink:0;">
+            <span style="font-size:15px; font-weight:700;">{{ v.cia }}</span>
+            <span style="font-size:13px; color:#8a8a84;">{{ v.numero }}</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:16px; flex:1 1 300px; min-width:260px;">
+            <div style="text-align:right;">
+              <p style="margin:0; font-size:22px; font-weight:600;">{{ v.saida }}</p>
+              <p style="margin:2px 0 0; font-size:13px; color:#8a8a84;">GRU</p>
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;">
+              <span style="font-size:12px; color:#8a8a84;">{{ v.duracao }}</span>
+              <div style="width:100%; height:2px; background:#e7e7e3; position:relative;"><span style="position:absolute; right:-1px; top:-3px; width:8px; height:8px; border-radius:50%; background:#4d7c0f;"></span></div>
+              <span style="font-size:12px; font-weight:600; color:{{ v.paradaCor }};">{{ v.paradas }}</span>
+            </div>
+            <div>
+              <p style="margin:0; font-size:22px; font-weight:600;">{{ v.chegada }}</p>
+              <p style="margin:2px 0 0; font-size:13px; color:#8a8a84;">REC</p>
+            </div>
+          </div>
+          <div style="text-align:right; border-left:1px solid #f0f0ed; padding-left:20px; flex:0 0 auto; margin-left:auto;">
+            <p style="margin:0; font-size:13px; color:#8a8a84;">ida e volta, por pessoa</p>
+            <p style="margin:4px 0 0; font-size:24px; font-weight:700; color:#3f6212;">{{ v.preco }}</p>
+            <p style="margin:2px 0 0; font-size:13px; color:#6b6b66;">12x de {{ v.parcela }}</p>
+          </div>
+          <button style="background:#18181b; color:#fff; border:none; border-radius:12px; padding:14px 24px; font-family:'Archivo',sans-serif; font-size:15px; font-weight:700; cursor:pointer; white-space:nowrap; flex:0 0 auto;" style-hover="background:#3f6212">Selecionar</button>
+        </article>
+      </sc-for>
+      <div style="background:#f1f8e4; border:1px solid #d9edb8; border-radius:16px; padding:18px 24px; display:flex; align-items:center; gap:14px; font-size:15px; color:#3f6212;">
+        <span style="font-size:18px; font-weight:700;">Pix</span>
+        <span>Pagando por Pix, todos os preços acima ganham <strong>5% de desconto</strong> aplicado no checkout.</span>
+      </div>
+    </div>
+  </section>
+</main>
+</sc-if>
+
+<footer style="background:#fff; border-top:1px solid #e7e7e3;">
+  <div style="max-width:1200px; margin:0 auto; padding:56px 32px 40px; display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:40px;">
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <div style="display:flex; align-items:baseline; gap:2px;">
+        <span style="font-family:'Instrument Serif',serif; font-size:26px;">aonde</span>
+        <span style="width:7px; height:7px; border-radius:50%; background:#84cc16; display:inline-block; transform:translateY(-2px);"></span>
+      </div>
+      <p style="margin:0; font-size:14px; color:#6b6b66; line-height:1.6; max-width:280px; text-wrap:pretty;">Viagens pelo Brasil e América do Sul, do jeito que você gosta de viajar.</p>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px; font-size:14px;">
+      <span style="font-weight:700; margin-bottom:4px;">Reservas</span>
+      <a href="#">Passagens aéreas</a><a href="#">Hotéis</a><a href="#">Aluguel de carros</a><a href="#">Seguro viagem</a>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px; font-size:14px;">
+      <span style="font-weight:700; margin-bottom:4px;">Conteúdo</span>
+      <a href="#">Guias de destino</a><a href="#">Dicas de viagem</a><a href="#">Revista Aonde</a>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px; font-size:14px;">
+      <span style="font-weight:700; margin-bottom:4px;">Atendimento</span>
+      <a href="#">WhatsApp: 0800 942 0842</a><a href="#">Central de ajuda</a><a href="#">Trocas e cancelamentos</a>
+    </div>
+  </div>
+  <div style="border-top:1px solid #f0f0ed;">
+    <div style="max-width:1200px; margin:0 auto; padding:20px 32px; display:flex; justify-content:space-between; gap:16px; font-size:13px; color:#8a8a84; flex-wrap:wrap;">
+      <span>© 2026 Aonde Viagens Ltda · CNPJ 00.000.000/0001-00 · São Paulo, SP</span>
+      <span>Reservas operadas em parceria com plataformas certificadas de turismo.</span>
+    </div>
+  </div>
+</footer>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1440}, &quot;screen&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;home&quot;, &quot;ofertas&quot;, &quot;oferta&quot;, &quot;results&quot;, &quot;guia&quot;], &quot;default&quot;: &quot;home&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Navegação&quot;}, &quot;guia&quot;: {&quot;editor&quot;: null, &quot;default&quot;: &quot;salvador&quot;, &quot;tsType&quot;: &quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { screen: null, tab: 0, sort: 0, guia: null, trip: 0, heroBg: 0, originFilter: 'Todas', offerId: null, subscribed: false };
+  componentDidMount() {
+    this._heroTimer = setInterval(() => {
+      this.setState(s => ({ heroBg: (s.heroBg + 1) % 3 }));
+    }, 5500);
+    this._onScroll = () => {
+      const blocks = document.querySelectorAll('[data-trip]');
+      if (!blocks.length) return;
+      let active = 0;
+      blocks.forEach((b, i) => {
+        if (b.getBoundingClientRect().top < window.innerHeight * 0.5) active = i;
+      });
+      if (active !== this.state.trip) this.setState({ trip: active });
+    };
+    window.addEventListener('scroll', this._onScroll, { passive: true });
+  }
+  componentWillUnmount() { window.removeEventListener('scroll', this._onScroll); clearInterval(this._heroTimer); }
+  renderVals() {
+    const { tab, sort, trip } = this.state;
+    const screen = this.state.screen ?? this.props.screen ?? 'home';
+    const tabLabels = ['Passagens', 'Hotéis', 'Carros', 'Experiências'];
+    const sortLabels = ['Mais barato', 'Mais rápido', 'Recomendado'];
+    const voosData = [
+      { cia: 'Azul', numero: 'AD 4102 · direto', saida: '07:15', chegada: '10:20', duracao: '3h 05', paradas: 'Direto', direto: true, preco: 'R$ 1.184', parcela: 'R$ 98,67', melhor: true },
+      { cia: 'GOL', numero: 'G3 1748 · direto', saida: '09:40', chegada: '12:50', duracao: '3h 10', paradas: 'Direto', direto: true, preco: 'R$ 1.236', parcela: 'R$ 103,00', melhor: false },
+      { cia: 'LATAM', numero: 'LA 3342 · via BSB', saida: '06:30', chegada: '11:45', duracao: '5h 15', paradas: '1 parada · BSB', direto: false, preco: 'R$ 1.092', parcela: 'R$ 91,00', melhor: false },
+      { cia: 'Azul', numero: 'AD 2917 · via CNF', saida: '13:05', chegada: '18:10', duracao: '5h 05', paradas: '1 parada · CNF', direto: false, preco: 'R$ 1.148', parcela: 'R$ 95,67', melhor: false },
+      { cia: 'LATAM', numero: 'LA 3260 · direto', saida: '16:20', chegada: '19:25', duracao: '3h 05', paradas: 'Direto', direto: true, preco: 'R$ 1.310', parcela: 'R$ 109,17', melhor: false },
+    ];
+    const u = (id, w) => `https://images.unsplash.com/${id}?fm=jpg&q=72&w=${w || 2000}&auto=format&fit=crop`;
+    const PIC = {
+      praia:   { src: u('photo-1643063239391-19c518f0d4f7'), credit: 'Photo by Matheus Frade on Unsplash',    href: 'https://unsplash.com/@matheusfrade' },
+      neve:    { src: u('photo-1554488311-f069a542e3dc'), credit: 'Photo by Geronimo Giqueaux on Unsplash', href: 'https://unsplash.com/@ggiqueaux' },
+      urbano:  { src: u('photo-1641236485997-026d633a9e43'), credit: 'Photo by Joel Oliveira on Unsplash',     href: 'https://unsplash.com/@joeloliveira' },
+    };
+    const monthNames = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const guiasData = {
+      portodegalinhas: {
+        breadcrumb: 'Recife e Porto de Galinhas', tag: 'Praia · Nordeste',
+        titulo: 'Recife e Porto de Galinhas em 5 dias',
+        intro: 'Um roteiro que junta o melhor dos dois mundos: dois dias de cultura entre Recife Antigo e Olinda, depois três dias de mar morno e piscinas naturais no litoral sul de Pernambuco. Feito para quem quer descansar sem abrir mão de conhecer.',
+        heroSlot: 'guia-hero-pdg', heroFoto: 'foto hero: jangadas nas piscinas naturais de Porto de Galinhas',
+        preco: 'R$ 986', ctaVoos: 'Buscar voos para Recife', ctaTitulo: 'Pronto para as piscinas naturais?',
+        opt: { destName: 'Recife (REC)', months: [1480,1360,1020,986,1010,1120,1390,1180,1040,1090,1210,1560],
+          window: { label: '14 – 21 abr 2026', price: 'R$ 986', save: '33%', note: 'terça a terça, voo direto — a combinação mais barata do trimestre' },
+          sources: [ { name: 'Aonde', price: 'R$ 986', note: '12x sem juros · 5% no Pix', best: true }, { name: 'Google Flights', price: 'R$ 1.058', note: 'melhor tarifa encontrada' }, { name: 'Kayak', price: 'R$ 1.041' }, { name: 'Skyscanner', price: 'R$ 1.072' } ] },
+        meta: [
+          { k: 'Duração', v: '5 dias / 4 noites' }, { k: 'Melhor época', v: 'set a mar (menos chuva)' },
+          { k: 'Voo de GRU', v: '3h05 direto' }, { k: 'Base do roteiro', v: '2n Recife + 2n Porto' },
+          { k: 'Estilo', v: 'praia + cultura, ritmo calmo' },
+        ],
+        dias: [
+          { n: 1, titulo: 'Recife Antigo', desc: 'Chegada, hotel no bairro do Recife e tarde inteira no centro histórico, tudo a pé.',
+            pontos: [
+              { nome: 'Marco Zero', nota: 'a praça que abre o roteiro, com vista para o Parque das Esculturas' },
+              { nome: 'Paço do Frevo', nota: 'museu vivo do frevo; vale pegar uma aula-relâmpago de sombrinha' },
+              { nome: 'Rua do Bom Jesus', nota: 'uma das ruas mais bonitas do país e a sinagoga Kahal Zur Israel' },
+            ],
+            restaurante: 'Leite', restauranteNota: 'restaurante em atividade desde 1882; peça a cartola de sobremesa' },
+          { n: 2, titulo: 'Olinda, a vizinha de 500 anos', desc: 'Suba as ladeiras de manhã, quando o calor ainda perdoa, e desça no ritmo dos ateliês.',
+            pontos: [
+              { nome: 'Alto da Sé', nota: 'o cartão-postal: Olinda no primeiro plano, Recife ao fundo' },
+              { nome: 'Mosteiro de São Bento', nota: 'altar barroco folheado a ouro; missa com canto gregoriano aos domingos' },
+              { nome: 'Ateliês da Rua do Amparo', nota: 'arte pernambucana para levar na mala' },
+            ],
+            restaurante: 'Oficina do Sabor', restauranteNota: 'jerimum recheado com camarão, com vista para o casario' },
+          { n: 3, titulo: 'Chegada a Porto de Galinhas', desc: 'Transfer de 1h saindo cedo. Dia de piscinas naturais — a maré baixa manda no horário, confira a tábua na véspera.',
+            pontos: [
+              { nome: 'Piscinas naturais', nota: 'de jangada, na maré baixa; corais e peixes a meio metro de você' },
+              { nome: 'Vila de Porto', nota: 'fim de tarde entre as lojinhas e o letreiro das galinhas coloridas' },
+            ],
+            restaurante: 'Beijupirá', restauranteNota: 'o clássico da vila; peixe com tamarindo e camarão com maracujá' },
+          { n: 4, titulo: 'Muro Alto e Praia do Cupe', desc: 'Dia de buggy ponta a ponta pelas praias do litoral, terminando na piscina natural mais calma da região.',
+            pontos: [
+              { nome: 'Praia de Muro Alto', nota: 'mar de piscina, ideal para quem viaja com crianças ou quer só boiar' },
+              { nome: 'Passeio de buggy', nota: 'ponta a ponta com paradas livres; feche na associação oficial da vila' },
+            ],
+            restaurante: 'Barcaxeira', restauranteNota: 'cozinha regional criativa; a macaxeira aparece até na sobremesa' },
+          { n: 5, titulo: 'Praia dos Carneiros', desc: 'Day trip de despedida: 40 minutos ao sul, a praia da igrejinha à beira-mar. Volta a Recife ao entardecer para o voo.',
+            pontos: [
+              { nome: 'Igrejinha de São Benedito', nota: 'a capela na areia, cenário mais fotografado de Pernambuco' },
+              { nome: 'Catamarã pelo rio Formoso', nota: 'manguezal, bancos de areia e banho no encontro do rio com o mar' },
+            ],
+            restaurante: 'Bora Bora Beach', restauranteNota: 'clube de praia com mesas na água; peixe na brasa e caju amigo' },
+        ],
+      },
+      salvador: {
+        breadcrumb: 'Salvador', tag: 'Cidade histórica · Bahia',
+        titulo: 'Salvador em 5 dias, sem pressa',
+        intro: 'A primeira capital do Brasil pede tempo: ladeiras do Pelourinho, igrejas cobertas de ouro, acarajé no fim da tarde e o mar de Itapuã para fechar. Este roteiro organiza tudo em cinco dias no ritmo certo — muito a pé, sempre com um bom almoço marcado.',
+        heroSlot: 'guia-hero-ssa', heroFoto: 'foto hero: casario colorido do Pelourinho ao entardecer',
+        heroSrc: PIC.urbano.src, heroCredit: PIC.urbano.credit, heroCreditHref: PIC.urbano.href,
+        preco: 'R$ 874', ctaVoos: 'Buscar voos para Salvador', ctaTitulo: 'Salvador está chamando.',
+        opt: { destName: 'Salvador (SSA)', months: [1320,1180,874,910,940,1040,1330,1120,980,1010,1150,1480],
+          window: { label: '3 – 10 mar 2026', price: 'R$ 874', save: '34%', note: 'fim do verão baiano, mar ainda quente e cidade mais vazia' },
+          sources: [ { name: 'Aonde', price: 'R$ 874', note: '12x sem juros · 5% no Pix', best: true }, { name: 'Google Flights', price: 'R$ 946', note: 'melhor tarifa encontrada' }, { name: 'Kayak', price: 'R$ 928' }, { name: 'Skyscanner', price: 'R$ 961' } ] },
+        meta: [
+          { k: 'Duração', v: '5 dias / 4 noites' }, { k: 'Melhor época', v: 'set a mar (verão baiano)' },
+          { k: 'Voo de GRU', v: '2h20 direto' }, { k: 'Base do roteiro', v: 'Barra ou Rio Vermelho' },
+          { k: 'Estilo', v: 'história + gastronomia' },
+        ],
+        dias: [
+          { n: 1, titulo: 'Pelourinho e Centro Histórico', desc: 'O coração de Salvador em um dia: chegue às 9h, quando os largos ainda estão vazios, e vá descendo.',
+            pontos: [
+              { nome: 'Igreja de São Francisco', nota: 'interior barroco com quase um quilo de ouro por metro; imperdível' },
+              { nome: 'Largo do Pelourinho', nota: 'casario colorido, Fundação Casa de Jorge Amado e música ao vivo' },
+              { nome: 'Elevador Lacerda + Mercado Modelo', nota: 'desça para a Cidade Baixa no elevador art déco de 1873' },
+            ],
+            restaurante: 'Restaurante do SENAC-Pelourinho', restauranteNota: 'buffet-escola com mais de 40 pratos baianos; a melhor aula de Bahia que existe' },
+          { n: 2, titulo: 'Barra e o pôr do sol', desc: 'Dia de orla: manhã de praia, tarde de museu e o pôr do sol mais famoso da cidade.',
+            pontos: [
+              { nome: 'Farol da Barra', nota: 'suba os 22 metros; o museu náutico conta os naufrágios da Baía' },
+              { nome: 'Porto da Barra', nota: 'praia pequena e calma, eleita entre as melhores urbanas do mundo' },
+              { nome: 'MAM na Solar do Unhão', nota: 'sexta tem jazz ao pôr do sol (JAM no MAM)' },
+            ],
+            restaurante: 'Pereira', restauranteNota: 'frente para o Farol; moqueca de camarão e drinques de frutas do cerrado' },
+          { n: 3, titulo: 'Bonfim, fitinhas e Ribeira', desc: 'Manhã na Cidade Baixa, entre fé e sorvete: o eixo mais soteropolitano do roteiro.',
+            pontos: [
+              { nome: 'Igreja do Bonfim', nota: 'amarre a fitinha com os três pedidos; a sala dos milagres emociona' },
+              { nome: 'Ponta de Humaitá', nota: 'farol, igrejinha e a vista mais bonita da Baía de Todos-os-Santos' },
+              { nome: 'Sorveteria da Ribeira', nota: 'desde 1931; sorvete de tapioca é o pedido certo' },
+            ],
+            restaurante: 'Boteco do França', restauranteNota: 'lambreta (marisco) aos montes e cerveja gelada, cara da Bahia' },
+          { n: 4, titulo: 'Rio Vermelho, o bairro boêmio', desc: 'Dia de andar devagar: livrarias, casas de escritores e o acarajé mais famoso do Brasil na praça.',
+            pontos: [
+              { nome: 'Casa do Rio Vermelho', nota: 'a casa-museu de Jorge Amado e Zélia Gattai; jardim com as cinzas do casal' },
+              { nome: 'Acarajé da Dinha', nota: 'na praça de Santana desde 1967; peça quente e com tudo' },
+              { nome: 'Largo da Mariquita', nota: 'feirinha, música e o mar de fundo para fechar a noite' },
+            ],
+            restaurante: 'Casa de Tereza', restauranteNota: 'cozinha baiana contemporânea; a moqueca sai na panela de barro' },
+          { n: 5, titulo: 'Itapuã e a despedida', desc: 'O dia do mar: a praia cantada por Dorival Caymmi e Vinicius, com lagoa escondida atrás das dunas.',
+            pontos: [
+              { nome: 'Praia de Itapuã', nota: 'coqueiros, jangadas e barracas de peixe frito na areia' },
+              { nome: 'Lagoa do Abaeté', nota: 'água escura contra dunas brancas; fim de tarde bonito e tranquilo' },
+              { nome: 'Farol de Itapuã', nota: 'listrado, pequeno e perfeito para a última foto da viagem' },
+            ],
+            restaurante: 'Barraca do Lôro', restauranteNota: 'peixe frito com baião na areia de Itapuã; peça o de escama' },
+        ],
+      },
+      bariloche: {
+        breadcrumb: 'Bariloche', tag: 'Neve · Argentina',
+        titulo: 'Bariloche na neve: 5 dias de ski e chocolate',
+        intro: 'De julho a setembro, a Patagônia argentina vira o destino de neve mais acessível para quem sai do Brasil: voo direto, ski no Cerro Catedral, fondue à noite e chocolate em todas as esquinas. Este roteiro equilibra dois dias de pista com passeios para quem não esquia.',
+        heroSlot: 'guia-hero-brc', heroFoto: 'foto hero: Cerro Catedral nevado com o lago Nahuel Huapi ao fundo',
+        heroSrc: PIC.neve.src, heroCredit: PIC.neve.credit, heroCreditHref: PIC.neve.href,
+        preco: 'R$ 2.190', ctaVoos: 'Buscar voos para Bariloche', ctaTitulo: 'A neve tem data para acabar.',
+        opt: { destName: 'Bariloche (BRC)', months: [2980,2760,2190,2090,2150,2620,3480,3060,2340,2280,2520,3120],
+          window: { label: '2 – 9 set 2026', price: 'R$ 2.340', save: '24%', note: 'fim da temporada de neve: pistas abertas e preço já em queda' },
+          sources: [ { name: 'Aonde', price: 'R$ 2.340', note: '12x sem juros · 5% no Pix', best: true }, { name: 'Google Flights', price: 'R$ 2.512', note: 'melhor tarifa encontrada' }, { name: 'Kayak', price: 'R$ 2.468' }, { name: 'Skyscanner', price: 'R$ 2.529' } ] },
+        meta: [
+          { k: 'Duração', v: '5 dias / 4 noites' }, { k: 'Temporada de neve', v: 'julho a setembro' },
+          { k: 'Voo de GRU', v: '4h10 direto' }, { k: 'Base do roteiro', v: 'centro, perto da Mitre' },
+          { k: 'Estilo', v: 'neve + gastronomia; serve para quem não esquia' },
+        ],
+        dias: [
+          { n: 1, titulo: 'Chegada e Centro Cívico', desc: 'Instale-se, alugue as roupas de neve ainda hoje (fila menor) e caminhe pelo centro de pedra e madeira.',
+            pontos: [
+              { nome: 'Centro Cívico', nota: 'a praça suíço-patagônica com vista para o lago Nahuel Huapi' },
+              { nome: 'Calle Mitre', nota: 'rota do chocolate: prove o da Rapa Nui e o da Mamuschka, e escolha seu lado' },
+            ],
+            restaurante: 'El Boliche de Alberto', restauranteNota: 'a parrilla clássica da cidade; bife de chorizo no ponto e fila que anda' },
+          { n: 2, titulo: 'Cerro Catedral — dia 1', desc: 'O maior centro de ski da América do Sul. Comece na área de iniciantes com aula; o passe pode ser de meio período.',
+            pontos: [
+              { nome: 'Aula de ski ou snowboard', nota: 'instrutores falam português na alta temporada; reserve antes' },
+              { nome: 'Teleférico até 2.000 m', nota: 'mesmo sem esquiar, a vista do topo justifica o bilhete' },
+            ],
+            restaurante: 'Punta Princesa', restauranteNota: 'almoço na montanha, a 1.700 m; sopa e vinho quente com vista' },
+          { n: 3, titulo: 'Cerro Catedral — dia 2', desc: 'Dia de praticar o que aprendeu ou de trenó e neve livre para quem não esquia. Noite de fondue.',
+            pontos: [
+              { nome: 'Pistas verdes e azuis', nota: 'agora sem instrutor; a Princesa I é a queda favorita dos iniciantes' },
+              { nome: 'Parque de trenós', nota: 'diversão garantida para todas as idades, sem precisar de aula' },
+            ],
+            restaurante: 'Alto el Fuego', restauranteNota: 'parrilla pequena e disputada; reserve a fondue de queijo na véspera' },
+          { n: 4, titulo: 'Circuito Chico', desc: 'O passeio clássico de 60 km pelas paisagens dos lagos, de carro alugado ou excursão de meio dia.',
+            pontos: [
+              { nome: 'Cerro Campanario', nota: 'suba de cadeirinha: eleita uma das vistas mais bonitas do mundo' },
+              { nome: 'Hotel Llao Llao e Capela San Eduardo', nota: 'parada para o chá da tarde com vista para os Andes' },
+              { nome: 'Colonia Suiza', nota: 'vilarejo de fundação suíça; o curanto sai da terra aos domingos' },
+            ],
+            restaurante: 'Cervecería Patagonia', restauranteNota: 'cerveja própria e vista panorâmica do lago Moreno; vá antes do pôr do sol' },
+          { n: 5, titulo: 'Cerro Otto e despedida', desc: 'Manhã no morro giratório e tarde livre para os últimos chocolates antes do voo.',
+            pontos: [
+              { nome: 'Confeitaria giratória do Cerro Otto', nota: 'gira 360° em 20 minutos, com os Andes em volta' },
+              { nome: 'Feira artesanal do Centro Cívico', nota: 'lãs, madeiras e doces regionais para as lembranças' },
+            ],
+            restaurante: 'Butterfly', restauranteNota: 'menu-degustação patagônico à beira do lago; a despedida à altura' },
+        ],
+      },
+      rio: {
+        breadcrumb: 'Rio de Janeiro', tag: 'Cidade · Rio de Janeiro',
+        titulo: 'Rio de Janeiro em 5 dias clássicos',
+        intro: 'O cartão-postal do Brasil sem estresse: praias da Zona Sul, Cristo e Pão de Açúcar nos horários certos, um dia em Santa Teresa e outro nas praias selvagens. Um roteiro que dá conta do essencial sem correr — e ainda sobra tempo de esticar na areia.',
+        heroSlot: 'guia-hero-rio', heroFoto: 'foto hero: enseada de Botafogo com o Pão de Açúcar ao fundo',
+        preco: 'R$ 640', ctaVoos: 'Buscar voos para o Rio', ctaTitulo: 'O Rio continua lindo.',
+        meta: [ { k: 'Duração', v: '5 dias / 4 noites' }, { k: 'Melhor época', v: 'abr–jun e ago–out' }, { k: 'Voo de GRU', v: '1h05 · ponte aérea' }, { k: 'Base do roteiro', v: 'Copacabana ou Ipanema' }, { k: 'Estilo', v: 'praia + cidade' } ],
+        opt: { destName: 'Rio de Janeiro (GIG)', months: [980,880,700,640,690,760,900,780,690,720,810,1060],
+          window: { label: '14 – 18 mai 2026', price: 'R$ 640', save: '28%', note: 'quinta a segunda, fora de temporada e de feriado' },
+          sources: [ { name: 'Aonde', price: 'R$ 640', note: '12x sem juros · 5% no Pix', best: true }, { name: 'Google Flights', price: 'R$ 712', note: 'melhor tarifa encontrada' }, { name: 'Kayak', price: 'R$ 698' }, { name: 'Skyscanner', price: 'R$ 725' } ] },
+        dias: [
+          { n: 1, titulo: 'Zona Sul e as praias', desc: 'Aterrisse, largue a mala e vá direto para a areia. Termine no Arpoador para o pôr do sol aplaudido.',
+            pontos: [ { nome: 'Copacabana e Ipanema', nota: 'calçadão de ponta a ponta; posto 9 em Ipanema é o point' }, { nome: 'Pedra do Arpoador', nota: 'o pôr do sol que a cidade inteira aplaude, entre as duas praias' } ],
+            restaurante: 'Bar Urca', restauranteNota: 'petiscos no mureta da Urca com vista para a baía; bolinho de bacalhau e chope' },
+          { n: 2, titulo: 'Cristo e Santa Teresa', desc: 'Suba cedo ao Corcovado (menos fila e névoa) e passe a tarde no bairro-ateliê mais charmoso do Rio.',
+            pontos: [ { nome: 'Cristo Redentor', nota: 'van oficial do Cosme Velho; vá no primeiro horário' }, { nome: 'Santa Teresa e Escadaria Selarón', nota: 'bondinho, ateliês e os degraus de azulejo do Jorge Selarón' } ],
+            restaurante: 'Aprazível', restauranteNota: 'cozinha brasileira em um jardim com vista para a Guanabara; reserve mesa na varanda' },
+          { n: 3, titulo: 'Pão de Açúcar e Centro', desc: 'Manhã de museus no Centro histórico, fim de tarde no bondinho para ver a cidade acender.',
+            pontos: [ { nome: 'Pão de Açúcar', nota: 'dois teleféricos até 396 m; suba uma hora antes do pôr do sol' }, { nome: 'Centro histórico', nota: 'Theatro Municipal, Cinelândia e a Confeitaria Colombo art nouveau' } ],
+            restaurante: 'Confeitaria Colombo', restauranteNota: 'salão de 1894 com espelhos belgas; pare para o chá da tarde com pastéis de Belém' },
+          { n: 4, titulo: 'Jardim Botânico e Lagoa', desc: 'Um dia mais verde e tranquilo, longe da agitação da praia, com a Lagoa de bike ou pedalinho.',
+            pontos: [ { nome: 'Jardim Botânico', nota: 'aleia das palmeiras imperiais e o jardim dos beija-flores' }, { nome: 'Parque Lage', nota: 'o palacete com a piscina e a vista do Cristo emoldurado' } ],
+            restaurante: 'Braseiro da Gávea', restauranteNota: 'a picanha e o galeto que são tradição carioca; sente na calçada da Gávea' },
+          { n: 5, titulo: 'Niterói e praias selvagens', desc: 'Atravesse a ponte para ver o Rio de fora e fechar a viagem numa praia de mar aberto.',
+            pontos: [ { nome: 'MAC de Niterói', nota: 'o disco voador do Niemeyer com a mais bela vista da orla do Rio' }, { nome: 'Praia de Itacoatiara', nota: 'mar forte e cercado por morros; ou fique na Prainha, no lado carioca' } ],
+            restaurante: 'Barraca na Prainha', restauranteNota: 'peixe grelhado e água de coco na areia; o encerramento pé na areia perfeito' },
+        ],
+      },
+      gramado: {
+        breadcrumb: 'Gramado e Canela', tag: 'Serra · Rio Grande do Sul',
+        titulo: 'Gramado e Canela em 5 dias',
+        intro: 'A serra gaúcha com jeito europeu: fondue e vinho no frio, cascatas e catedrais de pedra, chocolate artesanal em cada esquina e um day trip ao Vale dos Vinhedos. Funciona no inverno e brilha ainda mais no Natal Luz.',
+        heroSlot: 'guia-hero-gra', heroFoto: 'foto hero: Rua Coberta de Gramado iluminada no inverno',
+        preco: 'R$ 792', ctaVoos: 'Buscar voos para Porto Alegre', ctaTitulo: 'A serra está te esperando.',
+        meta: [ { k: 'Duração', v: '5 dias / 4 noites' }, { k: 'Melhor época', v: 'inverno (jun–ago) e Natal Luz' }, { k: 'Voo de GRU', v: '1h30 a POA + 2h de carro' }, { k: 'Base do roteiro', v: 'centro de Gramado' }, { k: 'Estilo', v: 'serra + gastronomia' } ],
+        opt: { destName: 'Porto Alegre (POA)', months: [1180,980,760,720,700,980,1320,1160,820,1240,1360,1280],
+          window: { label: '6 – 10 mai 2026', price: 'R$ 700', save: '32%', note: 'outono na serra, antes do pico do inverno e do Natal Luz' },
+          sources: [ { name: 'Aonde', price: 'R$ 700', note: '12x sem juros · 5% no Pix', best: true }, { name: 'Google Flights', price: 'R$ 772', note: 'melhor tarifa encontrada' }, { name: 'Kayak', price: 'R$ 758' }, { name: 'Skyscanner', price: 'R$ 781' } ] },
+        dias: [
+          { n: 1, titulo: 'Centro de Gramado', desc: 'Chegue, pegue o carro em POA e passe a tarde no coração fofo da cidade, a pé.',
+            pontos: [ { nome: 'Rua Coberta e Lago Negro', nota: 'a rua dos plátanos e o pedalinho de cisne no lago cercado de hortênsias' }, { nome: 'Mini Mundo', nota: 'as maquetes que encantam todas as idades, boas para famílias' } ],
+            restaurante: 'Gasthof Edelweiss', restauranteNota: 'a casa do fondue em Gramado desde 1979; feche o combo carne + queijo + chocolate' },
+          { n: 2, titulo: 'Canela e as cascatas', desc: 'A vizinha a 8 km reúne a maior cachoeira da região e a catedral que virou cartão-postal.',
+            pontos: [ { nome: 'Parque do Caracol', nota: 'a queda de 130 m vista do mirante e do elevador panorâmico' }, { nome: 'Catedral de Pedra', nota: 'estilo gótico inglês, com carrilhão de sinos importados' } ],
+            restaurante: 'Café colonial Bela Vista', restauranteNota: 'a mesa farta gaúcha: dezenas de doces, cucas e frios — vá com fome e sem hora' },
+          { n: 3, titulo: 'Vale dos Vinhedos', desc: 'Day trip a Bento Gonçalves (1h30) para o principal roteiro de vinho do país.',
+            pontos: [ { nome: 'Vinícolas Miolo e Casa Valduga', nota: 'visita guiada, degustação e almoço harmonizado entre os parreirais' }, { nome: 'Maria Fumaça', nota: 'opcional: o trem histórico com música e vinho entre Bento e Garibaldi' } ],
+            restaurante: 'Almoço na vinícola', restauranteNota: 'menu harmonizado da Casa Valduga; peça o espumante método tradicional da casa' },
+          { n: 4, titulo: 'Parques e neve indoor', desc: 'Dia de atrações temáticas — escolha conforme a idade do grupo e o humor do tempo.',
+            pontos: [ { nome: 'Snowland', nota: 'a única estação de neve indoor da América Latina; esqui e trenó de verdade' }, { nome: 'Le Jardin / Gramado Zoo', nota: 'lavandário perfumado ou o zoo de conservação, ambos na estrada' } ],
+            restaurante: 'Bördó', restauranteNota: 'contemporâneo premiado; o cordeiro e a carta de vinhos gaúchos valem a reserva' },
+          { n: 5, titulo: 'Chocolate e compras', desc: 'Última manhã para levar a serra na mala: malharias, cristais e chocolate artesanal.',
+            pontos: [ { nome: 'Rota do chocolate', nota: 'Lugano, Prawer e Caracol; muitas oferecem visita à fábrica com degustação' }, { nome: 'Av. Borges de Medeiros', nota: 'malhas, couro e decoração; o comércio clássico de Gramado' } ],
+            restaurante: 'Belle du Valais', restauranteNota: 'raclete e fondue suíços num chalé; a despedida no clima de Alpes' },
+        ],
+      },
+      noronha: {
+        breadcrumb: 'Fernando de Noronha', tag: 'Praia · Fernando de Noronha',
+        titulo: 'Fernando de Noronha em 5 dias',
+        intro: 'O arquipélago que muita gente coloca no topo da lista da vida: o mar mais bonito do Brasil, praias de tirar o fôlego, golfinhos ao amanhecer e mergulho de outro planeta. Exige planejamento (taxa ambiental e ingresso do parque), mas devolve em dobro.',
+        heroSlot: 'guia-hero-fen', heroFoto: 'foto hero: Baía do Sancho vista do alto',
+        heroSrc: PIC.praia.src, heroCredit: PIC.praia.credit, heroCreditHref: PIC.praia.href,
+        preco: 'R$ 1.680', ctaVoos: 'Buscar voos para Noronha', ctaTitulo: 'Noronha entra na lista da vida.',
+        meta: [ { k: 'Duração', v: '5 dias / 4 noites' }, { k: 'Melhor época', v: 'ago–dez (mar calmo)' }, { k: 'Voo via', v: 'REC ou NAT · ~1h' }, { k: 'Base do roteiro', v: 'Vila dos Remédios' }, { k: 'Atenção', v: 'taxa ambiental + ingresso do parque' } ],
+        opt: { destName: 'Fernando de Noronha (FEN)', months: [2200,2100,1780,1690,1720,1880,2050,1780,1680,1740,1980,2260],
+          window: { label: '3 – 7 set 2026', price: 'R$ 1.680', save: '26%', note: 'início da melhor temporada de mergulho, antes do pico de dezembro' },
+          sources: [ { name: 'Aonde', price: 'R$ 1.680', note: '12x sem juros · 5% no Pix', best: true }, { name: 'Google Flights', price: 'R$ 1.795', note: 'melhor tarifa encontrada' }, { name: 'Kayak', price: 'R$ 1.762' }, { name: 'Skyscanner', price: 'R$ 1.810' } ] },
+        dias: [
+          { n: 1, titulo: 'Mar de Dentro', desc: 'Chegada, taxa ambiental e ingresso do parque resolvidos, e as primeiras praias, todas pertinho da Vila.',
+            pontos: [ { nome: 'Praia do Cachorro e Conceição', nota: 'as praias urbanas da Vila, ótimas para o primeiro mergulho' }, { nome: 'Forte e Praia do Boldró', nota: 'o pôr do sol clássico da ilha, do alto do forte holandês' } ],
+            restaurante: 'Bar do Meio', restauranteNota: 'pé na areia da Conceição para o pôr do sol; drink de cajá e petiscos de frutos do mar' },
+          { n: 2, titulo: 'Baía do Sancho', desc: 'A praia eleita a mais bonita do mundo mais de uma vez. Desça pela fenda na rocha e reserve o dia.',
+            pontos: [ { nome: 'Baía do Sancho', nota: 'escadas verticais dentro de uma fenda; a recompensa é indescritível' }, { nome: 'Baía dos Porcos', nota: 'piscininhas entre pedras com o Morro Dois Irmãos de cenário' } ],
+            restaurante: 'Restaurante do Zé Maria', restauranteNota: 'o Festival Noronhense (terças e sábados): dezenas de pratos e o Morro do Pico ao fundo' },
+          { n: 3, titulo: 'Passeio de barco e golfinhos', desc: 'Manhã no mar contornando a ilha, com os golfinhos-rotadores e paradas para snorkel.',
+            pontos: [ { nome: 'Baía dos Golfinhos', nota: 'centenas de rotadores ao amanhecer; um dos maiores santuários do mundo' }, { nome: 'Snorkel na Baía do Sueste', nota: 'nade com tartarugas em água rasa e transparente' } ],
+            restaurante: 'Mergulhão', restauranteNota: 'na marina, com vista para os barcos; risoto de camarão e a melhor carta de drinks' },
+          { n: 4, titulo: 'Atalaia e Mar de Fora', desc: 'A piscina natural mais famosa (com horário agendado) e as praias mais bravas do outro lado.',
+            pontos: [ { nome: 'Piscina natural da Atalaia', nota: 'agendamento obrigatório; 30 min entre corais, peixes e tubarões-bebê' }, { nome: 'Praia do Leão', nota: 'desova de tartarugas e a paisagem mais selvagem da ilha' } ],
+            restaurante: 'Xica da Silva', restauranteNota: 'moqueca de cavala e caldeirada; simples, gostoso e queridinho dos ilhéus' },
+          { n: 5, titulo: 'Trilha e despedida', desc: 'Uma última caminhada histórica e as compras antes do voo de volta ao continente.',
+            pontos: [ { nome: 'Capela e Forte dos Remédios', nota: 'o conjunto histórico da Vila, com vista para o mar' }, { nome: 'Mirante do Boldró', nota: 'a última foto do arquipélago inteiro, do alto' } ],
+            restaurante: 'Cacimba Bistrô', restauranteNota: 'cozinha autoral na Cacimba do Padre; peça o peixe do dia grelhado' },
+        ],
+      },
+      chapada: {
+        breadcrumb: 'Chapada Diamantina', tag: 'Natureza · Bahia',
+        titulo: 'Chapada Diamantina em 5 dias',
+        intro: 'O interior da Bahia guarda cachoeiras gigantes, grutas de água azul-safira e trilhas para todos os fôlegos. Um roteiro de aventura leve, com base em Lençóis, para quem quer natureza de verdade sem abrir mão de uma boa cama e comida no fim do dia.',
+        heroSlot: 'guia-hero-cha', heroFoto: 'foto hero: mirante da Cachoeira da Fumaça',
+        preco: 'R$ 940', ctaVoos: 'Buscar voos para Lençóis', ctaTitulo: 'A Chapada é para caminhar.',
+        meta: [ { k: 'Duração', v: '5 dias / 4 noites' }, { k: 'Melhor época', v: 'abr–out (seca, trilhas seguras)' }, { k: 'Voo de GRU', v: 'via SSA + estrada, ou voo a LEC' }, { k: 'Base do roteiro', v: 'Lençóis' }, { k: 'Estilo', v: 'aventura leve, trilhas' } ],
+        opt: { destName: 'Salvador (SSA)', months: [1120,1040,980,940,960,1010,1180,1090,980,1000,1160,1280],
+          window: { label: '20 – 24 abr 2026', price: 'R$ 940', save: '25%', note: 'começo da estação seca: cachoeiras cheias e trilhas firmes' },
+          sources: [ { name: 'Aonde', price: 'R$ 940', note: '12x sem juros · 5% no Pix', best: true }, { name: 'Google Flights', price: 'R$ 1.012', note: 'melhor tarifa encontrada' }, { name: 'Kayak', price: 'R$ 998' }, { name: 'Skyscanner', price: 'R$ 1.026' } ] },
+        dias: [
+          { n: 1, titulo: 'Lençóis, a base', desc: 'Chegada à vila garimpeira mais charmosa da Chapada e um banho de rio para aquecer as pernas.',
+            pontos: [ { nome: 'Centro histórico de Lençóis', nota: 'casario colonial, artesanato e a agência para fechar os passeios' }, { nome: 'Cachoeira do Serrano e Salão de Areias', nota: 'toboágua natural a 15 min a pé do centro' } ],
+            restaurante: 'Cozinha Aberta (Deby & Rai)', restauranteNota: 'menu autoral que reinventa a cozinha do sertão; reserve, são poucas mesas' },
+          { n: 2, titulo: 'Grutas de água azul', desc: 'Dia dos poços iluminados por dentro — o horário do sol define o espetáculo, então saia cedo.',
+            pontos: [ { nome: 'Poço Azul', nota: 'entre maio e setembro, ao meio-dia, um raio de sol acende a água' }, { nome: 'Poço Encantado', nota: 'o cartão-postal: água azul-safira translúcida numa caverna' } ],
+            restaurante: 'Almoço em Andaraí', restauranteNota: 'comida caseira baiana na estrada dos poços; galinha caipira e feijão de corda' },
+          { n: 3, titulo: 'Cachoeira da Fumaça', desc: 'A trilha assinatura da Chapada: 6 km ida e volta até o mirante da 2ª maior queda do Brasil (340 m).',
+            pontos: [ { nome: 'Mirante da Fumaça', nota: 'no Vale do Capão; a água vira névoa antes de tocar o chão' }, { nome: 'Vale do Capão', nota: 'a vila alternativa da Chapada, de energia hippie e boa comida' } ],
+            restaurante: 'Pão de Beto (Vale do Capão)', restauranteNota: 'pães e tortas de forno a lenha; o combustível certo pós-trilha' },
+          { n: 4, titulo: 'Poço do Diabo e Mucugezinho', desc: 'Um dia mais leve, de cachoeira com salto e boia, para descansar as pernas.',
+            pontos: [ { nome: 'Poço do Diabo', nota: 'queda com poço fundo e balanço de corda para os corajosos' }, { nome: 'Rio Mucugezinho', nota: 'sequência de piscininhas para boiar entre as pedras' } ],
+            restaurante: 'Loralu (Lençóis)', restauranteNota: 'pizzas de forno a lenha no quintal; a noite mais animada da vila' },
+          { n: 5, titulo: 'Gruta da Lapa Doce e Pratinha', desc: 'Espeleologia tranquila de manhã e flutuação em água cristalina antes de voltar.',
+            pontos: [ { nome: 'Gruta da Lapa Doce', nota: 'quilômetros de salões com estalactites, guiado à luz de lampião' }, { nome: 'Pratinha', nota: 'rio de água azul saindo da gruta; snorkel e tirolesa no mesmo lugar' } ],
+            restaurante: 'Restaurante da Pratinha', restauranteNota: 'peixe e petiscos à beira do rio azul; o último mergulho antes da estrada' },
+        ],
+      },
+      foz: {
+        breadcrumb: 'Foz do Iguaçu', tag: 'Natureza · Paraná',
+        titulo: 'Foz do Iguaçu em 4 dias (3 países)',
+        intro: 'Uma das sete maravilhas naturais do mundo em dose dupla: as Cataratas pelos lados brasileiro e argentino, a usina de Itaipu, o Parque das Aves e a chance de pisar em três países em um só dia. Compacto, impressionante e ótimo para famílias.',
+        heroSlot: 'guia-hero-foz', heroFoto: 'foto hero: Garganta do Diabo nas Cataratas do Iguaçu',
+        preco: 'R$ 720', ctaVoos: 'Buscar voos para Foz', ctaTitulo: 'As Cataratas são inesquecíveis.',
+        meta: [ { k: 'Duração', v: '4 dias / 3 noites' }, { k: 'Melhor época', v: 'ano todo (evite feriados)' }, { k: 'Voo de GRU', v: '1h30 direto' }, { k: 'Base do roteiro', v: 'av. das Cataratas' }, { k: 'Estilo', v: 'natureza + família' } ],
+        opt: { destName: 'Foz do Iguaçu (IGU)', months: [980,900,760,720,740,700,880,760,720,760,860,1040],
+          window: { label: '9 – 12 jun 2026', price: 'R$ 700', save: '27%', note: 'terça a sexta, longe de feriado — as Cataratas mais vazias' },
+          sources: [ { name: 'Aonde', price: 'R$ 700', note: '12x sem juros · 5% no Pix', best: true }, { name: 'Google Flights', price: 'R$ 768', note: 'melhor tarifa encontrada' }, { name: 'Kayak', price: 'R$ 752' }, { name: 'Skyscanner', price: 'R$ 779' } ] },
+        dias: [
+          { n: 1, titulo: 'Cataratas — lado brasileiro', desc: 'A trilha panorâmica que abre a vista completa e termina encharcado na Garganta do Diabo.',
+            pontos: [ { nome: 'Trilha das Cataratas', nota: '1,2 km de mirantes com o panorama aberto dos saltos' }, { nome: 'Macuco Safari', nota: 'bote que entra embaixo das quedas; leve capa e câmera à prova d\'água' } ],
+            restaurante: 'Porto Canoas', restauranteNota: 'buffet dentro do parque, com deck sobre o rio Iguaçu; almoço com vista das corredeiras' },
+          { n: 2, titulo: 'Cataratas — lado argentino', desc: 'O lado das passarelas: você caminha por cima e por dentro das quedas. Reserve o dia inteiro.',
+            pontos: [ { nome: 'Garganta del Diablo', nota: 'trem ecológico + passarela até a borda do maior salto; ensurdecedor' }, { nome: 'Circuitos Superior e Inferior', nota: 'passarelas que cercam dezenas de quedas menores' } ],
+            restaurante: 'Parrilla em Puerto Iguazú', restauranteNota: 'bife de chorizo e provoleta do outro lado da fronteira; leve pesos ou cartão' },
+          { n: 3, titulo: 'Itaipu e as Três Fronteiras', desc: 'A engenharia gigante de dia ou iluminada à noite, e o pôr do sol no encontro dos três países.',
+            pontos: [ { nome: 'Usina de Itaipu', nota: 'circuito panorâmico; a versão iluminada à noite é o destaque' }, { nome: 'Marco das Três Fronteiras', nota: 'Brasil, Argentina e Paraguai num só olhar, com show ao pôr do sol' } ],
+            restaurante: 'Búfalo Branco', restauranteNota: 'o rodízio de carnes mais tradicional de Foz; mais de 30 cortes e buffet completo' },
+          { n: 4, titulo: 'Parque das Aves e compras', desc: 'Manhã imersiva entre tucanos e araras, ao lado das Cataratas, antes do voo.',
+            pontos: [ { nome: 'Parque das Aves', nota: 'viveiros que você atravessa por dentro; reabilitação de aves da Mata Atlântica' }, { nome: 'Compras no Paraguai (opcional)', nota: 'Ciudad del Este para eletrônicos; leve documento e atenção à cota' } ],
+            restaurante: 'Vila Yá', restauranteNota: 'cozinha regional em casa charmosa; peça o surubim e o chipa paraguaio' },
+        ],
+      },
+      jeri: {
+        breadcrumb: 'Jericoacoara', tag: 'Praia · Ceará',
+        titulo: 'Jericoacoara em 5 dias',
+        intro: 'A vila de ruas de areia dentro de um parque nacional: dunas para escorregar, lagoas de água doce com redes dentro d\'água, kitesurf de nível mundial e o pôr do sol na duna que virou ritual. Rústica no melhor sentido — e mágica ao entardecer.',
+        heroSlot: 'guia-hero-jeri', heroFoto: 'foto hero: pôr do sol na Duna do Pôr do Sol, Jericoacoara',
+        preco: 'R$ 1.120', ctaVoos: 'Buscar voos para Jericoacoara', ctaTitulo: 'Jeri é sobre desacelerar.',
+        meta: [ { k: 'Duração', v: '5 dias / 4 noites' }, { k: 'Melhor época', v: 'jul–fev (vento p/ kite jul–jan)' }, { k: 'Voo de GRU', v: 'via FOR + transfer, ou voo a JJD' }, { k: 'Base do roteiro', v: 'vila de Jeri' }, { k: 'Estilo', v: 'praia + aventura' } ],
+        opt: { destName: 'Fortaleza (FOR)', months: [1180,1120,980,1020,1060,1140,1360,1240,1060,1120,1280,1320],
+          window: { label: '10 – 14 mar 2026', price: 'R$ 980', save: '26%', note: 'fim do verão, praia cheia de sol e preços já mais baixos' },
+          sources: [ { name: 'Aonde', price: 'R$ 980', note: '12x sem juros · 5% no Pix', best: true }, { name: 'Google Flights', price: 'R$ 1.052', note: 'melhor tarifa encontrada' }, { name: 'Kayak', price: 'R$ 1.038' }, { name: 'Skyscanner', price: 'R$ 1.066' } ] },
+        dias: [
+          { n: 1, titulo: 'A vila e a Duna do Pôr do Sol', desc: 'Transfer 4x4 desde Fortaleza (4h) e a subida obrigatória à duna para o primeiro pôr do sol.',
+            pontos: [ { nome: 'Ruas de areia de Jeri', nota: 'sem asfalto e sem carro; a vida acontece a pé, de bike ou de bugue' }, { nome: 'Duna do Pôr do Sol', nota: 'todo mundo sobe no fim da tarde; aplausos quando o sol some no mar' } ],
+            restaurante: 'Tamboo', restauranteNota: 'mesas na areia com o mar de fundo; frutos do mar e drinks ao som do vento' },
+          { n: 2, titulo: 'Lagoas do Paraíso e Azul', desc: 'O passeio mais fotografado de Jeri: redes dentro da água doce e o dia inteiro de day use.',
+            pontos: [ { nome: 'Lagoa do Paraíso', nota: 'as redes e balanços dentro da água azul-turquesa; chegue cedo' }, { nome: 'Lagoa Azul', nota: 'mais tranquila, ótima para o fim da tarde longe da multidão' } ],
+            restaurante: 'Rancho do Peixe (day use)', restauranteNota: 'à beira da lagoa; peixe grelhado e a rede esperando depois do almoço' },
+          { n: 3, titulo: 'Leste: Tatajuba e Pedra Furada', desc: 'Passeio de bugue pelas dunas móveis até a lagoa escondida e o arco de pedra, cartão-postal de Jeri.',
+            pontos: [ { nome: 'Pedra Furada', nota: 'o arco natural na praia; só acessível na maré baixa, confira o horário' }, { nome: 'Duna e Lagoa de Tatajuba', nota: 'tirolesa que joga você na lagoa e a duma móvel gigante' } ],
+            restaurante: 'Barraca de Tatajuba', restauranteNota: 'camarão na moranga e caranguejo na beira da lagoa; simples e fresquíssimo' },
+          { n: 4, titulo: 'Oeste: Mangue Seco e Guriú', desc: 'Travessia de balsa e cavalos, o santuário de cavalos-marinhos e o vilarejo de pescadores.',
+            pontos: [ { nome: 'Cavalos-marinhos do Guriú', nota: 'passeio de caiaque no mangue com guia local para vê-los de perto' }, { nome: 'Árvore da Preguiça', nota: 'a árvore deitada sobre a água virou o point da foto e do banho' } ],
+            restaurante: 'Restaurante no Preá', restauranteNota: 'peixada e moqueca na praia vizinha, a capital cearense do kite' },
+          { n: 5, titulo: 'Kitesurf ou dia de rede', desc: 'Aula de kite na Prea (vento garantido de jul a jan) ou simplesmente um dia sem plano.',
+            pontos: [ { nome: 'Aula de kitesurf', nota: 'a Preá tem vento constante e escolas com instrutores brasileiros' }, { nome: 'Manhã livre na vila', nota: 'café da manhã longo, feirinha de artesanato e última rede no mar' } ],
+            restaurante: 'Naturalmente (crepe na duna)', restauranteNota: 'a barraca de crepes na Duna do Pôr do Sol; o encerramento doce da viagem' },
+        ],
+      },
+      buenosaires: {
+        breadcrumb: 'Buenos Aires', tag: 'Cidade · Argentina',
+        titulo: 'Buenos Aires em 5 dias',
+        intro: 'A capital que os brasileiros amam voltar: tango e livrarias, parrillas e cafés centenários, bairros para caminhar sem pressa e o câmbio que costuma jogar a favor. Um clássico da América do Sul, com voo direto e sem visto.',
+        heroSlot: 'guia-hero-bue', heroFoto: 'foto hero: casario colorido do Caminito, La Boca',
+        preco: 'R$ 1.480', ctaVoos: 'Buscar voos para Buenos Aires', ctaTitulo: 'Buenos Aires nunca cansa.',
+        meta: [ { k: 'Duração', v: '5 dias / 4 noites' }, { k: 'Melhor época', v: 'mar–mai e set–nov' }, { k: 'Voo de GRU', v: '2h50 direto' }, { k: 'Base do roteiro', v: 'Palermo ou Recoleta' }, { k: 'Estilo', v: 'cidade + gastronomia' } ],
+        opt: { destName: 'Buenos Aires (EZE)', months: [1720,1640,1420,1380,1460,1620,1840,1700,1480,1520,1660,1880],
+          window: { label: '13 – 17 abr 2026', price: 'R$ 1.380', save: '27%', note: 'outono portenho, clima ameno e cidade em ritmo normal' },
+          sources: [ { name: 'Aonde', price: 'R$ 1.380', note: '12x sem juros · 5% no Pix', best: true }, { name: 'Google Flights', price: 'R$ 1.472', note: 'melhor tarifa encontrada' }, { name: 'Kayak', price: 'R$ 1.451' }, { name: 'Skyscanner', price: 'R$ 1.489' } ] },
+        dias: [
+          { n: 1, titulo: 'Centro histórico', desc: 'Comece pelo coração cívico da cidade, entre praças, a Casa Rosada e o café mais famoso do país.',
+            pontos: [ { nome: 'Plaza de Mayo e Casa Rosada', nota: 'a sacada dos discursos e a catedral onde o Papa Francisco foi cardeal' }, { nome: 'Avenida de Mayo', nota: 'arquitetura art nouveau até o Congresso; pare no Café Tortoni' } ],
+            restaurante: 'Café Tortoni', restauranteNota: 'aberto desde 1858; chocolate quente com churros no salão de vitrais — vá fora do pico' },
+          { n: 2, titulo: 'Recoleta e San Telmo', desc: 'Da elegância da Recoleta à boemia antiquária de San Telmo (imperdível se cair num domingo).',
+            pontos: [ { nome: 'Cemitério da Recoleta', nota: 'mausoléus monumentais, incluindo o de Evita; um museu a céu aberto' }, { nome: 'Feira de San Telmo', nota: 'domingo: antiguidades, tango na rua e a Plaza Dorrego lotada' } ],
+            restaurante: 'El Desnivel', restauranteNota: 'parrilla sem frescura em San Telmo; bife de chorizo, batata e vinho da casa' },
+          { n: 3, titulo: 'Palermo', desc: 'O bairro mais gostoso de caminhar: parques, arte moderna e as melhores lojas e bares da cidade.',
+            pontos: [ { nome: 'Bosques de Palermo e MALBA', nota: 'os jardins e o museu de arte latino-americana num só passeio' }, { nome: 'Palermo Soho', nota: 'ruas arborizadas de lojas de design, cafés de especialidade e bares' } ],
+            restaurante: 'Don Julio', restauranteNota: 'a parrilla mais premiada de BA; reserve com semanas de antecedência e peça o ojo de bife' },
+          { n: 4, titulo: 'La Boca e Puerto Madero', desc: 'Do bairro mais colorido e futebolístico à orla mais moderna, reformada nas antigas docas.',
+            pontos: [ { nome: 'Caminito e La Bombonera', nota: 'o beco de casas coloridas e o estádio do Boca; visite de dia e em grupo' }, { nome: 'Puerto Madero', nota: 'passeio à beira d\'água pela Ponte da Mulher, de Calatrava' } ],
+            restaurante: 'Parrilla em Puerto Madero', restauranteNota: 'jantar à beira da água com carta de Malbec; peça o cordeiro patagônico' },
+          { n: 5, titulo: 'Tigre ou compras', desc: 'Escape ao delta de trem para fechar leve, ou dedique a manhã às compras de couro e vinho.',
+            pontos: [ { nome: 'Delta do Tigre', nota: 'trem suburbano + passeio de barco entre as casas sobre a água' }, { nome: 'Av. Santa Fe', nota: 'couro, calçados e vinho a preço bom; a rua de compras dos brasileiros' } ],
+            restaurante: 'Café portenho de despedida', restauranteNota: 'medialunas e submarino (chocolate no leite quente) antes do aeroporto' },
+        ],
+      },
+    };
+    const g = guiasData[this.state.guia ?? this.props.guia] || guiasData.salvador;
+    const brl = n => 'R$ ' + n.toLocaleString('pt-BR');
+    const lerp = (a, b, t) => Math.round(a + (b - a) * t);
+    const cheapC = [234, 244, 214], priceyC = [248, 227, 206];
+    const om = (g.opt && g.opt.months) || [];
+    const omMin = om.length ? Math.min(...om) : 0, omMax = om.length ? Math.max(...om) : 1;
+    const optCells = om.map((n, i) => {
+      const t = omMax === omMin ? 0 : (n - omMin) / (omMax - omMin);
+      const c = [0, 1, 2].map(k => lerp(cheapC[k], priceyC[k], t));
+      const isBest = n === omMin;
+      return { mon: monthNames[i], price: brl(n), bg: isBest ? '#4d7c0f' : `rgb(${c[0]},${c[1]},${c[2]})`, color: isBest ? '#fbfbfa' : '#3f4a2a', border: isBest ? '#4d7c0f' : '#ececea', isBest };
+    });
+    const optBestMonth = om.length ? monthNames[om.indexOf(omMin)] : '';
+    const optSources = ((g.opt && g.opt.sources) || []).map(s => ({ ...s, note: s.note || '', bg: s.best ? '#f1f8e4' : '#fff', color: s.best ? '#3f6212' : '#18181b', border: s.best ? '#d9edb8' : '#f0f0ed' }));
+    const heroData = [
+      { label: 'Praia', slotId: 'hero-praia', foto: 'foto hero: praia do Nordeste, mar verde e jangada', legenda: 'Fernando de Noronha · Pernambuco', src: PIC.praia.src, credit: PIC.praia.credit, creditHref: PIC.praia.href },
+      { label: 'Montanha & neve', slotId: 'hero-montanha', foto: 'foto hero: Cerro Catedral nevado, Bariloche', legenda: 'Cerro Catedral · Bariloche', src: PIC.neve.src, credit: PIC.neve.credit, creditHref: PIC.neve.href },
+      { label: 'Urbano', slotId: 'hero-urbano', foto: 'foto hero: casario histórico de Salvador ao entardecer', legenda: 'Pelourinho · Salvador', src: PIC.urbano.src, credit: PIC.urbano.credit, creditHref: PIC.urbano.href },
+    ];
+    const heroBg = this.state.heroBg;
+
+    const offersData = [
+      { id: 'gru-lis', origem: 'GRU', destino: 'LIS', cidade: 'Lisboa', local: 'Portugal', preco: 'R$ 1.847', media: 'R$ 3.540', economia: 'R$ 1.693', cia: 'TAP', datas: '12–24 out', tipo: 'Internacional', publicado: 'há 2h', badge: '48% abaixo da média', erro: false, slotId: 'of-lis',
+        texto: 'Tarifa cheia São Paulo–Lisboa raramente cai abaixo de R$ 2.500 na alta. Achamos assentos em outubro por menos de R$ 1.900 ida e volta, com uma escala curta em algumas datas. Some to melhor preço para Portugal no ano.',
+        dicas: ['Inclui 1 bagagem de mão; despachada é paga à parte na TAP', 'Datas de terça e quarta são as mais baratas do período', 'Preço encontrado às 9h de hoje — tarifas assim somem em horas'],
+        flex: [{ d: '12–24 out', p: 'R$ 1.847' }, { d: '15–27 out', p: 'R$ 1.912' }, { d: '19–31 out', p: 'R$ 2.045' }] },
+      { id: 'gru-rec', origem: 'GRU', destino: 'REC', cidade: 'Recife', local: 'Pernambuco', preco: 'R$ 587', media: 'R$ 1.180', economia: 'R$ 593', cia: 'Azul', datas: '9–16 set', tipo: 'Nacional', publicado: 'há 20min', badge: 'Erro de tarifa', erro: true, slotId: 'of-rec',
+        texto: 'Possível erro de tarifa: São Paulo–Recife ida e volta por menos de R$ 600, menos da metade da média histórica. Erros de tarifa costumam ser corrigidos rápido — se for viajar, compre já e só marque hotel depois da confirmação por e-mail.',
+        dicas: ['Erros de tarifa podem ser cancelados pela cia; espere a confirmação antes de reservar hotel', 'Voo direto de 3h05 pela Azul', 'Não some datas ao carrinho: reserve exatamente as que aparecem'],
+        flex: [{ d: '9–16 set', p: 'R$ 587' }, { d: '11–18 set', p: 'R$ 612' }, { d: '16–23 set', p: 'R$ 634' }] },
+      { id: 'vcp-bue', origem: 'VCP', destino: 'BUE', cidade: 'Buenos Aires', local: 'Argentina', preco: 'R$ 989', media: 'R$ 1.520', economia: 'R$ 531', cia: 'GOL', datas: '3–10 set', tipo: 'Internacional', publicado: 'há 1h', badge: '35% abaixo da média', erro: false, slotId: 'of-bue',
+        texto: 'Saindo de Campinas (VCP), Buenos Aires por menos de mil reais ida e volta. Ótimo para um fim de semana esticado de tango, parrilla e compras, com o câmbio jogando a favor.',
+        dicas: ['Voo direto de Campinas, sem passar por Guarulhos', 'Tarifa promocional GOL: bagagem de mão inclusa', 'Setembro tem clima ameno e cidade em ritmo normal'],
+        flex: [{ d: '3–10 set', p: 'R$ 989' }, { d: '10–17 set', p: 'R$ 1.048' }, { d: '17–24 set', p: 'R$ 1.096' }] },
+      { id: 'cnf-fln', origem: 'CNF', destino: 'FLN', cidade: 'Florianópolis', local: 'Santa Catarina', preco: 'R$ 312', media: 'R$ 690', economia: 'R$ 378', cia: 'GOL', datas: '14–21 out', tipo: 'Nacional', publicado: 'há 3h', badge: '41% abaixo da média', erro: false, slotId: 'of-fln',
+        texto: 'Belo Horizonte–Florianópolis por R$ 312 ida e volta em outubro, antes da temporada de verão explodir os preços. Praia, lagoa e ostras a preço de passagem de ônibus.',
+        dicas: ['Outubro é baixa temporada em Floripa: preços de hotel também caem', 'Voo com 1 conexão rápida', 'Leve casaco leve — o mar ainda está frio nessa época'],
+        flex: [{ d: '14–21 out', p: 'R$ 312' }, { d: '18–25 out', p: 'R$ 344' }, { d: '21–28 out', p: 'R$ 369' }] },
+      { id: 'gig-mia', origem: 'GIG', destino: 'MIA', cidade: 'Miami', local: 'Estados Unidos', preco: 'R$ 2.190', media: 'R$ 3.580', economia: 'R$ 1.390', cia: 'LATAM', datas: '5–18 nov', tipo: 'Internacional', publicado: 'há 5h', badge: '39% abaixo da média', erro: false, slotId: 'of-mia',
+        texto: 'Rio–Miami por R$ 2.190 ida e volta em novembro, fora do pico das festas. Excelente janela para compras e parques, com voo direto e boa malha de conexões nos EUA.',
+        dicas: ['Voo direto GIG–MIA pela LATAM', 'Novembro evita a alta de dezembro e janeiro', 'Lembre do visto americano válido antes de comprar'],
+        flex: [{ d: '5–18 nov', p: 'R$ 2.190' }, { d: '8–21 nov', p: 'R$ 2.264' }, { d: '12–25 nov', p: 'R$ 2.390' }] },
+      { id: 'gru-scl', origem: 'GRU', destino: 'SCL', cidade: 'Santiago', local: 'Chile', preco: 'R$ 1.290', media: 'R$ 1.940', economia: 'R$ 650', cia: 'LATAM', datas: '2–12 nov', tipo: 'Internacional', publicado: 'há 8h', badge: '33% abaixo da média', erro: false, slotId: 'of-scl',
+        texto: 'São Paulo–Santiago por R$ 1.290 ida e volta. Vinhos, cordilheira e a porta de entrada para o Atacama e Valparaíso — tudo com voo direto de menos de 4 horas.',
+        dicas: ['Voo direto de aproximadamente 3h50', 'Novembro é primavera no Chile: dias longos e clima agradável', 'Bagagem despachada é paga à parte nesta tarifa'],
+        flex: [{ d: '2–12 nov', p: 'R$ 1.290' }, { d: '6–16 nov', p: 'R$ 1.352' }, { d: '9–19 nov', p: 'R$ 1.418' }] },
+      { id: 'gru-mco', origem: 'GRU', destino: 'MCO', cidade: 'Orlando', local: 'Estados Unidos', preco: 'R$ 2.560', media: 'R$ 3.660', economia: 'R$ 1.100', cia: 'Azul', datas: '10–24 jan', tipo: 'Internacional', publicado: 'há 12h', badge: '30% abaixo da média', erro: false, slotId: 'of-mco',
+        texto: 'São Paulo–Orlando por R$ 2.560 ida e volta em janeiro. O destino dos parques com uma das melhores tarifas do verão, ideal para famílias que planejam com antecedência.',
+        dicas: ['Voo direto GRU–MCO pela Azul', 'Janeiro ainda pega parte das férias escolares — reserve cedo', 'Confira a validade do visto de todos os viajantes'],
+        flex: [{ d: '10–24 jan', p: 'R$ 2.560' }, { d: '13–27 jan', p: 'R$ 2.648' }, { d: '17–31 jan', p: 'R$ 2.790' }] },
+      { id: 'gig-ssa', origem: 'GIG', destino: 'SSA', cidade: 'Salvador', local: 'Bahia', preco: 'R$ 449', media: 'R$ 780', economia: 'R$ 331', cia: 'GOL', datas: '7–14 nov', tipo: 'Nacional', publicado: 'há 6h', badge: '37% abaixo da média', erro: false, slotId: 'of-ssa2',
+        texto: 'Rio–Salvador por R$ 449 ida e volta em novembro. Pelourinho, praia e acarajé com uma das melhores tarifas nacionais da semana, fora de feriado.',
+        dicas: ['Voo direto de pouco mais de 2h', 'Novembro tem sol e menos chuva em Salvador', 'Tarifa leve GOL: só bagagem de mão inclusa'],
+        flex: [{ d: '7–14 nov', p: 'R$ 449' }, { d: '10–17 nov', p: 'R$ 476' }, { d: '14–21 nov', p: 'R$ 498' }] },
+    ];
+    const badgeStyle = (o) => o.erro
+      ? { bg: '#fde3cf', color: '#9a3412' }
+      : { bg: '#84cc16', color: '#18181b' };
+    const origins = ['Todas', 'GRU', 'VCP', 'GIG', 'CNF'];
+    const activeOrigin = this.state.originFilter;
+    const feedRaw = activeOrigin === 'Todas' ? offersData : offersData.filter(o => o.origem === activeOrigin);
+    const offerCurrent = offersData.find(o => o.id === this.state.offerId) || offersData[0];
+
+    return {
+      isOfertas: screen === 'ofertas',
+      isOferta: screen === 'oferta',
+      goOfertas: () => { this.setState({ screen: 'ofertas' }); window.scrollTo(0, 0); },
+      goOferta: (id) => { this.setState({ screen: 'oferta', offerId: id }); window.scrollTo(0, 0); },
+      origins: origins.map(o => ({
+        label: o === 'Todas' ? 'Todas as origens' : o,
+        bg: o === activeOrigin ? '#18181b' : '#fff',
+        color: o === activeOrigin ? '#fff' : '#44443f',
+        border: o === activeOrigin ? '#18181b' : '#dededa',
+        select: () => this.setState({ originFilter: o }),
+      })),
+      feedCount: feedRaw.length,
+      ofertasFeed: feedRaw.map(o => ({ ...o, badgeBg: badgeStyle(o).bg, badgeColor: badgeStyle(o).color, abrir: () => { this.setState({ screen: 'oferta', offerId: o.id }); window.scrollTo(0, 0); } })),
+      ofertaAtual: { ...offerCurrent, badgeBg: badgeStyle(offerCurrent).bg, badgeColor: badgeStyle(offerCurrent).color },
+      ofertasRelacionadas: offersData.filter(o => o.id !== offerCurrent.id && o.tipo === offerCurrent.tipo).slice(0, 3).map(o => ({ ...o, badgeBg: badgeStyle(o).bg, badgeColor: badgeStyle(o).color, abrir: () => { this.setState({ screen: 'oferta', offerId: o.id }); window.scrollTo(0, 0); } })),
+      subscribed: this.state.subscribed,
+      notSubscribed: !this.state.subscribed,
+      subscribe: () => this.setState({ subscribed: true }),
+      comoFunciona: [
+        { n: '1', titulo: 'Robôs de olho 24h', desc: 'Monitoramos milhares de rotas o dia inteiro e comparamos cada tarifa com a média histórica dos últimos anos.' },
+        { n: '2', titulo: 'Curadoria humana', desc: 'Só publicamos o que um humano conferiu: preço real, datas que existem e regras de bagagem checadas.' },
+        { n: '3', titulo: 'Você compra direto', desc: 'O botão leva ao site da companhia ou de um parceiro confiável. A reserva é feita lá, com a segurança deles.' },
+      ],
+      heroBgs: heroData.map((h, i) => ({
+        ...h,
+        opacity: i === heroBg ? 1 : 0,
+        tabOpacity: i === heroBg ? 1 : 0.5,
+        barW: i === heroBg ? '100%' : '40%',
+        select: () => this.setState({ heroBg: i }),
+      })),
+      heroLegenda: heroData[heroBg].legenda,
+      isHome: screen === 'home',
+      isResults: screen === 'results',
+      isGuia: screen === 'guia',
+      goHome: () => { this.setState({ screen: 'home' }); window.scrollTo(0, 0); },
+      goResults: () => { this.setState({ screen: 'results' }); window.scrollTo(0, 0); },
+      guiaAtual: g,
+      optCells, optBestMonth, optSources,
+      optWindow: (g.opt && g.opt.window) || {},
+      optDestName: (g.opt && g.opt.destName) || '',
+      tabs: tabLabels.map((label, i) => ({
+        label,
+        bg: i === tab ? '#f1f8e4' : 'transparent',
+        color: i === tab ? '#3f6212' : '#6b6b66',
+        border: i === tab ? '#4d7c0f' : 'transparent',
+        select: () => this.setState({ tab: i }),
+      })),
+      sorts: sortLabels.map((label, i) => ({
+        label,
+        bg: i === sort ? '#18181b' : '#fff',
+        color: i === sort ? '#fff' : '#44443f',
+        border: i === sort ? '#18181b' : '#dededa',
+        select: () => this.setState({ sort: i }),
+      })),
+      resultCount: voosData.length,
+      voos: voosData.map(v => ({
+        ...v,
+        borda: v.melhor ? '#84cc16' : '#e7e7e3',
+        paradaCor: v.direto ? '#3f6212' : '#8a8a84',
+      })),
+      ofertas: [
+        { cidade: 'Recife + Porto de Galinhas', rota: 'saindo de GRU', tag: 'Praia', desconto: '-33%', periodo: 'saídas de 9 set a 28 out', de: 'R$ 1.480', preco: 'R$ 986', parcela: 'R$ 82,17', slotId: 'oferta-pdg', foto: 'foto: piscinas naturais de Porto de Galinhas' },
+        { cidade: 'Salvador', rota: 'saindo de GRU', tag: 'Cidade histórica', desconto: '-34%', periodo: 'saídas de 1 set a 15 dez', de: 'R$ 1.320', preco: 'R$ 874', parcela: 'R$ 72,83', slotId: 'oferta-ssa', foto: 'foto: Pelourinho ao entardecer' },
+        { cidade: 'Gramado no Natal Luz', rota: 'saindo de GRU', tag: 'Serra', desconto: '-36%', periodo: 'saídas de 22 out a 20 dez', de: 'R$ 1.240', preco: 'R$ 792', parcela: 'R$ 66,00', slotId: 'oferta-gra', foto: 'foto: rua coberta de Gramado iluminada' },
+        { cidade: 'Bariloche na neve', rota: 'voo + hotel · GRU', tag: 'Neve', desconto: '-30%', periodo: 'últimas saídas: ago e set', de: 'R$ 3.120', preco: 'R$ 2.190', parcela: 'R$ 182,50', slotId: 'oferta-brc', foto: 'foto: Cerro Catedral com neve' },
+      ],
+      trips: [
+        { numero: '01 · Praia', titulo: 'Mar morno o ano inteiro', desc: 'O Nordeste tem 3.300 km de litoral e sol em qualquer mês. Piscinas naturais em Pernambuco, falésias em Alagoas, dunas no Ceará — sempre com voo direto saindo das capitais.', chips: ['Porto de Galinhas', 'Maragogi', 'Jericoacoara', 'Morro de SP'], cta: 'Ver ofertas de praia', legenda: 'Fernando de Noronha · PE', slotId: 'trip-praia', foto: 'foto: mar verde e jangada, Nordeste', src: PIC.praia.src, credit: PIC.praia.credit, creditHref: PIC.praia.href },
+        { numero: '02 · Cidade histórica', titulo: 'Quinhentos anos de história', desc: 'Salvador, Ouro Preto, Paraty, Olinda: centros históricos para percorrer a pé, entre igrejas barrocas, museus e a melhor gastronomia regional do país.', chips: ['Salvador', 'Ouro Preto', 'Paraty', 'Olinda'], cta: 'Ver roteiros históricos', legenda: 'Pelourinho · BA', slotId: 'trip-historica', foto: 'foto: casario colonial colorido', src: PIC.urbano.src, credit: PIC.urbano.credit, creditHref: PIC.urbano.href },
+        { numero: '03 · Neve', titulo: 'Neve a quatro horas de voo', desc: 'De julho a setembro, Bariloche e o Valle Nevado ficam a um voo direto do Brasil. Ski, fondue e paisagem dos Andes — sem visto e com atendimento em português.', chips: ['Bariloche', 'Valle Nevado', 'Ushuaia', 'San Martín'], cta: 'Ver pacotes de neve', legenda: 'Cerro Catedral · ARG', slotId: 'trip-neve', foto: 'foto: pista de ski nos Andes', src: PIC.neve.src, credit: PIC.neve.credit, creditHref: PIC.neve.href },
+      ].map((t, i) => ({ ...t, imgOpacity: i === trip ? 1 : 0, textOpacity: i === trip ? 1 : 0.35 })),
+      guias: [
+        { id: 'portodegalinhas', tag: 'Praia · Pernambuco', titulo: 'Recife e Porto de Galinhas em 5 dias', resumo: 'Dois dias de cultura entre Recife Antigo e Olinda, três de piscinas naturais — com o restaurante certo em cada dia.', slotId: 'guia-pdg', foto: 'foto: jangadas em Porto de Galinhas' },
+        { id: 'salvador', tag: 'Cidade histórica · Bahia', titulo: 'Salvador em 5 dias, sem pressa', resumo: 'Pelourinho, Bonfim, Rio Vermelho e Itapuã na ordem certa, do acarajé da Dinha à moqueca da Casa de Tereza.', slotId: 'guia-ssa', foto: 'foto: Elevador Lacerda ao pôr do sol', src: PIC.urbano.src, credit: PIC.urbano.credit, creditHref: PIC.urbano.href },
+        { id: 'noronha', tag: 'Praia · Fernando de Noronha', titulo: 'Fernando de Noronha em 5 dias', resumo: 'Baía do Sancho, golfinhos ao amanhecer e o mar mais bonito do Brasil — com o roteiro que resolve as taxas e agendamentos.', slotId: 'guia-fen', foto: 'foto: Baía do Sancho', src: PIC.praia.src, credit: PIC.praia.credit, creditHref: PIC.praia.href },
+        { id: 'rio', tag: 'Cidade · Rio de Janeiro', titulo: 'Rio de Janeiro em 5 dias clássicos', resumo: 'Cristo, Pão de Açúcar e praias nos horários certos, mais Santa Teresa e um dia de praias selvagens em Niterói.', slotId: 'guia-rio', foto: 'foto: Pão de Açúcar visto de Botafogo' },
+        { id: 'gramado', tag: 'Serra · Rio Grande do Sul', titulo: 'Gramado e Canela em 5 dias', resumo: 'Fondue, cascatas e catedrais de pedra, um day trip ao Vale dos Vinhedos e a rota do chocolate artesanal.', slotId: 'guia-gra', foto: 'foto: Rua Coberta iluminada' },
+        { id: 'bariloche', tag: 'Neve · Argentina', titulo: 'Bariloche na neve: ski e chocolate', resumo: 'Dois dias de Cerro Catedral, Circuito Chico e fondue — um roteiro que funciona até para quem nunca esquiou.', slotId: 'guia-brc', foto: 'foto: Centro Cívico de Bariloche nevado', src: PIC.neve.src, credit: PIC.neve.credit, creditHref: PIC.neve.href },
+        { id: 'chapada', tag: 'Natureza · Bahia', titulo: 'Chapada Diamantina em 5 dias', resumo: 'Cachoeiras gigantes, grutas de água azul-safira e a trilha da Fumaça — aventura leve com base em Lençóis.', slotId: 'guia-cha', foto: 'foto: mirante da Cachoeira da Fumaça' },
+        { id: 'foz', tag: 'Natureza · Paraná', titulo: 'Foz do Iguaçu em 4 dias (3 países)', resumo: 'As Cataratas pelos dois lados, Itaipu, o Parque das Aves e a chance de pisar em três países num só dia.', slotId: 'guia-foz', foto: 'foto: Garganta do Diabo' },
+        { id: 'jeri', tag: 'Praia · Ceará', titulo: 'Jericoacoara em 5 dias', resumo: 'Dunas, lagoas com redes dentro d\'água, Pedra Furada e o pôr do sol que virou ritual na vila de areia.', slotId: 'guia-jeri', foto: 'foto: Duna do Pôr do Sol em Jeri' },
+        { id: 'buenosaires', tag: 'Cidade · Argentina', titulo: 'Buenos Aires em 5 dias', resumo: 'Tango, parrillas e cafés centenários entre Recoleta, San Telmo e Palermo — o clássico portenho, sem pressa.', slotId: 'guia-bue', foto: 'foto: Caminito, La Boca' },
+      ].map(x => {
+        const o = guiasData[x.id] && guiasData[x.id].opt && guiasData[x.id].opt.months;
+        const melhorMes = o ? monthNames[o.indexOf(Math.min(...o))] : '';
+        return { ...x, melhorMes, abrir: () => { this.setState({ screen: 'guia', guia: x.id }); window.scrollTo(0, 0); } };
+      }),
+      extras: [
+        { sigla: 'H', titulo: 'Hotéis e pousadas', desc: 'Mais de 40 mil opções no Brasil, com café da manhã e cancelamento grátis sinalizados com clareza.', cta: 'Buscar hospedagem' },
+        { sigla: 'C', titulo: 'Aluguel de carros', desc: 'Retire no aeroporto e devolva em outra cidade. Proteção completa já incluída no preço mostrado.', cta: 'Ver diárias' },
+        { sigla: 'S', titulo: 'Seguro viagem', desc: 'Cobertura médica e de bagagem a partir de R$ 12 por dia, aceito em toda a América do Sul.', cta: 'Simular seguro' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

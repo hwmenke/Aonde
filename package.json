@@ -1,0 +1,18 @@
+{
+  "name": "aonde-affiliates",
+  "version": "0.1.0",
+  "description": "Modulo Node.js de links de afiliado de viagem e busca de ofertas de passagens para o Aonde.com.br",
+  "type": "module",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18"
+  },
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}

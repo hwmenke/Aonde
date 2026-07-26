@@ -1,0 +1,868 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guias de destino · Aonde</title>
+<meta name="description" content="Aonde — achados de passagem abaixo da média, roteiros de 5 dias dia a dia e alertas de preço grátis. Compare voos, hotéis e experiências pelo Brasil e América do Sul.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2030%2040%22%3E%3Cpath%20d%3D%22M15%200C6.7%200%200%206.7%200%2015c0%2010.8%2015%2025%2015%2025s15-14.2%2015-25C30%206.7%2023.3%200%2015%200z%22%20fill%3D%22%234d7c0f%22%2F%3E%3Ccircle%20cx%3D%2215%22%20cy%3D%2215%22%20r%3D%226%22%20fill%3D%22%23f7f7f5%22%2F%3E%3Ccircle%20cx%3D%2215%22%20cy%3D%2215%22%20r%3D%223%22%20fill%3D%22%2384cc16%22%2F%3E%3C%2Fsvg%3E">
+<link rel="canonical" href="https://aonde.com.br/guias">
+<meta property="og:url" content="https://aonde.com.br/guias">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Aonde">
+<meta property="og:title" content="Guias de destino · Aonde">
+<meta property="og:description" content="Aonde — achados de passagem abaixo da média, roteiros de 5 dias dia a dia e alertas de preço grátis. Compare voos, hotéis e experiências pelo Brasil e América do Sul.">
+<meta property="og:image" content="https://commons.wikimedia.org/wiki/Special:FilePath/Ba%C3%ADa%20do%20Sancho%2C%20Fernando%20de%20Noronha.jpg">
+<meta property="og:locale" content="pt_BR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://commons.wikimedia.org/wiki/Special:FilePath/Ba%C3%ADa%20do%20Sancho%2C%20Fernando%20de%20Noronha.jpg">
+<meta name="twitter:title" content="Guias de destino · Aonde">
+<meta name="twitter:description" content="Aonde — achados de passagem abaixo da média, roteiros de 5 dias dia a dia e alertas de preço grátis. Compare voos, hotéis e experiências pelo Brasil e América do Sul.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Cinzas escurecidos de proposito: dao folga de contraste para o cenario
+       das estacoes aparecer no fundo sem derrubar a legibilidade (AA). */
+    --bg:#f7f7f5;--text:#18181b;--muted:#4f4f48;--muted-2:#50504a;
+    --border:#e7e7e3;--border-2:#c9c9c2;--tint:#f1f8e4;--dark:#18181b;
+    --green:#4d7c0f;--green-2:#3f6212;--lime:#84cc16;--lime-2:#a3e635;
+    --erro-bg:#fde3cf;--erro-text:#9a3412;
+    --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
+    --sans:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    --maxw:1200px;--r:16px;--r-lg:20px;--pill:999px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:var(--serif);font-weight:400;line-height:1.08;margin:0;letter-spacing:-.5px;}
+  a{color:var(--green);text-decoration:none;}
+  a:hover{color:var(--green-2);}
+  a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--lime);outline-offset:2px;border-radius:4px;}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important;}}
+  img{max-width:100%;display:block;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 32px;}
+  .media-img{width:100%;height:100%;object-fit:cover;}
+  .media-placeholder{width:100%;height:100%;}
+  .media-placeholder svg{width:100%;height:100%;display:block;}
+  .media-credit-overlay{position:absolute;top:10px;right:12px;background:rgba(24,24,27,.55);color:#fff;font-size:11px;padding:3px 9px;border-radius:var(--pill);}
+  .media-credit-overlay a{color:#fff;text-decoration:underline;}
+  .eyebrow{margin:0 0 12px;font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;}
+  .eyebrow--green{color:var(--green);}
+  .eyebrow--lime{color:var(--lime-2);}
+  .section{padding:72px 32px 0;}
+  .section-sub{margin:12px 0 0;font-size:17px;color:var(--muted);max-width:56ch;}
+  .section-title-wide{font-size:clamp(30px,4.5vw,44px);max-width:600px;line-height:1.08;margin-bottom:8px;}
+  .section-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  .section-head h2{font-size:40px;}
+  .section-head p{margin:10px 0 0;font-size:16px;color:var(--muted);}
+  .section-head--tight{margin-bottom:24px;}
+  .section-link{font-size:15px;font-weight:600;}
+  .breadcrumb{margin:0 0 20px;font-size:14px;color:var(--muted-2);}
+  .breadcrumb span{color:#44443f;}
+
+  .btn{display:inline-block;border:none;border-radius:12px;padding:13px 22px;font-family:var(--sans);font-size:15px;font-weight:700;cursor:pointer;text-align:center;transition:background .15s,border-color .15s;}
+  .btn-green{background:var(--green);color:#fff;}
+  .btn-green:hover{background:var(--green-2);color:#fff;}
+  .btn-lime{background:var(--lime-2);color:#18181b;}
+  .btn-lime:hover{background:#bef264;color:#18181b;}
+  .btn-dark{background:#18181b;color:#fff;border-radius:var(--pill);padding:10px 20px;font-size:14px;font-weight:600;}
+  .btn-dark:hover{background:#2d2d29;color:#fff;}
+  .btn-ghost{background:transparent;color:#f7f7f5;border:1px solid #3f3f42;}
+  .btn-ghost:hover{border-color:var(--lime-2);color:#f7f7f5;}
+
+  /* ---- Cenario 3D das estacoes (fundo fixo de toda a pagina) ----
+     Fica atras do conteudo; o conteudo sobe para z-index 1. O veu por cima
+     garante que o texto continue legivel sobre qualquer estacao. */
+  .seasons3d{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+  main,.site-footer{position:relative;z-index:1;}
+  .s3-season{position:absolute;inset:0;opacity:0;
+    /* a perspectiva mora AQUI: opacity<1 achataria um preserve-3d de fora */
+    perspective:900px;
+    animation:s3Fade 72s linear infinite both;}
+  .s3-stage{position:absolute;inset:0;transform-style:preserve-3d;
+    animation:s3Sway 46s ease-in-out infinite alternate;}
+  .s3-orb{position:absolute;border-radius:50%;}
+  .s3-sun{position:absolute;border-radius:50%;transform:translate(-50%,-50%);}
+  .s3-horizon{position:absolute;left:0;right:0;bottom:0;height:38%;}
+  @keyframes s3Fade{
+    0%,18%{opacity:1;}
+    25%,93%{opacity:0;}
+    100%{opacity:1;}
+  }
+  @keyframes s3Sway{
+    from{transform:rotateY(-5deg) rotateX(1.5deg) translateZ(0);}
+    to{transform:rotateY(5deg) rotateX(-1.5deg) translateZ(40px);}
+  }
+  .s3-motes{position:absolute;inset:0;}
+  .s3-mote{position:absolute;bottom:-8px;border-radius:50%;background:rgba(255,255,255,.85);
+    box-shadow:0 0 6px 1px rgba(255,255,255,.5);opacity:0;
+    animation-name:s3Rise;animation-timing-function:linear;animation-iteration-count:infinite;}
+  @keyframes s3Rise{
+    0%{transform:translateY(0) translateX(0);opacity:0;}
+    12%{opacity:.75;}
+    88%{opacity:.55;}
+    100%{transform:translateY(-102vh) translateX(26px);opacity:0;}
+  }
+  /* Veu de legibilidade: sem ele o texto cinza claro brigaria com a cena. */
+  .s3-veil{position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(247,247,245,.30) 0%,rgba(247,247,245,.44) 42%,rgba(247,247,245,.36) 100%);}
+  @media (prefers-reduced-motion:reduce){
+    /* Nada se move: fica so a estacao atual, parada. */
+    .s3-season{animation:none;}
+    .s3-season:first-child{opacity:1;}
+    .s3-stage{animation:none;}
+    .s3-motes{display:none;}
+  }
+
+  /* Pular para o conteudo: invisivel ate receber foco pelo teclado. Evita
+     percorrer as ~8 paradas do cabecalho em CADA pagina. */
+  .skip-link{position:absolute;left:12px;top:-100px;z-index:100;background:var(--green);color:#fff;
+    padding:12px 20px;border-radius:0 0 12px 12px;font-weight:700;font-size:15px;transition:top .15s;}
+  .skip-link:focus{top:0;color:#fff;}
+  main:focus{outline:none;}
+
+  /* Controle de pausa do carrossel do hero (WCAG 2.2.2) */
+  .hero-pause{align-self:center;background:rgba(24,24,27,.55);color:#f7f7f5;border:1px solid rgba(247,247,245,.35);
+    border-radius:var(--pill);padding:6px 14px;font-family:var(--sans);font-size:12px;font-weight:600;
+    cursor:pointer;margin-left:8px;transition:background .15s;}
+  .hero-pause:hover{background:rgba(24,24,27,.8);}
+
+  /* Header */
+  .site-header{position:sticky;top:0;z-index:50;background:rgba(247,247,245,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);}
+  .site-header-in{height:68px;display:flex;align-items:center;justify-content:space-between;gap:24px;}
+  /* --brand-fly = distancia do "a" ate o CENTRO do ponto lime (medida no
+     navegador: centro do ponto a 76px da borda esquerda da marca, menos os
+     7px de meio-aviao e o -1px de offset inicial). */
+  .brand{display:flex;align-items:baseline;gap:3px;color:var(--text);position:relative;--brand-fly:70px;}
+  .brand:hover{color:var(--text);}
+  .brand-word{font-family:var(--serif);font-size:30px;letter-spacing:-.5px;}
+  .brand-dot{width:8px;height:8px;border-radius:50%;background:var(--lime);display:inline-block;transform:translateY(-2px);
+    animation:brandLand .9s ease-out 2.5s 1 both;}
+  /* Aviao da marca: decola no "a", pousa no ponto depois do "e". */
+  .brand-plane{position:absolute;left:-1px;top:50%;width:14px;height:14px;margin-top:-13px;
+    color:var(--green);opacity:0;pointer-events:none;
+    animation:brandFly 2.7s cubic-bezier(.38,.02,.28,1) .3s 1 both;}
+  .brand-plane svg{display:block;width:100%;height:100%;fill:currentColor;}
+  @keyframes brandFly{
+    0%{opacity:0;transform:translate(0,7px) rotate(-16deg) scale(.65);}
+    14%{opacity:1;}
+    62%{transform:translate(calc(var(--brand-fly) * .66),-8px) rotate(-5deg) scale(1);}
+    88%{opacity:1;transform:translate(var(--brand-fly),-2px) rotate(0deg) scale(.85);}
+    100%{opacity:0;transform:translate(var(--brand-fly),-2px) rotate(0deg) scale(.75);}
+  }
+  @keyframes brandLand{
+    0%,55%{transform:translateY(-2px) scale(1);box-shadow:0 0 0 0 rgba(132,204,22,0);}
+    72%{transform:translateY(-2px) scale(1.6);box-shadow:0 0 0 5px rgba(132,204,22,.22);}
+    100%{transform:translateY(-2px) scale(1);box-shadow:0 0 0 0 rgba(132,204,22,0);}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .brand-plane{display:none;}
+    .brand-dot{animation:none;}
+  }
+  .site-nav{display:flex;gap:28px;font-size:15px;font-weight:500;}
+  .site-nav a{color:#44443f;display:flex;align-items:center;gap:6px;}
+  .site-nav a:hover{color:#18181b;}
+  .nav-pill{background:var(--lime);color:#18181b;font-size:10px;font-weight:700;letter-spacing:.04em;padding:2px 6px;border-radius:var(--pill);}
+  .nav-ext{font-size:12px;opacity:.6;}
+  .site-header-right{display:flex;align-items:center;gap:20px;}
+  .site-atend{display:flex;flex-direction:column;align-items:flex-end;line-height:1.25;}
+  .site-atend span{font-size:11px;color:var(--muted-2);letter-spacing:.04em;text-transform:uppercase;}
+  .site-atend strong{font-size:14px;font-weight:600;}
+
+  /* Hero */
+  .hero{position:relative;height:620px;overflow:hidden;background:#18181b;}
+  .hero-bgs{position:absolute;inset:0;}
+  .hero-bg{position:absolute;inset:0;opacity:0;transition:opacity 1.2s ease;}
+  .hero-bg.is-active{opacity:1;}
+  .hero-scrim{position:absolute;inset:0;background:linear-gradient(90deg,rgba(24,24,27,.82) 0%,rgba(24,24,27,.55) 40%,rgba(24,24,27,.15) 100%);}
+  .hero-in{position:relative;height:100%;display:flex;flex-direction:column;justify-content:center;}
+  .hero-title{font-size:clamp(40px,7vw,76px);color:#fbfbfa;max-width:760px;line-height:1;text-shadow:0 2px 30px rgba(0,0,0,.35);}
+  .hero-title em{font-style:italic;}
+  .hero-sub{margin:22px 0 0;font-size:19px;color:#e7e7e3;max-width:520px;line-height:1.5;}
+  .hero-tabs{display:flex;gap:20px;margin-top:32px;}
+  .hero-tab{background:transparent;border:none;padding:0;cursor:pointer;display:flex;flex-direction:column;gap:8px;opacity:.5;transition:opacity .3s;}
+  .hero-tab.is-active{opacity:1;}
+  .hero-tab span:first-child{font-size:14px;font-weight:600;color:#fbfbfa;}
+  .hero-bar{width:40%;height:3px;border-radius:2px;background:var(--lime-2);transition:width .4s;}
+  .hero-tab.is-active .hero-bar{width:100%;}
+  .hero-legenda{position:absolute;bottom:20px;right:32px;background:rgba(24,24,27,.6);backdrop-filter:blur(8px);color:#f7f7f5;border-radius:12px;padding:9px 15px;font-size:13px;font-weight:600;}
+
+  /* Search card */
+  .search-wrap{margin-top:-52px;position:relative;z-index:10;padding-bottom:24px;}
+  .search-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:0 24px 48px -32px rgba(24,24,27,.25);overflow:hidden;}
+  .sc-tabs{display:flex;gap:4px;padding:12px 16px 0;border-bottom:1px solid #f0f0ed;}
+  .sc-tab{font-size:14px;font-weight:600;color:var(--muted);padding:10px 18px;border-radius:10px 10px 0 0;border-bottom:2px solid transparent;}
+  .sc-tab.is-active{background:var(--tint);color:var(--green-2);border-bottom-color:var(--green);}
+  .sc-tab--soon{opacity:.45;cursor:not-allowed;}
+  .sc-tab--soon::after{content:" · em breve";font-size:11px;font-weight:400;}
+  .sc-notice{margin:14px 20px 0;background:var(--tint);border:1px solid #d9edb8;border-radius:12px;padding:12px 16px;font-size:14px;line-height:1.5;color:var(--green-2);}
+  .sc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:20px;align-items:end;}
+  .sc-field{display:flex;flex-direction:column;gap:6px;}
+  .sc-field span{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);}
+  .sc-field input{border:1px solid var(--border-2);border-radius:12px;padding:13px 14px;font-family:var(--sans);font-size:15px;background:#fbfbfa;color:#18181b;}
+  .sc-submit{min-width:150px;white-space:nowrap;}
+  .sc-field--num{min-width:0;}
+  .sc-field select{border:1px solid var(--border-2);border-radius:12px;padding:13px 14px;
+    font-family:var(--sans);font-size:15px;background:#fbfbfa;color:#18181b;width:100%;}
+  .sc-hint{font-size:11px;color:var(--muted-2);line-height:1.3;}
+  .search-perks{display:flex;gap:28px;padding:18px 8px 0;font-size:14px;color:var(--muted);flex-wrap:wrap;}
+  .search-perks span{display:flex;align-items:center;gap:8px;}
+  .search-perks i{width:6px;height:6px;border-radius:50%;background:var(--lime);}
+
+  /* Offer cards */
+  .of-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:28px;}
+  .of-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;color:inherit;transition:box-shadow .2s,transform .2s;}
+  .of-card:hover{box-shadow:0 16px 32px -24px rgba(24,24,27,.35);transform:translateY(-2px);color:inherit;}
+  .of-card--erro{border-color:#f3c6a8;}
+  .of-media{position:relative;height:160px;}
+  .of-media-inner{width:100%;height:100%;}
+  .of-badge{position:absolute;top:12px;left:12px;font-size:12px;font-weight:700;padding:5px 12px;border-radius:var(--pill);}
+  .badge-desconto{background:var(--lime);color:#18181b;}
+  .badge-erro{background:var(--erro-bg);color:var(--erro-text);}
+  .of-publicado{position:absolute;top:12px;right:12px;background:rgba(24,24,27,.72);color:#f7f7f5;font-size:12px;font-weight:600;padding:4px 10px;border-radius:var(--pill);}
+  .of-body{padding:16px 18px 18px;display:flex;flex-direction:column;gap:5px;flex:1;}
+  .of-rota{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2);}
+  .of-cidade{font-size:20px;font-weight:600;font-family:var(--sans);letter-spacing:-.2px;}
+  .of-periodo{font-size:13px;color:var(--muted);}
+  .of-preco-row{display:flex;align-items:baseline;gap:8px;margin-top:auto;padding-top:8px;flex-wrap:wrap;}
+  .of-de s{font-size:14px;color:#6b6b66;}
+  .of-preco{font-size:30px;font-weight:700;color:var(--green-2);letter-spacing:-.5px;}
+  .of-preco--sm{font-size:23px;margin-left:auto;}
+  .of-iv{font-size:13px;color:var(--muted-2);}
+  .of-cia{font-size:13px;color:var(--muted);}
+  .of-erro-note{font-size:12px;line-height:1.4;color:#9a3412;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:6px 9px;margin-top:2px;}
+  .of-cta{margin-top:8px;font-size:14px;font-weight:700;color:var(--green);}
+
+  /* Styles / estilos de viagem */
+  .styles-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:56px;margin-top:40px;align-items:start;}
+  .style-item{padding:36px 0;border-top:1px solid var(--border);opacity:.55;}
+  .style-item.is-active{opacity:1;}
+  .style-num{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green);}
+  .style-item h3{margin:12px 0 10px;font-size:32px;}
+  .style-item p{margin:0 0 18px;font-size:16px;line-height:1.6;color:var(--muted);}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;}
+  .chip{border:1px solid var(--border-2);background:#fff;border-radius:var(--pill);padding:7px 14px;font-size:13px;font-weight:600;color:#44443f;}
+  .style-cta{margin:18px 0 0;}
+  .styles-imgs{position:sticky;top:96px;height:560px;}
+  .style-img{position:absolute;inset:0;opacity:0;transition:opacity .5s;border-radius:24px;overflow:hidden;}
+  .style-img.is-active{opacity:1;}
+  .style-legenda{position:absolute;bottom:16px;right:16px;background:rgba(24,24,27,.75);color:#f7f7f5;border-radius:12px;padding:9px 15px;font-size:13px;font-weight:600;}
+
+  /* Roteiros (revista) */
+  .roteiros{background:#18181b;color:#f7f7f5;margin-top:56px;position:relative;overflow:hidden;}
+  .roteiros .wrap{padding-top:72px;padding-bottom:72px;position:relative;z-index:1;}
+
+  /* Globo 3D de arame (CSS 3D puro, sem canvas/WebGL) */
+  .globe3d{position:absolute;top:56px;right:-40px;width:192px;height:192px;z-index:0;
+    perspective:620px;opacity:.4;pointer-events:none;}
+  .g3-inner{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform;
+    animation:g3Spin 34s linear infinite;}
+  .g3-mer,.g3-par{position:absolute;border:1px solid var(--lime);border-radius:50%;}
+  .g3-mer{inset:0;}
+  .g3-par{top:50%;left:50%;border-color:rgba(163,230,53,.55);}
+  .g3-orbit{position:absolute;inset:0;transform:rotateX(74deg);transform-style:preserve-3d;}
+  .g3-orbit-spin{position:absolute;inset:0;transform-style:preserve-3d;animation:g3Spin 11s linear infinite reverse;}
+  .g3-orbit-dot{position:absolute;top:50%;left:50%;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;
+    border-radius:50%;background:var(--lime-2);box-shadow:0 0 10px 2px rgba(163,230,53,.65);
+    transform:translateX(112px);}
+  @keyframes g3Spin{from{transform:rotateY(0deg);}to{transform:rotateY(360deg);}}
+  @media (max-width:900px){ .globe3d{display:none;} }
+
+  /* Profundidade 3D do hero: a foto ativa deriva lentamente no eixo Z. */
+  .hero{perspective:1000px;}
+  .hero-bgs{transform-style:preserve-3d;}
+  .hero-bg.is-active{animation:heroDrift 22s ease-in-out infinite alternate;}
+  @keyframes heroDrift{
+    from{transform:translateZ(0) scale(1.02) rotate(0deg);}
+    to{transform:translateZ(52px) scale(1.02) rotate(.6deg);}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    .globe3d{display:none;}
+    .hero-bg.is-active{animation:none;}
+  }
+  .roteiros-head h2{font-size:44px;}
+  .roteiros-head p{margin:14px 0 0;font-size:16px;color:#a1a1a6;max-width:560px;}
+  .roteiros-all a{color:var(--lime-2);font-weight:600;font-size:15px;}
+  .rot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;margin-top:36px;}
+  .rot-card{display:flex;flex-direction:column;gap:14px;color:#f7f7f5;}
+  .rot-card:hover{color:#f7f7f5;transform:translateY(-3px);}
+  .rot-media{height:240px;position:relative;border-radius:14px;overflow:hidden;}
+  .rot-flag{position:absolute;top:12px;left:12px;background:var(--lime-2);color:#18181b;font-size:12px;font-weight:700;letter-spacing:.04em;padding:5px 12px;border-radius:var(--pill);}
+  .rot-tag{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--lime-2);}
+  .rot-body h3{margin:8px 0 6px;font-size:26px;line-height:1.15;}
+  .rot-body p{margin:0 0 10px;font-size:15px;line-height:1.5;color:#a1a1a6;}
+  .rot-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .rot-cta{font-size:14px;font-weight:600;color:var(--lime-2);}
+  .rot-mes{font-size:12px;font-weight:600;color:#71717a;border:1px solid #3f3f42;border-radius:var(--pill);padding:3px 10px;}
+
+  /* Extras + confianca */
+  .extras-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:32px;}
+  .extra-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:26px;display:flex;flex-direction:column;gap:10px;color:inherit;}
+  .extra-card:hover{border-color:var(--lime);color:inherit;}
+  .extra-card--soon{opacity:.72;}
+  .extra-cta--soon{color:var(--muted-2);font-style:italic;}
+  .extra-sigla{width:38px;height:38px;border-radius:10px;background:var(--tint);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;}
+  .extra-card h3{font-size:20px;font-weight:600;font-family:var(--sans);}
+  .extra-card p{margin:0;font-size:15px;color:var(--muted);line-height:1.5;}
+  .extra-cta{font-size:14px;font-weight:600;color:var(--green);}
+  .conf-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:32px;align-items:center;}
+  .conf-card h2{font-size:30px;line-height:1.15;}
+  .conf-valor{margin:0;font-size:26px;font-weight:700;color:var(--green-2);}
+  .conf-stat p:last-child{margin:4px 0 0;font-size:14px;color:var(--muted);line-height:1.4;}
+
+  /* Ofertas: filtro de origem + newsletter + como funciona */
+  .orig-bar{position:sticky;top:68px;z-index:40;background:#fff;border-bottom:1px solid var(--border);}
+  .orig-in{padding-top:14px;padding-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .orig-label{font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);}
+  .orig-pills{display:flex;gap:8px;flex-wrap:wrap;}
+  .orig-pill{border:1px solid var(--border-2);background:#fff;color:#44443f;border-radius:var(--pill);padding:8px 16px;font-size:14px;font-weight:600;}
+  .orig-pill.is-active{background:#18181b;color:#fff;border-color:#18181b;}
+  .news-wrap{padding-top:32px;padding-bottom:8px;}
+  .news-card{background:#18181b;color:#f7f7f5;border-radius:var(--r-lg);padding:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:32px;align-items:center;}
+  .news-copy h1{font-size:44px;line-height:1.05;}
+  .news-copy p{margin:16px 0 0;font-size:16px;color:#a1a1a6;line-height:1.5;max-width:440px;}
+  .news-form{display:flex;flex-direction:column;gap:12px;}
+  .news-form input,.news-form select{border:1px solid #3f3f42;background:#26262a;border-radius:12px;padding:14px 16px;font-family:var(--sans);font-size:15px;color:#f7f7f5;}
+  .news-row{display:flex;gap:12px;flex-wrap:wrap;}
+  .news-row input{flex:1;min-width:140px;}
+  .news-fine{font-size:12px;color:var(--muted-2);text-align:center;}
+  .news-msg{margin:4px 0 0;font-size:14px;color:var(--lime-2);text-align:center;}
+  .feed-count{font-size:14px;color:var(--muted-2);}
+  /* Escolha do dia (/hoje) */
+  .hoje-head{padding-bottom:0;}
+  .hoje-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:28px;}
+  .hoje-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;display:flex;flex-direction:column;}
+  .hoje-media{position:relative;height:220px;}
+  .hoje-body{padding:24px 26px 26px;display:flex;flex-direction:column;gap:10px;flex:1;}
+  .hoje-titulo{font-size:28px;line-height:1.12;margin:2px 0 0;}
+  .hoje-resumo{margin:0;font-size:15px;color:var(--muted);line-height:1.55;}
+  .hoje-preco-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:4px 0 2px;}
+  .hoje-bullets{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:12px;}
+  .hoje-bullet{display:flex;gap:12px;align-items:flex-start;font-size:15px;line-height:1.5;}
+  .hoje-dia{flex-shrink:0;background:var(--tint);color:var(--green-2);font-size:12px;font-weight:700;
+    padding:3px 10px;border-radius:var(--pill);margin-top:2px;white-space:nowrap;}
+  .hoje-bullet strong{font-weight:600;}
+  .hoje-pontos{margin:2px 0 0;color:var(--muted);font-size:14px;}
+  .hoje-comer{margin:2px 0 0;font-size:14px;color:#44443f;}
+  .hoje-mes{margin:8px 0 0;font-size:14px;color:var(--muted);}
+  .hoje-ctas{display:flex;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:14px;}
+  .btn-ghost--claro{color:#18181b;border-color:var(--border-2);}
+  .btn-ghost--claro:hover{color:#18181b;border-color:var(--green);}
+  .feed-vazio{grid-column:1/-1;margin:0;background:#fff;border:1px solid var(--border);border-radius:var(--r);
+    padding:28px;font-size:16px;line-height:1.6;color:#44443f;}
+  .cf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-top:8px;}
+  .cf-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:26px;}
+  .cf-num{display:inline-flex;width:36px;height:36px;border-radius:10px;background:var(--tint);color:var(--green);align-items:center;justify-content:center;font-size:16px;font-weight:700;}
+  .cf-card h3{margin:14px 0 6px;font-size:19px;font-weight:600;font-family:var(--sans);}
+  .cf-card p{margin:0;font-size:15px;color:var(--muted);line-height:1.55;}
+  .cf-note{margin:24px 0 0;font-size:13px;color:#6b6b66;line-height:1.6;max-width:640px;}
+
+  /* Oferta detalhe */
+  .det{padding-top:32px;}
+  .det-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:40px;align-items:start;}
+  .det-badges{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+  .det-badge{font-size:13px;font-weight:700;padding:5px 14px;border-radius:var(--pill);}
+  .det-pub{font-size:13px;color:var(--muted-2);}
+  .det-rota{font-size:15px;font-weight:600;letter-spacing:.06em;color:var(--muted-2);}
+  .det-cidade{margin:6px 0 0;font-size:clamp(38px,6vw,52px);line-height:1.02;}
+  .det-local{margin:2px 0 0;font-size:17px;color:var(--muted);}
+  .det-preco-row{display:flex;align-items:baseline;gap:14px;margin:24px 0 6px;flex-wrap:wrap;}
+  .det-preco{font-size:clamp(40px,8vw,56px);font-weight:700;color:var(--green-2);letter-spacing:-1.5px;line-height:1;}
+  .det-media s{font-size:18px;color:#6b6b66;}
+  .det-econ{display:inline-block;background:var(--tint);color:var(--green-2);font-size:14px;font-weight:700;padding:6px 14px;border-radius:var(--pill);}
+  .det-texto{margin:24px 0 0;font-size:17px;line-height:1.6;color:#44443f;}
+  .det-prova{margin-top:28px;position:relative;height:280px;border-radius:14px;overflow:hidden;background:var(--tint);}
+  .det-prova-media{width:100%;height:100%;}
+  .det-prova-tag{position:absolute;top:12px;left:12px;background:rgba(24,24,27,.75);color:#f7f7f5;font-size:12px;font-weight:600;padding:5px 12px;border-radius:var(--pill);}
+  .det-h2{margin:36px 0 14px;font-size:22px;font-weight:700;font-family:var(--sans);}
+  .det-flex{display:flex;flex-direction:column;gap:8px;}
+  .det-flex-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 18px;}
+  .det-flex-row strong{color:var(--green-2);font-size:17px;}
+  .det-dicas{display:flex;flex-direction:column;gap:10px;}
+  .det-dica{display:flex;gap:10px;font-size:15px;line-height:1.5;color:#44443f;}
+  .det-dica span:first-child{color:var(--green);font-weight:700;}
+  .det-aside{position:sticky;top:92px;display:flex;flex-direction:column;gap:16px;}
+  .det-buy{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:24px;box-shadow:0 24px 48px -34px rgba(24,24,27,.3);}
+  .det-buy-label{font-size:13px;color:var(--muted-2);}
+  .det-buy-preco{margin:2px 0 0;font-size:36px;font-weight:700;color:var(--green-2);letter-spacing:-1px;}
+  .det-buy-sub{margin:2px 0 16px;font-size:14px;color:var(--muted);}
+  .det-buy-cta{width:100%;font-size:16px;}
+  .det-buy-fine{margin:12px 0 0;font-size:12px;color:#6b6b66;line-height:1.5;text-align:center;}
+  .det-alert{background:#18181b;color:#f7f7f5;border-radius:var(--r);padding:22px;}
+  .det-alert-title{margin:0 0 4px;font-size:15px;font-weight:700;}
+  .det-alert p{margin:0 0 14px;font-size:13px;color:#a1a1a6;line-height:1.5;}
+  .det-alert .btn{width:100%;}
+  .rel-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;}
+  .rel-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:4px;color:inherit;}
+  .rel-card:hover{border-color:var(--lime);color:inherit;}
+  .rel-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .rel-rota{font-size:13px;font-weight:600;letter-spacing:.06em;color:var(--muted-2);}
+  .rel-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:var(--pill);}
+  .rel-card h3{margin:2px 0 4px;font-size:19px;font-weight:600;font-family:var(--sans);}
+  .rel-preco{font-size:26px;font-weight:700;color:var(--green-2);letter-spacing:-.5px;}
+  .rel-cia{font-size:13px;color:var(--muted);}
+
+  /* Guia / roteiro */
+  .guia-top{padding-top:40px;}
+  .guia-hero{position:relative;height:420px;border-radius:24px;overflow:hidden;background:var(--tint);}
+  .guia-hero-flags{position:absolute;left:24px;bottom:24px;display:flex;gap:10px;}
+  .flag{font-size:12px;font-weight:700;letter-spacing:.04em;padding:6px 14px;border-radius:var(--pill);}
+  .flag-lime{background:var(--lime-2);color:#18181b;}
+  .flag-dark{background:rgba(24,24,27,.75);color:#f7f7f5;text-transform:uppercase;letter-spacing:.05em;}
+  .guia-intro-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:48px;margin-top:36px;align-items:start;}
+  .guia-title{font-size:clamp(38px,6vw,54px);line-height:1.05;}
+  .guia-intro{margin:18px 0 0;font-size:18px;line-height:1.6;color:#44443f;}
+  .guia-aside{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:14px;position:sticky;top:92px;}
+  .guia-aside h3,.guia-aside-h{font-size:16px;font-weight:700;font-family:var(--sans);margin:0;line-height:1.3;}
+  .guia-meta-row{display:flex;justify-content:space-between;gap:12px;font-size:14px;border-bottom:1px solid #f0f0ed;padding-bottom:10px;}
+  .guia-meta-row span{color:var(--muted-2);}
+  .guia-meta-row strong{text-align:right;}
+  .guia-aside-preco{font-size:13px;color:var(--muted);text-align:center;}
+  .escopo-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:26px 28px;max-width:860px;}
+  .escopo-h{font-size:22px;font-weight:700;font-family:var(--sans);margin:0 0 16px;}
+  .escopo-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px;}
+  .escopo-tit{margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
+  .escopo-tit--sim{color:var(--green-2);}
+  .escopo-tit--nao{color:#9a3412;}
+  .escopo-cols ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:15px;line-height:1.5;color:#44443f;}
+  .escopo-nota{margin:18px 0 0;font-size:13px;line-height:1.6;color:var(--muted);border-top:1px solid #f0f0ed;padding-top:14px;}
+  .guia-h2{font-size:36px;margin-bottom:28px;}
+  .dias{display:flex;flex-direction:column;gap:20px;max-width:860px;}
+  .dia{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:28px;display:grid;grid-template-columns:64px 1fr;gap:24px;}
+  .dia-num{width:56px;height:56px;border-radius:14px;background:#18181b;color:var(--lime-2);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;}
+  .dia-num span{font-size:10px;font-weight:700;letter-spacing:.08em;}
+  .dia-num strong{font-size:24px;}
+  .dia-body h3{font-size:22px;font-weight:600;font-family:var(--sans);}
+  .dia-desc{margin:6px 0 14px;font-size:15px;color:var(--muted);line-height:1.55;}
+  .dia-pontos{display:flex;flex-direction:column;gap:10px;}
+  .dia-ponto{display:flex;gap:10px;font-size:15px;line-height:1.5;}
+  .dia-bullet{color:var(--green);font-weight:700;flex-shrink:0;}
+  .dia-ponto--rich{gap:14px;align-items:flex-start;}
+  .dia-ponto-thumb{width:76px;height:56px;border-radius:10px;overflow:hidden;flex-shrink:0;background:var(--tint);}
+  .dia-ponto-thumb.media-img,.dia-ponto-thumb .media-img{width:100%;height:100%;object-fit:cover;}
+  .dia-ponto-body{display:flex;flex-direction:column;gap:2px;}
+  .dia-ponto-nota{color:var(--muted);}
+  .dia-ponto-meta{font-size:13px;color:var(--muted-2);}
+  .dia-ponto-credit{font-size:11px;color:var(--muted-2);}
+  .stars{color:var(--lime);letter-spacing:1px;}
+  .dia-rest{margin-top:16px;background:var(--tint);border-radius:12px;padding:14px 18px;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;}
+  .dia-rest-label{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green);white-space:nowrap;}
+  .dia-rest span:last-child{font-size:15px;color:#3f4a2a;line-height:1.5;}
+  .dia-rest-link{color:inherit;}
+  .dia-rest-link:hover{color:var(--green-2);}
+  .dia-map{display:inline-flex;align-items:center;gap:6px;margin-top:14px;font-size:13px;font-weight:600;color:var(--green);}
+  .dia-map:hover{color:var(--green-2);}
+  .dia-map-pin{font-size:13px;}
+  .lodging{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:14px;align-items:flex-start;max-width:860px;}
+  .lodging-base{margin:0;font-size:16px;color:#44443f;line-height:1.6;}
+  .explore{background:#18181b;color:#f7f7f5;border-radius:var(--r-lg);padding:36px;display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center;overflow:hidden;}
+  .explore-copy h2{font-size:34px;line-height:1.1;margin:2px 0 0;}
+  .explore-copy p{margin:12px 0 20px;font-size:16px;color:#a1a1a6;max-width:44ch;}
+  .explore-map{position:relative;display:block;height:220px;border-radius:var(--r);overflow:hidden;border:1px solid #3f3f42;}
+  .explore-map .media-placeholder{position:absolute;inset:0;}
+  .explore-map-badge{position:absolute;left:14px;bottom:14px;background:rgba(24,24,27,.72);color:#f7f7f5;font-size:13px;font-weight:600;padding:6px 12px;border-radius:var(--pill);}
+
+  /* Otimizador */
+  .opt{padding-top:16px;padding-bottom:40px;}
+  .opt-head{display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:24px;}
+  .opt-head h2{font-size:36px;}
+  .opt-sub{margin:0;font-size:15px;color:var(--muted);max-width:460px;line-height:1.5;}
+  .opt-grid-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;align-items:start;}
+  .opt-panel{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:24px;}
+  .opt-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;font-size:13px;font-weight:700;}
+  .opt-legend{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-2);font-weight:400;}
+  .opt-sw{width:14px;height:10px;border-radius:3px;display:inline-block;}
+  .opt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:8px;}
+  .opt-cell{border:1px solid;border-radius:10px;padding:11px 6px;text-align:center;}
+  .opt-mon{font-size:12px;font-weight:600;opacity:.8;}
+  .opt-price{font-size:14px;font-weight:700;margin-top:3px;}
+  .opt-foot{margin:16px 0 0;font-size:12px;color:#6b6b66;line-height:1.5;}
+  .opt-side{display:flex;flex-direction:column;gap:16px;}
+  .opt-window{background:#18181b;color:#f7f7f5;border-radius:var(--r);padding:24px;}
+  .opt-window h3{font-size:30px;margin:10px 0 8px;}
+  .opt-window-price{display:flex;align-items:baseline;gap:8px;}
+  .opt-window-price span{font-size:30px;font-weight:700;color:var(--lime-2);}
+  .opt-window-price small{font-size:14px;color:#a1a1a6;}
+  .opt-save{display:inline-block;margin:12px 0;background:rgba(163,230,53,.15);color:var(--lime-2);font-size:13px;font-weight:700;padding:5px 12px;border-radius:var(--pill);}
+  .opt-window p{margin:0 0 18px;font-size:14px;color:#a1a1a6;line-height:1.5;}
+  .opt-window .btn{width:100%;}
+  .opt-sources{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:22px;}
+  .opt-sources-title{font-size:13px;font-weight:700;}
+  .opt-sources-list{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
+  .opt-src{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid #f0f0ed;border-radius:10px;padding:12px 14px;}
+  .opt-src--best{background:var(--tint);border-color:#d9edb8;}
+  .opt-src-name{font-size:15px;font-weight:700;}
+  .opt-src--best .opt-src-name,.opt-src--best .opt-src-price{color:var(--green-2);}
+  .opt-src-note{display:block;font-size:12px;color:var(--muted-2);}
+  .opt-src-price{font-size:17px;font-weight:700;white-space:nowrap;}
+  .opt-ring-wrap{display:flex;justify-content:center;padding:6px 0 2px;}
+  .season-ring{width:100%;max-width:300px;height:auto;display:block;}
+
+  /* Datas para viajar (clicar e reservar) */
+  .dt-note{font-size:14px;color:var(--muted-2);}
+  .dt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:24px;}
+  .dt-card{position:relative;background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:4px;}
+  .dt-card--best{border-color:var(--lime);box-shadow:0 16px 32px -26px rgba(24,24,27,.35);}
+  .dt-flag{position:absolute;top:-11px;left:20px;background:var(--lime);color:#18181b;font-size:12px;font-weight:700;letter-spacing:.04em;padding:4px 12px;border-radius:var(--pill);}
+  .dt-when{font-size:18px;font-weight:700;color:var(--text);}
+  .dt-price{font-size:28px;font-weight:700;color:var(--green-2);letter-spacing:-.5px;}
+  .dt-sub{font-size:13px;color:var(--muted);}
+  .dt-cta{margin-top:12px;width:100%;font-size:15px;}
+
+  /* Mini-mapa do destino */
+  .guia-map{height:340px;border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--border);background:var(--tint);}
+  .guia-map--placeholder{position:relative;display:flex;align-items:center;justify-content:center;}
+  .guia-map--placeholder .media-placeholder{position:absolute;inset:0;opacity:.5;}
+  .guia-map-link{position:relative;}
+
+  .guia-cta{background:#18181b;color:#f7f7f5;border-radius:var(--r-lg);padding:44px;display:flex;align-items:center;justify-content:space-between;gap:32px;flex-wrap:wrap;}
+  .guia-cta h2{font-size:34px;}
+  .guia-cta p{margin:10px 0 0;font-size:16px;color:#a1a1a6;}
+  .guia-cta-btns{display:flex;gap:12px;flex-wrap:wrap;}
+
+  /* Resultados de voo */
+  .res-topbar{background:#18181b;color:#f7f7f5;}
+  .res-topbar-in{padding:28px 32px;display:flex;align-items:center;gap:28px;flex-wrap:wrap;}
+  .res-rota{display:flex;align-items:center;gap:14px;margin:0;font-weight:400;}
+  .res-rota span{font-family:var(--serif);font-size:26px;}
+  .res-rota i{color:var(--lime);font-size:18px;font-style:normal;}
+  .res-resumo{font-size:15px;color:#a1a1a6;}
+  .res-alterar{margin-left:auto;padding:9px 18px;font-size:14px;font-weight:600;border-radius:var(--pill);}
+  .res-grid{padding-top:32px;padding-bottom:88px;display:grid;grid-template-columns:minmax(220px,260px) minmax(0,1fr);gap:28px;align-items:start;}
+  .res-side{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:22px;position:sticky;top:92px;}
+  .res-side h3{font-size:16px;font-weight:700;font-family:var(--sans);}
+  .res-filtro{display:flex;flex-direction:column;gap:10px;}
+  .res-filtro-title{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2);}
+  .res-check{display:flex;align-items:center;gap:10px;font-size:15px;cursor:pointer;}
+  .res-check input{accent-color:var(--green);width:16px;height:16px;}
+  .res-help{border-top:1px solid #f0f0ed;padding-top:16px;font-size:13px;color:var(--muted);line-height:1.5;}
+  .res-list{display:flex;flex-direction:column;gap:16px;}
+  .res-sortbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:15px;color:var(--muted);}
+  .res-sort{border:1px solid var(--border-2);background:#fff;color:#44443f;border-radius:var(--pill);padding:7px 15px;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .res-sort.is-active{background:#18181b;color:#fff;border-color:#18181b;}
+  .res-voo{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:22px 24px;display:flex;flex-wrap:wrap;gap:20px;align-items:center;position:relative;}
+  .res-voo--melhor{border-color:var(--lime);}
+  .res-melhor{position:absolute;top:-11px;left:20px;background:var(--lime);color:#18181b;font-size:12px;font-weight:700;letter-spacing:.04em;padding:4px 12px;border-radius:var(--pill);}
+  .res-cia{display:flex;flex-direction:column;gap:4px;width:110px;flex-shrink:0;}
+  .res-cia strong{font-size:15px;}
+  .res-cia span{font-size:13px;color:var(--muted-2);}
+  .res-trecho{display:flex;align-items:center;gap:16px;flex:1 1 300px;min-width:260px;}
+  .res-hora{text-align:center;}
+  .res-hora p{margin:0;font-size:22px;font-weight:600;}
+  .res-hora span{font-size:13px;color:var(--muted-2);}
+  .res-linha{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .res-dur{font-size:12px;color:var(--muted-2);}
+  .res-track{width:100%;height:2px;background:var(--border);position:relative;}
+  .res-track i{position:absolute;right:-1px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--green);}
+  .res-parada{font-size:12px;font-weight:600;}
+  .res-parada--direto{color:var(--green-2);}
+  .res-parada--conex{color:var(--muted-2);}
+  .res-preco{text-align:right;border-left:1px solid #f0f0ed;padding-left:20px;margin-left:auto;}
+  .res-preco-label{margin:0;font-size:13px;color:var(--muted-2);}
+  .res-preco-val{margin:4px 0 0;font-size:24px;font-weight:700;color:var(--green-2);}
+  .res-parcela{margin:2px 0 0;font-size:13px;color:var(--muted);}
+  .res-sel{background:#18181b;color:#fff;padding:14px 24px;white-space:nowrap;}
+  .res-sel:hover{background:var(--green-2);}
+  .res-pix{background:var(--tint);border:1px solid #d9edb8;border-radius:var(--r);padding:18px 24px;display:flex;align-items:center;gap:14px;font-size:15px;color:var(--green-2);}
+  .res-pix>strong:first-child{font-size:18px;}
+
+  /* Mapa */
+  .map-head{padding-top:40px;}
+  .map-title{font-size:clamp(32px,5vw,44px);margin:0 0 8px;}
+  .map-sub{margin:0;font-size:17px;color:var(--muted);max-width:60ch;}
+  .map-grid{margin-top:28px;padding-bottom:88px;display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,340px);gap:24px;align-items:start;}
+  .map-canvas{height:560px;border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--border);background:var(--tint);}
+  .map-canvas--placeholder{position:relative;display:flex;align-items:center;justify-content:center;}
+  .map-canvas--placeholder .media-placeholder{position:absolute;inset:0;opacity:.5;}
+  .map-canvas--err{display:flex;align-items:center;justify-content:center;}
+  .map-canvas-msg{position:relative;max-width:360px;margin:0;background:rgba(255,255,255,.92);border:1px solid var(--border);border-radius:12px;padding:16px 18px;font-size:14px;color:#44443f;line-height:1.5;text-align:center;}
+  .map-canvas-msg code{background:var(--tint);color:var(--green-2);padding:1px 6px;border-radius:6px;font-size:13px;}
+  .map-list{display:flex;flex-direction:column;gap:8px;max-height:560px;overflow-y:auto;}
+  .map-dest{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:inherit;}
+  .map-dest:hover{border-color:var(--lime);color:inherit;background:#fff;}
+  .map-dest-pin{color:var(--green);font-size:13px;flex-shrink:0;}
+  .map-dest-body{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;}
+  .map-dest-body strong{font-size:15px;font-weight:600;}
+  .map-dest-tag{font-size:12px;color:var(--muted-2);}
+  .map-dest-preco{font-size:14px;font-weight:700;color:var(--green-2);white-space:nowrap;}
+  .map-iw{max-width:220px;font-family:var(--sans);}
+  .map-iw strong{display:block;font-size:15px;color:#18181b;margin-bottom:2px;}
+  .map-iw-tag{display:block;font-size:12px;color:#6b6b66;}
+  .map-iw-resumo{display:block;font-size:13px;color:#44443f;line-height:1.4;margin:6px 0;}
+  .map-iw-link{font-size:14px;font-weight:700;color:var(--green);}
+
+  /* Integridade / confianca no detalhe da oferta */
+  .fare-error-note{background:#fff7ed;border:1px solid #fed7aa;border-radius:var(--r);padding:14px 16px;font-size:13px;line-height:1.5;color:#7c2d12;margin:18px 0 0;}
+  .fare-error-note strong{color:#9a3412;}
+  .det-buy-perks{margin:12px 0 0;font-size:13px;font-weight:700;color:var(--green-2);text-align:center;}
+  .trust-mini{display:flex;flex-direction:column;gap:10px;background:var(--tint);border:1px solid #d9edb8;border-radius:var(--r);padding:16px;margin-top:14px;}
+  .trust-mini-item{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5;color:var(--green-2);}
+  .trust-mini-ico{flex-shrink:0;font-size:15px;line-height:1.4;}
+  .det-alert .det-alert-input,.det-alert input[type=email],.det-alert select{width:100%;border:1px solid #3f3f42;background:#26262a;border-radius:10px;padding:12px 14px;font-family:var(--sans);font-size:14px;color:#f7f7f5;margin-top:6px;}
+  .det-alert .btn{width:100%;margin-top:8px;}
+  .det-alert-orig{display:block;font-size:12px;color:#a1a1a6;}
+  .opt-foot--disclaimer{color:#8a8a84;}
+
+  /* Faixa de captura (strip) */
+  .news-whatsapp-note{font-size:11px;color:var(--muted-2);display:block;margin-top:-4px;}
+  .news-strip-wrap{padding:48px 32px 0;}
+  .news-strip{background:#18181b;color:#f7f7f5;border-radius:var(--r-lg);padding:28px 32px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;}
+  .news-strip-copy{max-width:480px;}
+  .news-strip-copy h2{font-size:26px;line-height:1.15;margin:2px 0 0;}
+  .news-strip-copy p{margin:8px 0 0;font-size:14px;color:#a1a1a6;}
+  .news-form--strip{display:flex;gap:10px;flex-wrap:wrap;flex:1;min-width:280px;max-width:440px;}
+  .news-form--strip input,.news-form--strip select{border:1px solid #3f3f42;background:#26262a;border-radius:10px;padding:11px 14px;font-family:var(--sans);font-size:14px;color:#f7f7f5;flex:1;min-width:150px;}
+  .news-form--strip .btn{flex-basis:100%;}
+  .news-fine--strip{display:block;text-align:right;padding:6px 32px 0;font-size:11px;color:var(--muted-2);}
+
+  /* Resultados: transparencia + captura */
+  .res-fine{margin-top:4px;font-size:12px;color:var(--muted-2);text-align:center;}
+  .res-amostra--pax{background:#fff7ed;border-color:#fed7aa;color:#9a3412;}
+  .res-amostra{background:var(--tint);border:1px solid #d9edb8;border-radius:var(--r);padding:14px 18px;font-size:14px;color:var(--green-2);margin-bottom:4px;}
+  .res-vazio{background:#fff;border:1px dashed var(--border-2);border-radius:var(--r);padding:22px;text-align:center;color:var(--muted);font-size:14px;}
+  .res-alert-banner{background:#18181b;color:#f7f7f5;border-radius:var(--r);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:15px;}
+  .res-alert-banner strong{color:#fff;}
+  .res-alert-banner span{color:#a1a1a6;}
+  .res-alert-form{display:flex;gap:10px;flex-wrap:wrap;flex:1;min-width:260px;max-width:420px;}
+  .res-alert-form input[type=email]{flex:1;min-width:150px;border:1px solid #3f3f42;background:#26262a;border-radius:10px;padding:11px 14px;font-family:var(--sans);font-size:14px;color:#f7f7f5;}
+  .res-alert-form .news-msg{flex-basis:100%;margin:0;color:var(--lime-2);font-size:13px;}
+
+  /* Pagina de saida (interstitial) */
+  .exit{padding:48px 32px 72px;max-width:920px;}
+  .exit-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:36px;text-align:center;}
+  .exit-card h1{font-size:32px;margin:8px 0 12px;}
+  .exit-sub{color:var(--muted);max-width:52ch;margin:0 auto 24px;}
+  .exit-cta{font-size:17px;padding:16px 28px;}
+  .exit-fine{margin:14px 0 0;font-size:13px;color:var(--muted-2);}
+  .exit-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:40px;}
+  .exit-steps{margin:12px 0 0;padding-left:20px;color:var(--muted);line-height:1.6;}
+  .exit-help{background:var(--tint);border-radius:var(--r);padding:24px;}
+  .exit-help .btn{margin-top:6px;}
+  .exit-help-note{font-size:13px;color:var(--muted);margin-top:14px;}
+
+  /* Paginas de suporte (FAQ) */
+  .help-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px 48px;}
+  .help-group>p{color:var(--muted);}
+  .faq-item{border-top:1px solid var(--border);padding:14px 0;}
+  .faq-item summary{cursor:pointer;font-weight:600;list-style:none;}
+  .faq-item summary::-webkit-details-marker{display:none;}
+  .faq-item summary::after{content:"+";float:right;color:var(--green);font-weight:700;}
+  .faq-item[open] summary::after{content:"–";}
+  .faq-item p{margin:10px 0 0;color:var(--muted);line-height:1.55;}
+  .help-fine{font-size:13px;color:var(--muted-2);}
+  .alerts-form{display:flex;flex-direction:column;gap:12px;max-width:420px;}
+  .alerts-form input[type=email]{border:1px solid var(--border-2);border-radius:12px;padding:13px 14px;font-family:var(--sans);font-size:15px;}
+  .status-page{max-width:720px;}
+  .status-page .btn{margin-top:8px;}
+
+  /* Footer */
+  .site-footer{background:#fff;border-top:1px solid var(--border);margin-top:56px;}
+  .foot-grid{padding:56px 32px 40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:40px;}
+  .brand--foot{--brand-fly:62px;}
+  .brand--foot .brand-word{font-size:26px;}
+  .brand--foot .brand-plane{color:var(--lime-2);width:12px;height:12px;margin-top:-11px;}
+  .foot-brand p{margin:14px 0 0;font-size:14px;color:var(--muted);line-height:1.6;max-width:280px;}
+  .foot-col{display:flex;flex-direction:column;gap:10px;font-size:14px;}
+  .foot-title{font-weight:700;margin-bottom:4px;}
+  .foot-link--soon{color:var(--muted-2);opacity:.7;cursor:not-allowed;}
+  .foot-link--soon::after{content:" · em breve";font-size:11px;font-weight:400;}
+  .foot-bar{border-top:1px solid #f0f0ed;}
+  .foot-bar-in{padding-top:20px;padding-bottom:24px;display:flex;flex-direction:column;gap:8px;}
+  .foot-places{margin:0;font-size:13px;color:#44443f;}
+  .foot-lgpd{margin:0;font-size:12.5px;color:var(--muted);line-height:1.6;max-width:78ch;}
+  .foot-legal{margin:0;font-size:12px;color:var(--muted-2);}
+
+  @media(max-width:860px){
+    /* A LISTA vem primeiro no celular. Filtro e captura de e-mail sao uteis,
+       mas nao na frente do que a pessoa veio ver. */
+    .feed-ordem{display:flex;flex-direction:column;}
+    .feed-ordem .feed-lista{order:1;}
+    .feed-ordem .news-wrap{order:2;}
+    .res-grid{display:flex;flex-direction:column;}
+    .res-side{order:2;}
+    .res-list{order:1;}
+    .wrap{padding:0 20px;}
+    /* padding LATERAL preservado: "padding:10px 0" zerava o respiro do .wrap e
+       colava a marca na borda esquerda e o "Meus alertas" na direita — duas
+       personas diferentes reclamaram disso na auditoria. */
+    .site-header-in{height:auto;flex-wrap:wrap;padding:10px 20px;gap:10px 16px;}
+    .site-nav{order:3;width:100%;gap:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;font-size:14px;}
+    .site-nav a{white-space:nowrap;}
+    /* O telefone NAO some mais no celular: a auditoria pegou um usuario de 68
+       anos que rolou a home inteira procurando e "quase desistiu achando que
+       nao tinha telefone nenhum". Some so o rotulo ATENDIMENTO, fica o numero. */
+    .site-atend{align-items:flex-start;}
+    .site-atend span{display:none;}
+    .site-atend strong{font-size:15px;color:var(--green-2);text-decoration:underline;}
+    .site-header-right{gap:10px;}
+    .styles-grid{grid-template-columns:1fr;gap:24px;}
+    /* relative, NAO static: .style-img e position:absolute;inset:0 e precisa
+       deste elemento como bloco container. Com "static" ela escapava para o
+       ancestral posicionado la em cima e virava uma camada de ~9000px por
+       cima do feed de ofertas, roubando o toque dos cards no celular. */
+    .styles-imgs{position:relative;height:320px;}
+    .style-item{opacity:1;}
+    .style-img{opacity:0;}.style-img.is-active{opacity:1;}
+    .guia-intro-grid{grid-template-columns:1fr;gap:24px;}
+    .det-aside{position:static;}
+    .hero{height:520px;}
+    .dia{grid-template-columns:1fr;gap:16px;}
+    .dia-num{flex-direction:row;gap:6px;width:auto;padding:8px 14px;height:auto;}
+    .res-grid{grid-template-columns:1fr;}
+    .res-side{position:static;}
+    .res-voo{gap:14px;}
+    .res-preco{border-left:0;padding-left:0;text-align:left;}
+    .exit-grid{grid-template-columns:1fr;}
+    .help-grid{grid-template-columns:1fr;}
+    .news-strip{flex-direction:column;align-items:stretch;}
+    .explore{grid-template-columns:1fr;}
+    .news-fine--strip{text-align:center;padding:6px 0 0;}
+    .map-grid{grid-template-columns:1fr;}
+    .map-canvas{height:380px;}
+    .map-list{max-height:none;}
+  }
+  </style>
+
+</head>
+<body>
+<div class="seasons3d" aria-hidden="true"><div class="s3-season s3-season--inverno" style="animation-delay:0s"><div class="s3-stage"><span class="s3-orb" style="left:8%;top:27%;width:54vw;height:54vw;background:radial-gradient(circle,rgba(129,187,224,.96) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-340px) scale(1.378)"></span><span class="s3-orb" style="left:93%;top:69%;width:46vw;height:46vw;background:radial-gradient(circle,rgba(186,203,224,.92) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-130px) scale(1.144)"></span><span class="s3-orb" style="left:50%;top:-7%;width:64vw;height:64vw;background:radial-gradient(circle,rgba(94,151,190,.70) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-520px) scale(1.578)"></span><span class="s3-sun" style="top:34%;left:64%;width:14vw;height:14vw;background:radial-gradient(circle,rgba(226,232,240,.72) 0%,transparent 70%)"></span></div><span class="s3-horizon" style="background:linear-gradient(to top,rgba(94,151,190,.22),transparent)"></span></div><div class="s3-season s3-season--primavera" style="animation-delay:-54s"><div class="s3-stage"><span class="s3-orb" style="left:8%;top:27%;width:52vw;height:52vw;background:radial-gradient(circle,rgba(244,150,182,.88) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-310px) scale(1.344)"></span><span class="s3-orb" style="left:93%;top:69%;width:46vw;height:46vw;background:radial-gradient(circle,rgba(163,230,53,.86) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-125px) scale(1.139)"></span><span class="s3-orb" style="left:50%;top:-7%;width:62vw;height:62vw;background:radial-gradient(circle,rgba(216,180,254,.46) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-510px) scale(1.567)"></span><span class="s3-sun" style="top:20%;left:72%;width:17vw;height:17vw;background:radial-gradient(circle,rgba(254,215,226,.76) 0%,transparent 70%)"></span></div><span class="s3-horizon" style="background:linear-gradient(to top,rgba(132,204,22,.24),transparent)"></span></div><div class="s3-season s3-season--verao" style="animation-delay:-36s"><div class="s3-stage"><span class="s3-orb" style="left:8%;top:26%;width:52vw;height:52vw;background:radial-gradient(circle,rgba(250,204,21,.92) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-320px) scale(1.356)"></span><span class="s3-orb" style="left:93%;top:70%;width:46vw;height:46vw;background:radial-gradient(circle,rgba(132,204,22,.80) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-120px) scale(1.133)"></span><span class="s3-orb" style="left:50%;top:-6%;width:64vw;height:64vw;background:radial-gradient(circle,rgba(56,189,248,.58) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-520px) scale(1.578)"></span><span class="s3-sun" style="top:14%;left:76%;width:18vw;height:18vw;background:radial-gradient(circle,rgba(253,224,71,.80) 0%,transparent 70%)"></span></div><span class="s3-horizon" style="background:linear-gradient(to top,rgba(163,230,53,.26),transparent)"></span></div><div class="s3-season s3-season--outono" style="animation-delay:-18s"><div class="s3-stage"><span class="s3-orb" style="left:7%;top:28%;width:54vw;height:54vw;background:radial-gradient(circle,rgba(234,138,54,.62) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-300px) scale(1.333)"></span><span class="s3-orb" style="left:94%;top:68%;width:46vw;height:46vw;background:radial-gradient(circle,rgba(202,138,4,.56) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-110px) scale(1.122)"></span><span class="s3-orb" style="left:50%;top:-8%;width:62vw;height:62vw;background:radial-gradient(circle,rgba(146,64,14,.38) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-500px) scale(1.556)"></span><span class="s3-sun" style="top:26%;left:70%;width:16vw;height:16vw;background:radial-gradient(circle,rgba(251,191,36,.70) 0%,transparent 70%)"></span></div><span class="s3-horizon" style="background:linear-gradient(to top,rgba(180,83,9,.24),transparent)"></span></div><div class="s3-motes"><span class="s3-mote" style="left:6%;width:4px;height:4px;animation-duration:26s;animation-delay:0s"></span><span class="s3-mote" style="left:16.5%;width:3px;height:3px;animation-duration:33s;animation-delay:-4s"></span><span class="s3-mote" style="left:27%;width:3px;height:3px;animation-duration:40s;animation-delay:-8s"></span><span class="s3-mote" style="left:37.5%;width:4px;height:4px;animation-duration:30s;animation-delay:-12s"></span><span class="s3-mote" style="left:48%;width:3px;height:3px;animation-duration:37s;animation-delay:-16s"></span><span class="s3-mote" style="left:58.5%;width:3px;height:3px;animation-duration:27s;animation-delay:-20s"></span><span class="s3-mote" style="left:69%;width:4px;height:4px;animation-duration:34s;animation-delay:-24s"></span><span class="s3-mote" style="left:79.5%;width:3px;height:3px;animation-duration:41s;animation-delay:-28s"></span><span class="s3-mote" style="left:90%;width:3px;height:3px;animation-duration:31s;animation-delay:-32s"></span></div><div class="s3-veil"></div></div>
+<a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+<header class="site-header"><div class="wrap site-header-in"><a class="brand" href="/"><span class="brand-plane" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M2.2 20.6 22 12 2.2 3.4l0 6.9L15 12 2.2 13.7z"/></svg></span><span class="brand-word">aonde</span><span class="brand-dot"></span></a><nav class="site-nav"><a href="/resultados" title="Buscar um voo específico, por origem e destino">Passagens</a><a href="/hoje">A escolha do dia <span class="nav-pill">NOVO</span></a><a href="/ofertas" title="Ver os achados de passagem já conferidos pela curadoria">Ofertas</a><a href="https://search.hotellook.com/" target="_blank" rel="noopener sponsored" title="Abre o site do parceiro Hotellook em nova aba">Hotéis <span class="nav-ext" aria-hidden="true">↗</span></a><a href="/guias">Guias de destino</a><a href="/mapa">Mapa</a></nav><div class="site-header-right"><a class="site-atend" href="tel:08009420842"><span>Atendimento</span><strong>0800 942 0842</strong></a><a class="btn btn-dark" href="/alertas">Meus alertas</a></div></div></header>
+<main id="conteudo" tabindex="-1"><section class="wrap map-head"><p class="eyebrow eyebrow--green">Revista Aonde</p><h1 class="map-title">Roteiros prontos, dia a dia</h1><p class="map-sub">22 destinos com roteiro de 5 dias na ordem certa e um bom restaurante para cada dia. Escolha o seu.</p></section><section class="roteiros" id="roteiros"><div class="globe3d" aria-hidden="true"><div class="g3-inner"><i class="g3-mer" style="transform:rotateY(0deg)"></i><i class="g3-mer" style="transform:rotateY(22.5deg)"></i><i class="g3-mer" style="transform:rotateY(45deg)"></i><i class="g3-mer" style="transform:rotateY(67.5deg)"></i><i class="g3-mer" style="transform:rotateY(90deg)"></i><i class="g3-mer" style="transform:rotateY(112.5deg)"></i><i class="g3-mer" style="transform:rotateY(135deg)"></i><i class="g3-mer" style="transform:rotateY(157.5deg)"></i><i class="g3-par" style="width:102px;height:102px;margin:-51px 0 0 -51px;transform:rotateX(90deg) translateZ(-81px)"></i><i class="g3-par" style="width:166px;height:166px;margin:-83px 0 0 -83px;transform:rotateX(90deg) translateZ(-48px)"></i><i class="g3-par" style="width:192px;height:192px;margin:-96px 0 0 -96px;transform:rotateX(90deg) translateZ(0px)"></i><i class="g3-par" style="width:166px;height:166px;margin:-83px 0 0 -83px;transform:rotateX(90deg) translateZ(48px)"></i><i class="g3-par" style="width:102px;height:102px;margin:-51px 0 0 -51px;transform:rotateX(90deg) translateZ(81px)"></i><div class="g3-orbit"><div class="g3-orbit-spin"><span class="g3-orbit-dot"></span></div></div></div></div><div class="wrap"><div class="roteiros-head" id="guias"><p class="eyebrow eyebrow--lime">Revista Aonde · Roteiros prontos</p><h2>5 dias, dia a dia, com onde comer</h2><p>Roteiros escritos por quem conhece o destino: pontos turísticos na ordem certa e um bom restaurante para cada dia. É só seguir.</p><p class="roteiros-all"><a href="/guias">Ver todos os roteiros →</a></p></div><div class="rot-grid"><a class="rot-card" href="/guias/portodegalinhas"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Porto%20de%20Galinhas%2C%20Pernambuco.jpg" alt="Recife e Porto de Galinhas em 5 dias" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22jangadas%20nas%20piscinas%20naturais%20de%20Porto%20de%20Galinhas%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3Ejangadas%20nas%20piscinas%20naturais%20de%20Porto%20de%20Galinhas%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Praia · Nordeste</span><h3>Recife e Porto de Galinhas em 5 dias</h3><p>Dois dias de cultura entre Recife Antigo e Olinda, três de piscinas naturais — com o restaurante certo em cada dia.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Abr</span></div></div></a><a class="rot-card" href="/guias/salvador"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Pelourinho%2C%20Salvador%2C%20Bahia.jpg" alt="Salvador em 5 dias, sem pressa" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22casario%20colorido%20do%20Pelourinho%20ao%20entardecer%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3Ecasario%20colorido%20do%20Pelourinho%20ao%20entardecer%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Cidade histórica · Bahia</span><h3>Salvador em 5 dias, sem pressa</h3><p>Pelourinho, Bonfim, Rio Vermelho e Itapuã na ordem certa, do acarajé da Dinha à moqueca da Casa de Tereza.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Mar</span></div></div></a><a class="rot-card" href="/guias/noronha"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Ba%C3%ADa%20do%20Sancho%2C%20Fernando%20de%20Noronha.jpg" alt="Fernando de Noronha em 5 dias" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Ba%C3%ADa%20do%20Sancho%20vista%20do%20alto%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3EBa%C3%ADa%20do%20Sancho%20vista%20do%20alto%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Praia · Fernando de Noronha</span><h3>Fernando de Noronha em 5 dias</h3><p>Baía do Sancho, golfinhos ao amanhecer e o mar mais bonito do Brasil — com o roteiro que resolve as taxas e agendamentos.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Set</span></div></div></a><a class="rot-card" href="/guias/rio"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/P%C3%A3o%20de%20A%C3%A7%C3%BAcar%20visto%20do%20Corcovado.jpg" alt="Rio de Janeiro em 5 dias clássicos" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22enseada%20de%20Botafogo%20com%20o%20P%C3%A3o%20de%20A%C3%A7%C3%BAcar%20ao%20fundo%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3Eenseada%20de%20Botafogo%20com%20o%20P%C3%A3o%20de%20A%C3%A7%C3%BAcar%20ao%20fundo%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Cidade · Rio de Janeiro</span><h3>Rio de Janeiro em 5 dias clássicos</h3><p>Cristo, Pão de Açúcar e praias nos horários certos, mais Santa Teresa e um dia de praias selvagens em Niterói.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Abr</span></div></div></a><a class="rot-card" href="/guias/bariloche"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Cerro%20Catedral%2C%20Bariloche.jpg" alt="Bariloche na neve: ski e chocolate" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Cerro%20Catedral%20nevado%20com%20o%20lago%20Nahuel%20Huapi%20ao%20fundo%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3ECerro%20Catedral%20nevado%20com%20o%20lago%20Nahuel%20Huapi%20ao%20fundo%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Neve · Argentina</span><h3>Bariloche na neve: ski e chocolate</h3><p>Dois dias de Cerro Catedral, Circuito Chico e fondue — um roteiro que funciona até para quem nunca esquiou.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Abr</span></div></div></a><a class="rot-card" href="/guias/chapada"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Cachoeira%20da%20Fuma%C3%A7a%2C%20Chapada%20Diamantina.jpg" alt="Chapada Diamantina em 5 dias" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22mirante%20da%20Cachoeira%20da%20Fuma%C3%A7a%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3Emirante%20da%20Cachoeira%20da%20Fuma%C3%A7a%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Natureza · Bahia</span><h3>Chapada Diamantina em 5 dias</h3><p>Cachoeiras gigantes, grutas de água azul-safira e a trilha da Fumaça — aventura leve com base em Lençóis.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Abr</span></div></div></a><a class="rot-card" href="/guias/foz"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Cataratas%20do%20Igua%C3%A7u%2C%20Paran%C3%A1.jpg" alt="Foz do Iguaçu em 4 dias (3 países)" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Garganta%20do%20Diabo%20nas%20Cataratas%20do%20Igua%C3%A7u%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3EGarganta%20do%20Diabo%20nas%20Cataratas%20do%20Igua%C3%A7u%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 4 DIAS</span></div><div class="rot-body"><span class="rot-tag">Natureza · Paraná</span><h3>Foz do Iguaçu em 4 dias (3 países)</h3><p>As Cataratas pelos dois lados, Itaipu, o Parque das Aves e a chance de pisar em três países num só dia.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Jun</span></div></div></a><a class="rot-card" href="/guias/jeri"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Jericoacoara%2C%20Cear%C3%A1.jpg" alt="Jericoacoara em 5 dias" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22p%C3%B4r%20do%20sol%20na%20Duna%20do%20P%C3%B4r%20do%20Sol%2C%20Jericoacoara%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3Ep%C3%B4r%20do%20sol%20na%20Duna%20do%20P%C3%B4r%20do%20Sol%2C%20Jericoacoara%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Praia · Ceará</span><h3>Jericoacoara em 5 dias</h3><p>Dunas, lagoas com redes dentro d&#39;água, Pedra Furada e o pôr do sol que virou ritual na vila de areia.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Mar</span></div></div></a><a class="rot-card" href="/guias/buenosaires"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Caminito%2C%20La%20Boca%2C%20Buenos%20Aires.jpg" alt="Buenos Aires em 5 dias" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22casario%20colorido%20do%20Caminito%2C%20La%20Boca%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3Ecasario%20colorido%20do%20Caminito%2C%20La%20Boca%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Cidade · Argentina</span><h3>Buenos Aires em 5 dias</h3><p>Tango, parrillas e cafés centenários entre Recoleta, San Telmo e Palermo — o clássico portenho, sem pressa.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Abr</span></div></div></a><a class="rot-card" href="/guias/gramado"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Rua%20Coberta%2C%20Gramado.jpg" alt="Gramado e Canela em 5 dias" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Rua%20Coberta%20de%20Gramado%20iluminada%20no%20inverno%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3ERua%20Coberta%20de%20Gramado%20iluminada%20no%20inverno%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Serra · Rio Grande do Sul</span><h3>Gramado e Canela em 5 dias</h3><p>Fondue, cascatas e catedrais de pedra, um day trip ao Vale dos Vinhedos e a rota do chocolate artesanal.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Mai</span></div></div></a><a class="rot-card" href="/guias/maceio"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Macei%C3%B3%2C%20estado%20Alagoas.jpg" alt="Maceió e Maragogi em 5 dias" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22mar%20em%20tons%20de%20verde-esmeralda%20visto%20de%20uma%20jangada%20em%20frente%20%C3%A0%20Paju%C3%A7ara%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3Emar%20em%20tons%20de%20verde-esmeralda%20visto%20de%20uma%20jangada%20em%20frente%20%C3%A0%20Paju%C3%A7ara%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Praia · Alagoas</span><h3>Maceió e Maragogi em 5 dias</h3><p>Da orla de Pajuçara às piscinas naturais de Galés, passando pelo camarão jangadeiro do Janga e o chiclete de camarão da Barra Grande.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Mai</span></div></div></a><a class="rot-card" href="/guias/lencois"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Lencois%20Maranhenses%208.jpg" alt="Lençóis Maranhenses em 5 dias, de Barreirinhas a Atins" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22dunas%20brancas%20com%20lagoa%20de%20%C3%A1gua%20esverdeada%20refletindo%20o%20c%C3%A9u%20ao%20entardecer%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3Edunas%20brancas%20com%20lagoa%20de%20%C3%A1gua%20esverdeada%20refletindo%20o%20c%C3%A9u%20ao%20entardecer%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Dunas e lagoas · Maranhão</span><h3>Lençóis Maranhenses em 5 dias, de Barreirinhas a Atins</h3><p>Rio Preguiças, Lagoa Azul, a travessia até Atins e as dunas mais altas do parque, sempre voltando para um peixe fresco à beira do rio.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Jun</span></div></div></a><a class="rot-card" href="/guias/trancoso"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Quadrado%20de%20Trancoso%2C%20Bahia.jpg" alt="Trancoso e Arraial d&#39;Ajuda em 5 dias" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22casas%20coloridas%20ao%20redor%20do%20gramado%20do%20Quadrado%20em%20Trancoso%20ao%20p%C3%B4r%20do%20sol%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3Ecasas%20coloridas%20ao%20redor%20do%20gramado%20do%20Quadrado%20em%20Trancoso%20ao%20p%C3%B4r%20do%20sol%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Vila charmosa · Bahia</span><h3>Trancoso e Arraial d&#39;Ajuda em 5 dias</h3><p>Do Quadrado à Praia do Espelho, com a lagosta ao molho de abacaxi do Capim Santo e a moqueca da Silvinha no meio do gramado.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Mai</span></div></div></a><a class="rot-card" href="/guias/ouropreto"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Ouro%20Preto%2C%20Minas%20Gerais.jpg" alt="Ouro Preto e Tiradentes em 5 dias, sem pressa" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22ladeira%20de%20pedra%20e%20igrejas%20barrocas%20de%20Ouro%20Preto%20ao%20entardecer%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3Eladeira%20de%20pedra%20e%20igrejas%20barrocas%20de%20Ouro%20Preto%20ao%20entardecer%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Cidades históricas · Minas Gerais</span><h3>Ouro Preto e Tiradentes em 5 dias, sem pressa</h3><p>Ladeiras de pedra, igrejas cobertas de ouro e o melhor da comida mineira entre Ouro Preto e Tiradentes, do frango com quiabo da Casa do Ouvidor ao tutu da Viradas do Largo.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Jun</span></div></div></a><a class="rot-card" href="/guias/florianopolis"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Barra%20da%20Lagoa%2C%20Florian%C3%B3polis%20-%20SC%20(2).JPG" alt="Florianópolis em 5 dias, sem pressa" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Lagoa%20da%20Concei%C3%A7%C3%A3o%20vista%20de%20cima%20ao%20entardecer%2C%20com%20dunas%20ao%20fundo%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3ELagoa%20da%20Concei%C3%A7%C3%A3o%20vista%20de%20cima%20ao%20entardecer%2C%20com%20dunas%20ao%20fundo%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Praias e lagoa · Santa Catarina</span><h3>Florianópolis em 5 dias, sem pressa</h3><p>Do centro histórico à Lagoa da Conceição, do norte badalado ao sul selvagem, com as ostras de Ribeirão da Ilha e o camarão empanado do Box 32.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Jun</span></div></div></a><a class="rot-card" href="/guias/paraty"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Cidade%20de%20Paraty.jpg" alt="Paraty e Ilha Grande em 5 dias, sem pressa" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22ruas%20de%20pedra%20e%20casario%20colonial%20de%20Paraty%20ao%20entardecer%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3Eruas%20de%20pedra%20e%20casario%20colonial%20de%20Paraty%20ao%20entardecer%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Litoral colonial · Rio de Janeiro</span><h3>Paraty e Ilha Grande em 5 dias, sem pressa</h3><p>Centro colonial, escuna pelas ilhas da baía e travessia para Ilha Grande, dos camarões flambados da Banana da Terra às praias desertas de Lopes Mendes.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Set</span></div></div></a><a class="rot-card" href="/guias/bonito"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Gruta%20do%20Lago%20Azul%20-%20Bonito%2C%20MS.JPG" alt="Bonito em 5 dias, rio por rio" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22flutua%C3%A7%C3%A3o%20em%20rio%20de%20%C3%A1gua%20cristalina%20cercado%20de%20vegeta%C3%A7%C3%A3o%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3Eflutua%C3%A7%C3%A3o%20em%20rio%20de%20%C3%A1gua%20cristalina%20cercado%20de%20vegeta%C3%A7%C3%A3o%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Natureza · Mato Grosso do Sul</span><h3>Bonito em 5 dias, rio por rio</h3><p>Flutuação, grutas e balneários com agendamento certo, sem correria.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Mar</span></div></div></a><a class="rot-card" href="/guias/veadeiros"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Vale%20da%20Lua%2C%20Chapada%20dos%20Veadeiros%2C%20Goi%C3%A1s%2C%20Brasil.JPG" alt="Chapada dos Veadeiros em 5 dias, cachoeira por cachoeira" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22cachoeira%20caindo%20entre%20pared%C3%B5es%20de%20quartzito%20no%20cerrado%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3Ecachoeira%20caindo%20entre%20pared%C3%B5es%20de%20quartzito%20no%20cerrado%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Natureza · Goiás</span><h3>Chapada dos Veadeiros em 5 dias, cachoeira por cachoeira</h3><p>Alto Paraíso, São Jorge e as trilhas do Parque Nacional na ordem certa.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Mar</span></div></div></a><a class="rot-card" href="/guias/manaus"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Amazon%20Theatre%20(Manaus%2C%20Brazil)%20(edited).jpg" alt="Manaus e a Amazônia em 5 dias, do encontro das águas à selva" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22encontro%20das%20%C3%A1guas%20do%20Rio%20Negro%20e%20do%20Solim%C3%B5es%20visto%20de%20barco%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3Eencontro%20das%20%C3%A1guas%20do%20Rio%20Negro%20e%20do%20Solim%C3%B5es%20visto%20de%20barco%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Natureza · Amazonas</span><h3>Manaus e a Amazônia em 5 dias, do encontro das águas à selva</h3><p>Teatro Amazonas, o Rio Negro e duas noites em lodge de selva.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Mar</span></div></div></a><a class="rot-card" href="/guias/cusco"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Machu%20Picchu%2C%20Peru.jpg" alt="Cusco e Machu Picchu em 5 dias, no ritmo da altitude" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Machu%20Picchu%20envolta%20em%20n%C3%A9voa%20ao%20nascer%20do%20sol%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3EMachu%20Picchu%20envolta%20em%20n%C3%A9voa%20ao%20nascer%20do%20sol%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Montanha · Peru</span><h3>Cusco e Machu Picchu em 5 dias, no ritmo da altitude</h3><p>Cidade inca, Valle Sagrado e a citadela ao amanhecer, com tempo para aclimatar.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Fev</span></div></div></a><a class="rot-card" href="/guias/atacama"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Duna%20Mayor%2C%20Valle%20de%20la%20Luna%2C%20San%20Pedro%20de%20Atacama%2C%20Chile%2C%202016-02-01%2C%20DD%20163.JPG" alt="San Pedro de Atacama em 5 dias, entre vulcões e sal" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22dunas%20e%20forma%C3%A7%C3%B5es%20rochosas%20do%20Valle%20de%20la%20Luna%20ao%20p%C3%B4r%20do%20sol%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3Edunas%20e%20forma%C3%A7%C3%B5es%20rochosas%20do%20Valle%20de%20la%20Luna%20ao%20p%C3%B4r%20do%20sol%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Deserto · Chile</span><h3>San Pedro de Atacama em 5 dias, entre vulcões e sal</h3><p>Valle de la Luna, gêiseres do Tatio e as lagunas do Salar, sem pressa.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Mai</span></div></div></a><a class="rot-card" href="/guias/montevideu"><div class="rot-media"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Colonia%20de%20Sacramento.jpg" alt="Montevidéu e Colonia del Sacramento em 5 dias" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22cal%C3%A7amento%20de%20pedra%20e%20pr%C3%A9dios%20coloniais%20de%20Colonia%20del%20Sacramento%20ao%20entardecer%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3Ecal%C3%A7amento%20de%20pedra%20e%20pr%C3%A9dios%20coloniais%20de%20Colonia%20del%20Sacramento%20ao%20entardecer%3C%2Ftext%3E%3C%2Fsvg%3E'"><span class="rot-flag">ROTEIRO DE 5 DIAS</span></div><div class="rot-body"><span class="rot-tag">Cidade histórica · Uruguai</span><h3>Montevidéu e Colonia del Sacramento em 5 dias</h3><p>Mercado del Puerto, Rambla, Ciudad Vieja e um dia inteiro em Colonia.</p><div class="rot-foot"><span class="rot-cta">Ler o roteiro completo →</span><span class="rot-mes">melhor preço em Jun</span></div></div></a></div></div></section></main><footer class="site-footer"><div class="wrap foot-grid"><div class="foot-brand"><div class="brand brand--foot"><span class="brand-plane" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M2.2 20.6 22 12 2.2 3.4l0 6.9L15 12 2.2 13.7z"/></svg></span><span class="brand-word">aonde</span><span class="brand-dot"></span></div><p>Viagens pelo Brasil e América do Sul, do jeito que você gosta de viajar.</p></div><div class="foot-col"><span class="foot-title">Reservas</span><a href="/resultados">Passagens aéreas</a><a href="https://search.hotellook.com/" target="_blank" rel="noopener sponsored">Hotéis</a><span class="foot-link--soon" aria-disabled="true" title="Em breve">Aluguel de carros</span><span class="foot-link--soon" aria-disabled="true" title="Em breve">Seguro viagem</span></div><div class="foot-col"><span class="foot-title">Conteúdo</span><a href="/guias">Guias de destino</a><a href="/#estilos">Dicas de viagem</a><a href="/#roteiros">Revista Aonde</a></div><div class="foot-col"><span class="foot-title">Atendimento</span><a href="tel:08009420842">Atendimento: 0800 942 0842</a><a href="/ajuda">Central de ajuda</a><a href="/cancelamentos">Trocas e cancelamentos</a></div></div><div class="foot-bar"><div class="wrap foot-bar-in"><p class="foot-lgpd">Alguns links são de parceiros afiliados: se você comprar por eles, podemos receber uma comissão, <strong>sem custo extra para você</strong>. Isso ajuda a manter o Aonde no ar. Preços e disponibilidade mudam sem aviso — confira sempre no site do parceiro.</p><p class="foot-legal">© 2026 Aonde Viagens Ltda · Reservas operadas em parceria com plataformas certificadas de turismo.</p></div></div></footer>
+<script>(function(){
+  var bgs=document.querySelectorAll('[data-hero]');
+  var tabs=document.querySelectorAll('[data-hero-tab]');
+  var leg=document.querySelector('[data-hero-legenda]');
+  if(bgs.length>1){
+    var i=0;
+    function show(n){
+      i=n;
+      bgs.forEach(function(b,k){b.classList.toggle('is-active',k===n);});
+      tabs.forEach(function(t,k){t.classList.toggle('is-active',k===n);});
+    }
+    // WCAG 2.2.2 (Pause, Stop, Hide): movimento automatico precisa (a) respeitar
+    // prefers-reduced-motion, (b) parar quando a pessoa escolhe um slide na mao
+    // e (c) ter um controle de pausa de verdade.
+    var pausa=document.querySelector('[data-hero-pause]');
+    var mq=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)');
+    var reduz=!!(mq&&mq.matches);
+    // 0 = parado (setInterval sempre devolve id positivo no navegador). O
+    // sentinela e 0 de proposito: os testes varrem o HTML atras de palavras
+    // vazadas de template quebrado, e este script vai inteiro no HTML.
+    var timer=0;
+    function rodando(){return timer!==0;}
+    function sinaliza(){
+      if(!pausa)return;
+      pausa.setAttribute('aria-pressed',rodando()?'false':'true');
+      pausa.setAttribute('aria-label',rodando()?'Pausar troca automática de fotos':'Retomar troca automática de fotos');
+      pausa.textContent=rodando()?'Pausar':'Retomar';
+    }
+    function liga(){ if(timer===0){timer=setInterval(function(){show((i+1)%bgs.length);},5500);} sinaliza(); }
+    function para(){ if(timer!==0){clearInterval(timer);timer=0;} sinaliza(); }
+    // Escolha manual manda: para o carrossel em vez de brigar com a pessoa.
+    tabs.forEach(function(t,k){t.addEventListener('click',function(){para();show(k);});});
+    if(pausa){pausa.addEventListener('click',function(){rodando()?para():liga();});}
+    if(reduz){para();}else{liga();}
+    // Se a preferencia mudar com a pagina aberta, obedece na hora.
+    if(mq&&mq.addEventListener){mq.addEventListener('change',function(e){e.matches?para():liga();});}
+  }
+  // Pode haver mais de um form de captura por pagina (hero + faixa + widget de rota).
+  document.querySelectorAll('[data-newsletter]').forEach(function(form){
+    var msg=form.querySelector('[data-newsletter-msg]');
+    form.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var body={email:form.email.value};
+      if(form.whatsapp&&form.whatsapp.value)body.whatsapp=form.whatsapp.value;
+      if(form.origem&&form.origem.value)body.origem=form.origem.value;
+      if(form.destino&&form.destino.value)body.destino=form.destino.value;
+      if(form.precoAlvoCentavos&&form.precoAlvoCentavos.value)body.precoAlvoCentavos=Number(form.precoAlvoCentavos.value);
+      fetch(form.action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+        .then(function(r){return r.json();})
+        .then(function(d){
+          if(msg){
+            msg.hidden=false;
+            if(d.status==='already_confirmed'){msg.textContent='Você já está inscrito! Fique de olho no e-mail.';}
+            else if(d.status){msg.textContent='Quase lá! Confira seu e-mail e clique no link para confirmar.';}
+            else{msg.textContent=d.error||'Não foi possível inscrever agora. Tente novamente.';}
+          }
+          if(d.status)form.reset();
+        })
+        .catch(function(){if(msg){msg.hidden=false;msg.textContent='Falha de conexão. Tente novamente.';}});
+    });
+  });
+  // Formulario de descadastro (/alertas).
+  var unsub=document.querySelector('[data-unsubscribe]');
+  if(unsub){
+    var umsg=unsub.querySelector('[data-unsubscribe-msg]');
+    unsub.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      fetch(unsub.action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:unsub.email.value})})
+        .then(function(r){return r.json();})
+        .then(function(){if(umsg){umsg.hidden=false;umsg.textContent='Pronto — se o e-mail estava inscrito, foi cancelado.';}unsub.reset();})
+        .catch(function(){if(umsg){umsg.hidden=false;umsg.textContent='Falha de conexão. Tente de novo mais tarde.';}});
+    });
+  }
+  // Filtros de voo (/resultados): paradas, companhias e horario filtram de
+  // verdade a lista ja renderizada — cada checkbox carrega data-ftype/data-fval
+  // (montados no servidor a partir do proprio rotulo) e cada voo carrega
+  // data-stops/data-cia/data-hora. Sem nenhum voo casando um grupo, o grupo
+  // simplesmente nao filtra (nenhuma opcao marcada = grupo nao restringe).
+  var caixas=document.querySelectorAll('[data-res-filtro]');
+  var voosEls=document.querySelectorAll('[data-res-voo]');
+  if(caixas.length&&voosEls.length){
+    var contador=document.querySelector('[data-res-count]');
+    var vazio=document.querySelector('[data-res-vazio]');
+    function bateParadas(marcados,stops){
+      var i;
+      for(i=0;i<marcados.length;i++){
+        var aberto=marcados[i].indexOf('+')!==-1;
+        var min=parseInt(marcados[i],10);
+        if(aberto?stops>=min:stops===min)return true;
+      }
+      return false;
+    }
+    function bateHorario(marcados,hora){
+      var i;
+      for(i=0;i<marcados.length;i++){
+        var partes=marcados[i].split('-');
+        var ini=parseInt(partes[0],10);
+        var fim=parseInt(partes[1],10);
+        if(fim<=ini)fim+=24;
+        var h=hora<ini?hora+24:hora;
+        if(h>=ini&&h<fim)return true;
+      }
+      return false;
+    }
+    function aplicaFiltros(){
+      var grupos={};
+      caixas.forEach(function(cb){
+        var t=cb.getAttribute('data-ftype');
+        if(!grupos[t])grupos[t]=[];
+        if(cb.checked)grupos[t].push(cb.getAttribute('data-fval'));
+      });
+      var visiveis=0;
+      voosEls.forEach(function(art){
+        var ok=true;
+        Object.keys(grupos).forEach(function(t){
+          var marcados=grupos[t];
+          if(!marcados.length)return;
+          if(t==='paradas'){ok=ok&&bateParadas(marcados,Number(art.getAttribute('data-stops')));}
+          else if(t==='cia'){ok=ok&&marcados.indexOf(art.getAttribute('data-cia'))!==-1;}
+          else if(t==='horario'){ok=ok&&bateHorario(marcados,Number(art.getAttribute('data-hora')));}
+        });
+        art.hidden=!ok;
+        if(ok)visiveis++;
+      });
+      if(contador)contador.textContent=visiveis+' voos de exemplo · ordenar por';
+      if(vazio)vazio.hidden=visiveis!==0;
+    }
+    caixas.forEach(function(cb){cb.addEventListener('change',aplicaFiltros);});
+    aplicaFiltros();
+  }
+})();</script>
+</body>
+</html>
