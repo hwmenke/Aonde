@@ -22,6 +22,7 @@ import crypto from "node:crypto";
 
 import { resolveDataDir, readJsonSafe, writeJsonAtomic } from "../store/dataDir.js";
 import { isIataCode, normalizeIata } from "../validate.js";
+import { cidadeDoIata } from "../render/aeroportos.js";
 
 // Regex razoavel para e-mail: nao pretende cobrir 100% da RFC 5322, apenas
 // rejeitar entradas obviamente invalidas (sem @, sem dominio, com espacos).
@@ -287,4 +288,48 @@ export function listSubscribers({ confirmedOnly = false } = {}) {
   const all = readAll();
   if (!confirmedOnly) return all;
   return all.filter((s) => s && s.double_optin_confirmed && !s.unsubscribed_at);
+}
+
+/**
+ * Descreve, em linguagem simples, para ONDE um alerta aponta — usado para
+ * montar o "resumo do que voce vai receber" nos e-mails de confirmacao e de
+ * boas-vindas (ver src/newsletter/emailTemplates.js). Funcao PURA, sem I/O:
+ * so formata os dados que ja tem em maos.
+ *
+ * Aceita tanto o shape de `subscriber.pending_alert` (antes do double
+ * opt-in) quanto o de uma AlertRule real (depois de confirmado) — os dois
+ * usam os mesmos nomes de campo (destino, preco_alvo_centavos), entao a
+ * mesma funcao serve para os dois momentos do fluxo.
+ *
+ * @param {string} origem codigo IATA de origem (sempre presente no subscriber)
+ * @param {{destino?: string|null, preco_alvo_centavos?: number|null}|null} [alvo]
+ * @returns {{
+ *   origemLabel: string,
+ *   destino: string|null,
+ *   destinoLabel: string|null,
+ *   temRotaEspecifica: boolean,
+ *   precoAlvoCentavos: number|null,
+ * }}
+ */
+export function describeAlertTarget(origem, alvo = null) {
+  const origemCodigo = origem ? String(origem).trim().toUpperCase() : "";
+  const origemNomeCidade = cidadeDoIata(origemCodigo);
+  const origemLabel = origemCodigo ? (origemNomeCidade ? `${origemNomeCidade} (${origemCodigo})` : origemCodigo) : "";
+
+  const destinoCodigo = alvo && alvo.destino ? String(alvo.destino).trim().toUpperCase() : null;
+  const destinoNomeCidade = destinoCodigo ? cidadeDoIata(destinoCodigo) : "";
+  const destinoLabel = destinoCodigo ? (destinoNomeCidade ? `${destinoNomeCidade} (${destinoCodigo})` : destinoCodigo) : null;
+
+  const precoAlvoCentavos =
+    alvo && alvo.preco_alvo_centavos !== undefined && alvo.preco_alvo_centavos !== null
+      ? alvo.preco_alvo_centavos
+      : null;
+
+  return {
+    origemLabel,
+    destino: destinoCodigo,
+    destinoLabel,
+    temRotaEspecifica: !!(origemCodigo && destinoCodigo),
+    precoAlvoCentavos,
+  };
 }

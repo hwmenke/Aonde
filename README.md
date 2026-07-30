@@ -33,7 +33,7 @@ pontos, os dois inegociáveis:
 git clone https://github.com/hwmenke/aonde.git
 cd aonde
 cp .env.example .env   # opcional — o site funciona sem nenhuma credencial
-node --test             # 439 testes, sem rede real
+node --test             # 533 testes, sem rede real
 node scripts/serve.js   # sobe o servidor (padrão: http://localhost:3333)
 ```
 
@@ -50,9 +50,9 @@ falta de chave.
 |---|---|
 | `/` | Home — busca, achados do dia, estilos de viagem |
 | `/hoje` | **A escolha do dia** — 1-2 ofertas com roteiro em tópicos, trocam por data |
-| `/ofertas`, `/ofertas/:id` | Feed de achados de passagem e o detalhe de cada um |
-| `/guias`, `/guias/:id` | Índice e os 22 roteiros de destino (dia a dia, onde comer, hospedagem) |
-| `/resultados` | Busca de voos (hoje com dados de exemplo, claramente rotulados) |
+| `/ofertas`, `/ofertas/:id` | Feed dos 18 achados de passagem e o detalhe de cada um, com histórico de preço |
+| `/guias`, `/guias/:id` | Índice (com filtro por destino) e os 22 roteiros (dia a dia, onde comer, hospedagem) |
+| `/resultados` | Busca de voos — ao vivo pela Amadeus quando há credencial, senão exemplos claramente rotulados |
 | `/mapa` | Mapa de destinos (Google Maps, com fallback sem chave) |
 | `/saida/:id`, `/saida/voo` | Interstitial "você está indo para o parceiro" antes de qualquer link de afiliado |
 | `/ajuda`, `/cancelamentos`, `/alertas` | Central de ajuda, política de troca/cancelamento, alertas de preço (LGPD) |
@@ -84,6 +84,14 @@ em vez de inventar conteúdo.
 - `prefers-reduced-motion` desliga todo o movimento decorativo (fundo das
   estações, avião da marca, globo 3D); skip link; hierarquia de títulos
   correta; contraste AA verificado, não estimado.
+- Tema claro e escuro: segue o sistema por `prefers-color-scheme` e aceita a
+  escolha manual no botão do cabeçalho (guardada em `localStorage`, aplicada
+  antes da primeira pintura para não piscar). Os dois temas foram medidos
+  pixel a pixel — nenhum texto abaixo de AA em nenhum dos dois.
+- Histórico de preço por rota como gráfico SVG com `role="img"` e
+  `aria-label` contendo os números. Abaixo de 5 observações em 90 dias ele
+  **não desenha curva**: diz que ainda está juntando dados, em vez de sugerir
+  uma tendência que a amostra não sustenta.
 - `canonical`, `og:image`/`og:url` por página, `sitemap.xml`, JSON-LD
   (Organization/WebSite/FAQPage/TouristTrip/Product) para busca e
   compartilhamento.
@@ -110,7 +118,7 @@ src/
   store/       persistência local (histórico de preço, ofertas, cliques)
   server.js    servidor HTTP (node:http, zero framework)
 scripts/       CLIs: render-samples, daily-pick, roteiro, serve
-test/          node:test — 439 casos
+test/          node:test — 533 casos
 samples/       páginas de amostra pré-renderizadas (abra direto no navegador)
 docs/          pesquisa de parceiros, Google Places, handoff do protótipo
 ```
@@ -121,7 +129,7 @@ docs/          pesquisa de parceiros, Google Places, handoff do protótipo
 node --test
 ```
 
-439 testes, sem chamada de rede real (tudo mockado via `setFetchImpl` em
+533 testes, sem chamada de rede real (tudo mockado via `setFetchImpl` em
 `src/http.js` ou servidor local em porta efêmera).
 
 ## Configuração

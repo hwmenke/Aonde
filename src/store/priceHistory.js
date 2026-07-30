@@ -157,6 +157,98 @@ export function getRouteStats(origin, destination, options = {}) {
 }
 
 /**
+ * Serie de preco de uma rota, pronta para desenhar um grafico (ver
+ * src/render/sparkline.js). Diferente de getRouteStats, devolve tambem os
+ * pontos individuais (ordenados por data) e o periodo coberto, para que o
+ * grafico mostre a evolucao real e nao so um numero agregado.
+ *
+ * Honestidade antes de estetica: se a amostra for menor que minSamples,
+ * ok:false e NENHUM ponto deve virar linha de tendencia no render (o
+ * consumidor deve mostrar o aviso, nao um grafico com poucos pontos).
+ *
+ * @param {string} origin código IATA de origem
+ * @param {string} destination código IATA de destino
+ * @param {object} [options]
+ * @param {number} [options.windowDays=90] janela em dias a partir de agora
+ * @param {number} [options.minSamples=5] minimo de observacoes para ok:true
+ * @returns {{
+ *   ok: boolean, route: string, origin: string, destination: string,
+ *   points: Array<{observedAt: string, ts: number, priceCentavos: number}>,
+ *   sampleCount: number, windowDays: number, minSamples: number,
+ *   mediaCentavos?: number, minCentavos?: number, maxCentavos?: number,
+ *   latestCentavos?: number, latestObservedAt?: string,
+ *   periodStart?: string, periodEnd?: string, error?: string
+ * }}
+ */
+export function getRouteSeries(origin, destination, options = {}) {
+  const windowDays = options.windowDays ?? DEFAULT_WINDOW_DAYS;
+  const minSamples = options.minSamples ?? DEFAULT_MIN_SAMPLES;
+  const originUp = String(origin || "").toUpperCase();
+  const destUp = String(destination || "").toUpperCase();
+  const route = routeKey(originUp, destUp);
+  const file = routeFile(route);
+
+  const all = readJsonSafe(file, []);
+  const observations = Array.isArray(all) ? all : [];
+
+  const cutoff = Date.now() - windowDays * 24 * 60 * 60 * 1000;
+  const points = [];
+  for (const obs of observations) {
+    if (!obs) continue;
+    const ts = Date.parse(obs.observedAt);
+    if (Number.isNaN(ts) || ts < cutoff) continue;
+    const c = priceToCentavos(obs.price);
+    if (c === null) continue;
+    points.push({ observedAt: obs.observedAt, ts, priceCentavos: c });
+  }
+  // Ordem cronologica: o grafico le da esquerda (mais antigo) pra direita
+  // (mais recente).
+  points.sort((a, b) => a.ts - b.ts);
+
+  const sampleCount = points.length;
+
+  if (sampleCount < minSamples) {
+    return {
+      ok: false,
+      route,
+      origin: originUp,
+      destination: destUp,
+      points,
+      sampleCount,
+      windowDays,
+      minSamples,
+      error: `Dados insuficientes para a rota ${route}: ${sampleCount} observacao(oes) na janela de ${windowDays} dias (minimo ${minSamples}).`,
+    };
+  }
+
+  const centavosList = points.map((p) => p.priceCentavos);
+  const sum = centavosList.reduce((acc, c) => acc + c, 0);
+  const mediaCentavos = Math.round(sum / sampleCount);
+  const minCentavos = Math.min(...centavosList);
+  const maxCentavos = Math.max(...centavosList);
+  const latest = points[points.length - 1];
+  const first = points[0];
+
+  return {
+    ok: true,
+    route,
+    origin: originUp,
+    destination: destUp,
+    points,
+    sampleCount,
+    windowDays,
+    minSamples,
+    mediaCentavos,
+    minCentavos,
+    maxCentavos,
+    latestCentavos: latest.priceCentavos,
+    latestObservedAt: latest.observedAt,
+    periodStart: first.observedAt,
+    periodEnd: latest.observedAt,
+  };
+}
+
+/**
  * Lista as rotas que possuem historico gravado (arquivos em history/).
  * @returns {string[]} rotas no formato "ORIGEM-DESTINO"
  */

@@ -151,34 +151,42 @@ export function formatRelativePublicado(isoInstant, now = new Date()) {
 
 export const OFFERS = [
   { id: "gru-lis", origem: "GRU", destino: "LIS", cidade: "Lisboa", local: "Portugal", preco: "R$ 1.847", media: "R$ 3.540", economia: "R$ 1.693", cia: "TAP", datas: "12–24 out", tipo: "Internacional", publicadoEm: "2026-07-25T10:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "48% abaixo da média",
+    thumbUrl: wiki("Belem Tower, Lisbon (8038548360).jpg"), credit: "Torre de Belém — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Lisbon",
     texto: "Tarifa cheia São Paulo–Lisboa raramente cai abaixo de R$ 2.500 na alta. Achamos assentos em outubro por menos de R$ 1.900 ida e volta, com uma escala curta em algumas datas. Somos o melhor preço para Portugal no ano.",
     dicas: ["Inclui 1 bagagem de mão; despachada é paga à parte na TAP", "Datas de terça e quarta são as mais baratas do período", "Preço encontrado às 9h de hoje — tarifas assim somem em horas"],
     flex: [{ d: "12–24 out", p: "R$ 1.847" }, { d: "15–27 out", p: "R$ 1.912" }, { d: "19–31 out", p: "R$ 2.045" }] },
   { id: "gru-rec", origem: "GRU", destino: "REC", cidade: "Recife", local: "Pernambuco", preco: "R$ 587", media: "R$ 1.180", economia: "R$ 593", cia: "Azul", datas: "9–16 set", tipo: "Nacional", publicadoEm: "2026-07-25T12:29:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: true, badge: "Erro de tarifa",
+    thumbUrl: wiki("Marco Zero Recife.jpg"), credit: "Marco Zero, Recife — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Marco_Zero_(Recife)",
     texto: "Possível erro de tarifa: São Paulo–Recife ida e volta por menos de R$ 600, menos da metade da média histórica. Erros de tarifa costumam ser corrigidos rápido — se for viajar, compre já e só marque hotel depois da confirmação por e-mail.",
     dicas: ["Erros de tarifa podem ser cancelados pela cia; espere a confirmação antes de reservar hotel", "Voo direto de 3h05 pela Azul", "Não some datas ao carrinho: reserve exatamente as que aparecem"],
     flex: [{ d: "9–16 set", p: "R$ 587" }, { d: "11–18 set", p: "R$ 612" }, { d: "16–23 set", p: "R$ 634" }] },
   { id: "vcp-bue", origem: "VCP", destino: "BUE", cidade: "Buenos Aires", local: "Argentina", preco: "R$ 989", media: "R$ 1.520", economia: "R$ 531", cia: "GOL", datas: "3–10 set", tipo: "Internacional", publicadoEm: "2026-07-25T11:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "35% abaixo da média",
+    thumbUrl: wiki("Caminito, La Boca, Buenos Aires.jpg"), credit: "Buenos Aires — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Caminito",
     texto: "Saindo de Campinas (VCP), Buenos Aires por menos de mil reais ida e volta. Ótimo para um fim de semana esticado de tango, parrilla e compras, com o câmbio jogando a favor.",
     dicas: ["Voo direto de Campinas, sem passar por Guarulhos", "Tarifa promocional GOL: bagagem de mão inclusa", "Setembro tem clima ameno e cidade em ritmo normal"],
     flex: [{ d: "3–10 set", p: "R$ 989" }, { d: "10–17 set", p: "R$ 1.048" }, { d: "17–24 set", p: "R$ 1.096" }] },
   { id: "cnf-fln", origem: "CNF", destino: "FLN", cidade: "Florianópolis", local: "Santa Catarina", preco: "R$ 312", media: "R$ 690", economia: "R$ 378", cia: "GOL", datas: "14–21 out", tipo: "Nacional", publicadoEm: "2026-07-25T09:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "55% abaixo da média",
+    thumbUrl: wiki("Barra da Lagoa, Florianópolis - SC (2).JPG"), credit: "Florianópolis — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Lagoa_da_Conceição",
     texto: "Belo Horizonte–Florianópolis por R$ 312 ida e volta em outubro, antes da temporada de verão explodir os preços. Praia, lagoa e ostras a preço de passagem de ônibus.",
     dicas: ["Outubro é baixa temporada em Floripa: preços de hotel também caem", "Voo com 1 conexão rápida", "Leve casaco leve — o mar ainda está frio nessa época"],
     flex: [{ d: "14–21 out", p: "R$ 312" }, { d: "18–25 out", p: "R$ 344" }, { d: "21–28 out", p: "R$ 369" }] },
   { id: "gig-mia", origem: "GIG", destino: "MIA", cidade: "Miami", local: "Estados Unidos", preco: "R$ 2.190", media: "R$ 3.580", economia: "R$ 1.390", cia: "LATAM", datas: "5–18 nov", tipo: "Internacional", publicadoEm: "2026-07-25T07:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "39% abaixo da média",
+    thumbUrl: wiki("Miami Skyline 2020.jpg"), credit: "Miami — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Miami_skylines",
     texto: "Rio–Miami por R$ 2.190 ida e volta em novembro, fora do pico das festas. Excelente janela para compras e parques, com voo direto e boa malha de conexões nos EUA.",
     dicas: ["Voo direto GIG–MIA pela LATAM", "Novembro evita a alta de dezembro e janeiro", "Lembre do visto americano válido antes de comprar"],
     flex: [{ d: "5–18 nov", p: "R$ 2.190" }, { d: "8–21 nov", p: "R$ 2.264" }, { d: "12–25 nov", p: "R$ 2.390" }] },
   { id: "gru-scl", origem: "GRU", destino: "SCL", cidade: "Santiago", local: "Chile", preco: "R$ 1.290", media: "R$ 1.940", economia: "R$ 650", cia: "LATAM", datas: "2–12 nov", tipo: "Internacional", publicadoEm: "2026-07-25T04:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "34% abaixo da média",
+    thumbUrl: wiki("Skyline of Santiago, Chile.jpg"), credit: "Santiago — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Skylines_of_Santiago_de_Chile",
     texto: "São Paulo–Santiago por R$ 1.290 ida e volta. Vinhos, cordilheira e a porta de entrada para o Atacama e Valparaíso — tudo com voo direto de menos de 4 horas.",
     dicas: ["Voo direto de aproximadamente 3h50", "Novembro é primavera no Chile: dias longos e clima agradável", "Bagagem despachada é paga à parte nesta tarifa"],
     flex: [{ d: "2–12 nov", p: "R$ 1.290" }, { d: "6–16 nov", p: "R$ 1.352" }, { d: "9–19 nov", p: "R$ 1.418" }] },
   { id: "gru-mco", origem: "GRU", destino: "MCO", cidade: "Orlando", local: "Estados Unidos", preco: "R$ 2.560", media: "R$ 3.660", economia: "R$ 1.100", cia: "Azul", datas: "10–24 jan", tipo: "Internacional", publicadoEm: "2026-07-25T00:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "30% abaixo da média",
+    thumbUrl: wiki("Orlando, Florida.jpg"), credit: "Orlando — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Downtown_Orlando,_Florida",
     texto: "São Paulo–Orlando por R$ 2.560 ida e volta em janeiro. O destino dos parques com uma das melhores tarifas do verão, ideal para famílias que planejam com antecedência.",
     dicas: ["Voo direto GRU–MCO pela Azul", "Janeiro ainda pega parte das férias escolares — reserve cedo", "Confira a validade do visto de todos os viajantes"],
     flex: [{ d: "10–24 jan", p: "R$ 2.560" }, { d: "13–27 jan", p: "R$ 2.648" }, { d: "17–31 jan", p: "R$ 2.790" }] },
   { id: "gig-ssa", origem: "GIG", destino: "SSA", cidade: "Salvador", local: "Bahia", preco: "R$ 449", media: "R$ 780", economia: "R$ 331", cia: "GOL", datas: "7–14 nov", tipo: "Nacional", publicadoEm: "2026-07-25T06:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "42% abaixo da média",
+    thumbUrl: wiki("Pelourinho, Salvador, Bahia.jpg"), credit: "Pelourinho — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Pelourinho",
     texto: "Rio–Salvador por R$ 449 ida e volta em novembro. Pelourinho, praia e acarajé com uma das melhores tarifas nacionais da semana, fora de feriado.",
     dicas: ["Voo direto de pouco mais de 2h", "Novembro tem sol e menos chuva em Salvador", "Tarifa leve GOL: só bagagem de mão inclusa"],
     flex: [{ d: "7–14 nov", p: "R$ 449" }, { d: "10–17 nov", p: "R$ 476" }, { d: "14–21 nov", p: "R$ 498" }] },
@@ -186,21 +194,61 @@ export const OFFERS = [
   // Recife concluiu "esse site nao e pra mim" — com razao: nem no filtro a
   // cidade dela aparecia. Percentual do badge conferido contra preco/media.
   { id: "rec-gru", origem: "REC", destino: "GRU", cidade: "São Paulo", local: "São Paulo", preco: "R$ 398", media: "R$ 720", economia: "R$ 322", cia: "Azul", datas: "5–12 set", tipo: "Nacional", publicadoEm: "2026-07-25T05:19:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "45% abaixo da média",
+    thumbUrl: wiki("Avenida Paulista Skyline 2012.jpg"), credit: "Avenida Paulista, São Paulo — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Avenida_Paulista",
     texto: "Recife–São Paulo por R$ 398 ida e volta em setembro. Bom para quem vai resolver a vida na capital ou emendar conexão para o Sul.",
     dicas: ["Voo direto de cerca de 3h", "Setembro é baixa temporada nas duas pontas", "Tarifa promocional: bagagem despachada cobrada à parte"],
     flex: [{ d: "5–12 set", p: "R$ 398" }, { d: "9–16 set", p: "R$ 421" }, { d: "16–23 set", p: "R$ 447" }] },
   { id: "rec-gig", origem: "REC", destino: "GIG", cidade: "Rio de Janeiro", local: "Rio de Janeiro", preco: "R$ 429", media: "R$ 715", economia: "R$ 286", cia: "GOL", datas: "12–19 jul", tipo: "Nacional", publicadoEm: "2026-07-25T02:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "40% abaixo da média",
+    thumbUrl: wiki("Pão de Açúcar visto do Corcovado.jpg"), credit: "Rio de Janeiro — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Rio_de_Janeiro_(city)",
     texto: "Recife–Rio por R$ 429 ida e volta em julho, dentro das férias escolares — raro achar a rota nesse patamar no meio do mês de maior procura.",
     dicas: ["Direto, pouco menos de 3h", "Julho é férias: as datas do meio do mês somem primeiro", "Confira a franquia de bagagem antes de fechar"],
     flex: [{ d: "12–19 jul", p: "R$ 429" }, { d: "15–22 jul", p: "R$ 468" }, { d: "19–26 jul", p: "R$ 512" }] },
   { id: "ssa-cnf", origem: "SSA", destino: "CNF", cidade: "Belo Horizonte", local: "Minas Gerais", preco: "R$ 341", media: "R$ 620", economia: "R$ 279", cia: "Azul", datas: "20–27 ago", tipo: "Nacional", publicadoEm: "2026-07-24T21:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "45% abaixo da média",
+    thumbUrl: wiki("IgrejaPampulha.jpg"), credit: "Igreja da Pampulha, Belo Horizonte — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Igreja_de_São_Francisco_de_Assis_(Belo_Horizonte)",
     texto: "Salvador–Belo Horizonte por R$ 341 ida e volta em agosto. Rota curta e barata para quem quer trocar o litoral pela serra mineira.",
     dicas: ["Cerca de 2h de voo direto", "Agosto é seco em Minas, bom para estrada", "Dá para emendar Ouro Preto e Tiradentes de carro"],
     flex: [{ d: "20–27 ago", p: "R$ 341" }, { d: "24–31 ago", p: "R$ 368" }, { d: "27 ago–3 set", p: "R$ 389" }] },
   { id: "for-ssa", origem: "FOR", destino: "SSA", cidade: "Salvador", local: "Bahia", preco: "R$ 287", media: "R$ 505", economia: "R$ 218", cia: "GOL", datas: "3–10 out", tipo: "Nacional", publicadoEm: "2026-07-24T18:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "43% abaixo da média",
+    thumbUrl: wiki("Pelourinho, Salvador, Bahia.jpg"), credit: "Pelourinho — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Pelourinho",
     texto: "Fortaleza–Salvador por R$ 287 ida e volta em outubro. Uma das passagens mais baratas do feed hoje, ligando duas capitais do Nordeste.",
     dicas: ["Voo direto de cerca de 1h40", "Outubro pega o fim da baixa temporada", "Bagagem de mão inclusa; despachada à parte"],
     flex: [{ d: "3–10 out", p: "R$ 287" }, { d: "8–15 out", p: "R$ 305" }, { d: "15–22 out", p: "R$ 331" }] },
+  // Ofertas para destinos que JA tem roteiro editorial (ver GUIDES), para o
+  // "robo do dia" (src/daily/dailyPick.js) ter mais de 6 candidatos e nao
+  // repetir o mesmo par a cada 3 dias. Foto reaproveitada do roteiro quando o
+  // roteiro mostra o proprio destino da oferta (ja conferida no Commons);
+  // Montevideu ganhou foto propria porque a foto do roteiro e de Colonia del
+  // Sacramento, outra cidade do Uruguai.
+  { id: "gru-cuz", origem: "GRU", destino: "CUZ", cidade: "Cusco", local: "Peru", preco: "R$ 2.100", media: "R$ 3.200", economia: "R$ 1.100", cia: "LATAM", datas: "10–20 ago", tipo: "Internacional", publicadoEm: "2026-07-29T08:15:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "34% abaixo da média",
+    thumbUrl: wiki("Machu Picchu, Peru.jpg"), credit: "Machu Picchu — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Machu_Picchu",
+    texto: "São Paulo–Cusco por R$ 2.100 ida e volta em agosto, dentro da estação seca. A rota tem uma escala em Lima (cerca de 7h de viagem no total) — dá tempo de aclimatar antes de subir a Machu Picchu.",
+    dicas: ["1 escala em Lima; confira o tempo de conexão antes de comprar", "Agosto é seca no Peru: céu mais limpo para as fotos da citadela", "Ingresso de Machu Picchu e trem esgotam semanas antes na alta temporada — compre à parte e com antecedência"],
+    flex: [{ d: "10–20 ago", p: "R$ 2.100" }, { d: "14–24 ago", p: "R$ 2.185" }, { d: "18–28 ago", p: "R$ 2.260" }] },
+  { id: "gru-brc", origem: "GRU", destino: "BRC", cidade: "Bariloche", local: "Argentina", preco: "R$ 1.980", media: "R$ 2.680", economia: "R$ 700", cia: "LATAM", datas: "12–19 ago", tipo: "Internacional", publicadoEm: "2026-07-29T05:40:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "26% abaixo da média",
+    thumbUrl: HERO_SLIDES[1].src, credit: HERO_SLIDES[1].credit, creditHref: HERO_SLIDES[1].creditHref,
+    texto: "São Paulo–Bariloche por R$ 1.980 ida e volta em agosto, ainda dentro da temporada de neve. Pistas abertas no Cerro Catedral e preço melhor que o pico de julho.",
+    dicas: ["Confira se a tarifa é direta ou com conexão antes de reservar — varia por data", "Agosto ainda tem neve, com fila menor que em julho", "Roupa de neve pode ser alugada em Bariloche; sai mais barato que trazer de casa"],
+    flex: [{ d: "12–19 ago", p: "R$ 1.980" }, { d: "15–22 ago", p: "R$ 2.048" }, { d: "19–26 ago", p: "R$ 2.120" }] },
+  { id: "cnf-mao", origem: "CNF", destino: "MAO", cidade: "Manaus", local: "Amazonas", preco: "R$ 1.180", media: "R$ 1.780", economia: "R$ 600", cia: "Azul", datas: "20–27 set", tipo: "Nacional", publicadoEm: "2026-07-28T22:10:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "34% abaixo da média",
+    thumbUrl: wiki("Amazon Theatre (Manaus, Brazil) (edited).jpg"), credit: "Teatro Amazonas, Manaus — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Teatro_Amazonas",
+    texto: "Belo Horizonte–Manaus por R$ 1.180 ida e volta em setembro, começo da seca no Amazonas — rio mais baixo, mas trilhas de floresta mais fáceis de andar.",
+    dicas: ["Rota com conexão; confira o tempo de escala", "Setembro é seca: bom para hospedagem em terra firme, ruim para passeio de igapó alagado", "Vacina de febre amarela é recomendada para quem sai da cidade"],
+    flex: [{ d: "20–27 set", p: "R$ 1.180" }, { d: "23–30 set", p: "R$ 1.224" }, { d: "27 set–4 out", p: "R$ 1.268" }] },
+  { id: "gig-cnf-op", origem: "GIG", destino: "CNF", cidade: "Ouro Preto", local: "Minas Gerais", preco: "R$ 310", media: "R$ 560", economia: "R$ 250", cia: "GOL", datas: "15–22 ago", tipo: "Nacional", publicadoEm: "2026-07-28T19:05:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "45% abaixo da média",
+    thumbUrl: wiki("Ouro Preto, Minas Gerais.jpg"), credit: "Ouro Preto — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Ouro_Preto",
+    texto: "Rio–Belo Horizonte por R$ 310 ida e volta em agosto. O voo pousa em Confins; Ouro Preto fica a cerca de 1h30 de carro ou van a partir daí.",
+    dicas: ["Voo direto de pouco mais de 1h até Confins (CNF)", "De Confins, some 1h30 de estrada até o centro histórico de Ouro Preto", "Ladeiras de pedra: leve calçado fechado e confortável"],
+    flex: [{ d: "15–22 ago", p: "R$ 310" }, { d: "18–25 ago", p: "R$ 328" }, { d: "22–29 ago", p: "R$ 347" }] },
+  { id: "poa-mvd", origem: "POA", destino: "MVD", cidade: "Montevidéu", local: "Uruguai", preco: "R$ 890", media: "R$ 1.320", economia: "R$ 430", cia: "LATAM", datas: "5–12 set", tipo: "Internacional", publicadoEm: "2026-07-28T14:30:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "33% abaixo da média",
+    thumbUrl: wiki("Palacio Salvo, Montevideo, Uruguay.jpg"), credit: "Palácio Salvo, Montevidéu — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Palacio_Salvo",
+    texto: "Porto Alegre–Montevidéu por R$ 890 ida e volta em setembro, início da primavera uruguaia. Cidade pequena para caminhar, com boa gastronomia e câmbio favorável.",
+    dicas: ["Confira se a tarifa é direta ou com conexão antes de reservar", "Setembro tem clima ameno, sem o frio pesado do inverno", "Uruguai aceita o real como referência em vários comércios, mas leve pesos para o dia a dia"],
+    flex: [{ d: "5–12 set", p: "R$ 890" }, { d: "9–16 set", p: "R$ 924" }, { d: "12–19 set", p: "R$ 958" }] },
+  { id: "bsb-cgr", origem: "BSB", destino: "CGR", cidade: "Bonito", local: "Mato Grosso do Sul", preco: "R$ 680", media: "R$ 980", economia: "R$ 300", cia: "Azul", datas: "8–15 ago", tipo: "Nacional", publicadoEm: "2026-07-28T09:50:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "31% abaixo da média",
+    thumbUrl: wiki("Gruta do Lago Azul - Bonito, MS.JPG"), credit: "Bonito — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Monumento_Natural_da_Gruta_do_Lago_Azul",
+    texto: "Brasília–Campo Grande por R$ 680 ida e volta em agosto, dentro da seca — água dos rios mais clara para flutuação. De Campo Grande, Bonito fica a cerca de 5h de estrada.",
+    dicas: ["Voo até Campo Grande (CGR); o roteiro de Bonito continua de van ou carro", "Passeios de flutuação têm vagas limitadas por dia — reserve antes de comprar a passagem", "Água mais clara na seca (ago–out); leve protetor solar biodegradável, é exigido em vários atrativos"],
+    flex: [{ d: "8–15 ago", p: "R$ 680" }, { d: "12–19 ago", p: "R$ 705" }, { d: "15–22 ago", p: "R$ 730" }] },
 ];
 
 // Origens do filtro, DERIVADAS das ofertas reais em vez de fixas na mao. Antes
@@ -228,6 +276,14 @@ export const OFFER_COORDS = {
   "rec-gig": { lat: -22.9068, lng: -43.1729 }, // Rio de Janeiro
   "ssa-cnf": { lat: -19.9167, lng: -43.9345 }, // Belo Horizonte
   "for-ssa": { lat: -12.9714, lng: -38.5014 }, // Salvador
+  // Ofertas novas para destinos com roteiro editorial (ver comentario acima
+  // de "gru-cuz" em OFFERS).
+  "gru-cuz": { lat: -13.5319, lng: -71.9675 }, // Cusco
+  "gru-brc": { lat: -41.1335, lng: -71.3103 }, // Bariloche
+  "cnf-mao": { lat: -3.119, lng: -60.0217 }, // Manaus
+  "gig-cnf-op": { lat: -20.3855, lng: -43.5035 }, // Ouro Preto
+  "poa-mvd": { lat: -34.9011, lng: -56.1645 }, // Montevidéu
+  "bsb-cgr": { lat: -21.1261, lng: -56.4836 }, // Bonito
 };
 
 // ---------------------------------------------------------------------------

@@ -62,6 +62,7 @@ import {
 } from "./render/htmlRenderer.js";
 import { renderExitFlightPage, buildAviasalesSearchUrl } from "./render/exitFlight.js";
 import { OFFERS as CONTENT_OFFERS, GUIDES, RESULTS_ROUTE } from "./render/aondeContent.js";
+import { buscarVoosAoVivo } from "./flights/buscarVoos.js";
 import { pacoteDoDia } from "./daily/dailyPick.js";
 import { listRoutes } from "./store/priceHistory.js";
 import { resolveDataDir, ensureDir } from "./store/dataDir.js";
@@ -514,10 +515,27 @@ function paxResumo({ adultos, criancas, bebes }) {
   return partes.slice(0, -1).join(", ") + " e " + partes[partes.length - 1];
 }
 
-function handleResultsHtml(res, url) {
+// Busca ao vivo (Amadeus Flight Offers Search, ver src/flights/buscarVoos.js)
+// integrada aqui: renderResultsPage ja aceita opts.voos no formato de FLIGHTS
+// (src/render/aondeContent.js), entao so precisamos alimentar voos REAIS
+// quando existirem — o renderer nao muda. Passamos tambem opts.voosReais,
+// para quem cuida do texto na tela (src/render/htmlRenderer.js — NAO e
+// arquivo deste modulo) saber se pode trocar o aviso de "exemplo" por algo
+// que diga que os voos sao reais. Contrato exposto (ver relatorio da tarefa):
+//   opts.voos      -> array no MESMO formato de FLIGHTS (cia, numero, saida,
+//                      chegada, duracao, paradas, direto, preco, parcela,
+//                      melhor) quando a busca ao vivo deu certo; ausente
+//                      (undefined) quando caiu no fallback de exemplo.
+//   opts.voosReais -> true SOMENTE quando opts.voos veio da Amadeus de
+//                      verdade; false (ou ausente) sempre que os voos
+//                      exibidos forem os de amostra — NUNCA rotular exemplo
+//                      como real.
+async function handleResultsHtml(res, url) {
   const oQS = url.searchParams.get("origem");
   const dQS = url.searchParams.get("destino");
   const periodo = url.searchParams.get("periodo");
+  const idaQS = url.searchParams.get("ida");
+  const voltaQS = url.searchParams.get("volta");
   const searched = !!(oQS || dQS);
   const pax = {
     adultos: paxCount(url, "adultos", 1, 9, 2),
@@ -532,7 +550,31 @@ function handleResultsHtml(res, url) {
         resumo: [periodo, temPax ? paxResumo(pax) : ""].filter(Boolean).join(" · ") || RESULTS_ROUTE.resumo,
       }
     : undefined;
-  sendHtml(res, 200, renderResultsPage({ rota, searched, pax: temPax ? pax : null }));
+
+  // So tenta a busca ao vivo quando ha uma rota de verdade para consultar
+  // (usuario buscou algo). Sem credencial Amadeus, buscarVoosAoVivo devolve
+  // ok:false IMEDIATAMENTE (nem tenta rede) — o custo extra aqui e zero no
+  // caso comum (producao sem chave configurada). Qualquer falha ou demora
+  // tambem cai no mesmo fallback, silenciosamente: a pagina nunca quebra nem
+  // demora por causa de um parceiro externo fora do ar (ver o teto de tempo
+  // em src/flights/buscarVoos.js).
+  let voos;
+  let voosReais = false;
+  if (rota) {
+    const resultado = await buscarVoosAoVivo({
+      origem: rota.origem,
+      destino: rota.destino,
+      ida: idaQS,
+      volta: voltaQS,
+      pax,
+    });
+    if (resultado.ok && Array.isArray(resultado.voos) && resultado.voos.length > 0) {
+      voos = resultado.voos;
+      voosReais = true;
+    }
+  }
+
+  sendHtml(res, 200, renderResultsPage({ rota, searched, pax: temPax ? pax : null, voos, voosReais }));
 }
 
 // Interstitial de saida: registra o clique e resolve o link do parceiro. Um
@@ -670,7 +712,7 @@ export function createServer() {
         return;
       }
       if (method === "GET" && pathname === "/resultados") {
-        handleResultsHtml(res, url);
+        await handleResultsHtml(res, url);
         return;
       }
       if (method === "GET" && pathname === "/mapa") {

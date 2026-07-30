@@ -98,7 +98,13 @@ export function hasAmadeusCredentials() {
  *
  * @returns {Promise<{ok: true, token: string} | {ok: false, error: string}>}
  */
-async function getAccessToken() {
+// httpOptions permite ao chamador (ex.: searchFlightOffers, para a busca ao
+// vivo) apertar timeoutMs/retries para nao deixar a pagina esperando demais —
+// sem isso, o request de token usaria os defaults do http.js (10s + 2
+// retries), o que sozinho ja estouraria o teto curto que a busca ao vivo
+// exige. getTypicalPrices nao passa nada, entao mantem o comportamento
+// (defaults do http.js) inalterado.
+async function getAccessToken(httpOptions = {}) {
   const { clientId, clientSecret } = getConfig().amadeus;
   if (!clientId || !clientSecret) {
     return { ok: false, error: MISSING_CREDS_ERROR };
@@ -119,6 +125,7 @@ async function getAccessToken() {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
+    ...httpOptions,
   });
 
   if (!res.ok) {
@@ -246,6 +253,148 @@ export async function getTypicalPrices(params = {}) {
     oneWay: typeof oneWay === "boolean" ? oneWay : null,
     error: null,
   };
+}
+
+const FLIGHT_OFFERS_PATH = "/v2/shopping/flight-offers";
+
+/**
+ * Busca ofertas de voo (Amadeus Self-Service — Flight Offers Search) para uma
+ * rota/data especifica. E a fonte da busca "ao vivo" de /resultados (ver
+ * src/flights/buscarVoos.js, que chama esta funcao e mapeia o resultado para
+ * o formato do site). Nunca lanca excecao.
+ *
+ * RESSALVA (mesma limitacao das demais secoes deste arquivo): o shape exato
+ * da resposta nao pode ser confirmado neste ambiente (paginas oficiais da
+ * Amadeus retornam 403 aqui). O shape usado abaixo — { data: [ { itineraries:
+ * [ { duration, segments: [ { departure:{iataCode,at}, arrival:{...},
+ * carrierCode, number } ] } ], price: { grandTotal|total } } ],
+ * dictionaries: { carriers: { CODE: "NOME" } } } — e o documentado
+ * publicamente pela Amadeus para esse endpoint (Postman/dev portal). Antes de
+ * produzir com uma credencial real em maos, vale validar uma resposta de
+ * verdade (ver mapeamento tolerante em src/flights/mapAmadeus.js: uma oferta
+ * que nao bate o shape esperado e simplesmente pulada, nunca derruba as
+ * demais).
+ *
+ * @param {object} params
+ * @param {string} params.origin codigo IATA de origem
+ * @param {string} params.destination codigo IATA de destino
+ * @param {string} params.departureDate YYYY-MM-DD (obrigatorio)
+ * @param {string} [params.returnDate] YYYY-MM-DD — presente = busca ida e volta
+ * @param {number} [params.adults=1]
+ * @param {number} [params.children=0]
+ * @param {number} [params.infants=0]
+ * @param {string} [params.currency="BRL"]
+ * @param {number} [params.max=10] numero maximo de ofertas pedidas a API
+ * @param {number} [params.timeoutMs] timeout desta chamada HTTP (token +
+ *   busca); sem isso, usa o default do http.js (10s). A busca ao vivo (ver
+ *   src/flights/buscarVoos.js) SEMPRE passa um valor curto aqui.
+ * @param {number} [params.retries] tentativas extras alem da 1a (default do
+ *   http.js e 2, com backoff — a busca ao vivo passa 0 para responder rapido)
+ * @returns {Promise<{ok:boolean, partner:"amadeus", data?: object, error: string|null}>}
+ *   `data` e o corpo bruto da resposta ({ data:[...], dictionaries:{...} }) —
+ *   o mapeamento para o formato de FLIGHTS fica em src/flights/mapAmadeus.js.
+ */
+export async function searchFlightOffers(params = {}) {
+  const {
+    origin,
+    destination,
+    departureDate,
+    returnDate,
+    adults = 1,
+    children = 0,
+    infants = 0,
+    currency = "BRL",
+    max = 10,
+    timeoutMs,
+    retries,
+  } = params;
+
+  if (!hasAmadeusCredentials()) {
+    return { ok: false, partner: "amadeus", error: MISSING_CREDS_ERROR };
+  }
+  if (!isIataCode(origin)) {
+    return {
+      ok: false,
+      partner: "amadeus",
+      error: `origin invalido: "${origin}". Esperado codigo IATA de 3 letras (A-Z), ex.: GRU`,
+    };
+  }
+  if (!isIataCode(destination)) {
+    return {
+      ok: false,
+      partner: "amadeus",
+      error: `destination invalido: "${destination}". Esperado codigo IATA de 3 letras (A-Z), ex.: LIS`,
+    };
+  }
+  if (!isFullDate(departureDate)) {
+    return {
+      ok: false,
+      partner: "amadeus",
+      error: `departureDate invalido: "${departureDate}". Esperado data no formato YYYY-MM-DD (obrigatoria)`,
+    };
+  }
+  if (returnDate !== undefined && returnDate !== null && returnDate !== "" && !isFullDate(returnDate)) {
+    return {
+      ok: false,
+      partner: "amadeus",
+      error: `returnDate invalido: "${returnDate}". Esperado data no formato YYYY-MM-DD`,
+    };
+  }
+
+  const normalizedOrigin = normalizeIata(origin);
+  const normalizedDest = normalizeIata(destination);
+
+  // Repassa o teto de tempo/retries tambem para o token: sem isso, um token
+  // vencido/renovando usaria os defaults do http.js e sozinho ja estouraria o
+  // orcamento de tempo curto que a busca ao vivo exige.
+  const tokenHttpOptions = {};
+  if (timeoutMs) tokenHttpOptions.timeoutMs = timeoutMs;
+  if (typeof retries === "number") tokenHttpOptions.retries = retries;
+
+  const tokenResult = await getAccessToken(tokenHttpOptions);
+  if (!tokenResult.ok) {
+    return { ok: false, partner: "amadeus", error: tokenResult.error };
+  }
+
+  const query = new URLSearchParams({
+    originLocationCode: normalizedOrigin,
+    destinationLocationCode: normalizedDest,
+    departureDate,
+    adults: String(Math.max(1, Math.trunc(adults) || 1)),
+  });
+  if (returnDate) query.set("returnDate", returnDate);
+  if (children > 0) query.set("children", String(Math.trunc(children)));
+  if (infants > 0) query.set("infants", String(Math.trunc(infants)));
+  if (currency) query.set("currencyCode", currency);
+  const maxN = Math.max(1, Math.min(50, Math.trunc(max) || 10));
+  query.set("max", String(maxN));
+
+  const httpOptions = {
+    method: "GET",
+    headers: { Authorization: `Bearer ${tokenResult.token}` },
+  };
+  if (timeoutMs) httpOptions.timeoutMs = timeoutMs;
+  if (typeof retries === "number") httpOptions.retries = retries;
+
+  const res = await httpRequest(`${baseUrl()}${FLIGHT_OFFERS_PATH}?${query.toString()}`, httpOptions);
+
+  if (!res.ok) {
+    return {
+      ok: false,
+      partner: "amadeus",
+      error: res.error || "Falha ao consultar flight-offers da Amadeus",
+    };
+  }
+
+  if (!res.data || !Array.isArray(res.data.data)) {
+    return {
+      ok: false,
+      partner: "amadeus",
+      error: `Resposta em formato inesperado (sem lista de ofertas). Corpo: ${summarizeBody(res.data)}`,
+    };
+  }
+
+  return { ok: true, partner: "amadeus", data: res.data, error: null };
 }
 
 // true apenas para datas completas YYYY-MM-DD (o endpoint exige o dia; a

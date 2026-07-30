@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>(function(){try{var t=localStorage.getItem('aonde-tema');if(t==='escuro'||t==='claro'){document.documentElement.setAttribute('data-tema',t);}}catch(e){}})();</script>
 <title>Ofertas de viagem — Aonde</title>
 <meta name="description" content="Aonde — achados de passagem abaixo da média, roteiros de 5 dias dia a dia e alertas de preço grátis. Compare voos, hotéis e experiências pelo Brasil e América do Sul.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2030%2040%22%3E%3Cpath%20d%3D%22M15%200C6.7%200%200%206.7%200%2015c0%2010.8%2015%2025%2015%2025s15-14.2%2015-25C30%206.7%2023.3%200%2015%200z%22%20fill%3D%22%234d7c0f%22%2F%3E%3Ccircle%20cx%3D%2215%22%20cy%3D%2215%22%20r%3D%226%22%20fill%3D%22%23f7f7f5%22%2F%3E%3Ccircle%20cx%3D%2215%22%20cy%3D%2215%22%20r%3D%223%22%20fill%3D%22%2384cc16%22%2F%3E%3C%2Fsvg%3E">
@@ -27,16 +28,68 @@
     /* Cinzas escurecidos de proposito: dao folga de contraste para o cenario
        das estacoes aparecer no fundo sem derrubar a legibilidade (AA). */
     --bg:#f7f7f5;--text:#18181b;--muted:#4f4f48;--muted-2:#50504a;
-    --border:#e7e7e3;--border-2:#c9c9c2;--tint:#f1f8e4;--dark:#18181b;
-    --green:#4d7c0f;--green-2:#3f6212;--lime:#84cc16;--lime-2:#a3e635;
+    --border:#e7e7e3;--border-2:#c9c9c2;--tint:#f1f8e4;--tint-border:#d9edb8;--dark:#18181b;
+    --green:#4d7c0f;--green-2:#3f6212;--lime:#84cc16;--lime-2:#a3e635;--on-green:#fff;
     --erro-bg:#fde3cf;--erro-text:#9a3412;
+    /* Superficies (cartoes/inputs) e o par "inverso" (chip solido de maximo
+       contraste, usado em botao escuro/estado ativo) — em modo claro e
+       quase-preto sobre quase-branco; em escuro, invertemos os dois. */
+    --surface:#fff;--input-bg:#fbfbfa;--bg-rgb:247,247,245;
+    --invert-bg:#18181b;--invert-bg-hover:#2d2d29;--invert-text:#fff;
+    /* Veu do fundo 3D das estacoes: cor + 3 paradas de opacidade, separadas
+       para poder escurecer mais no tema escuro sem mudar o desenho do gradiente. */
+    --veil-rgb:247,247,245;--veil-a1:.30;--veil-a2:.44;--veil-a3:.36;
+    /* Tratamento de risco (erro de tarifa) — paleta laranja/marrom, deliberadamente
+       fora do verde/lime da marca para não parecer "mais uma promoção". */
+    --risk-bg:#fff7ed;--risk-border:#fed7aa;--risk-note-bg:#ffedd5;--risk-text:#9a3412;--risk-line:#f97316;
     --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
     --sans:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
     --maxw:1200px;--r:16px;--r-lg:20px;--pill:999px;
   }
+  /* --- Tema escuro ---------------------------------------------------------
+     1) @media respeita a preferencia do sistema (prefers-color-scheme) quando
+        a pessoa nunca escolheu nada no site.
+     2) [data-tema="escuro"|"claro"] e a escolha manual (botao no cabecalho,
+        persistida em localStorage) — como o seletor de atributo tem mais
+        especificidade que o ":root" sozinho do bloco @media, a escolha manual
+        sempre vence, em qualquer sentido, sem precisar de :not(). */
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#131315;--text:#f2f2ef;--muted:#b9b9b0;--muted-2:#c9c9c0;
+      --border:#303034;--border-2:#46464b;--tint:#16210c;--tint-border:#2f4a1a;
+      --green:#84cc16;--green-2:#a3e635;--on-green:#18181b;
+      --erro-bg:#fde3cf;--erro-text:#9a3412;
+      --surface:#1c1c1f;--input-bg:#232326;--bg-rgb:19,19,21;
+      --invert-bg:#f2f2ef;--invert-bg-hover:#e2e2dc;--invert-text:#18181b;
+      --veil-rgb:10,10,9;--veil-a1:.55;--veil-a2:.70;--veil-a3:.62;
+      --risk-bg:#2a1608;--risk-border:#7c3a12;--risk-note-bg:#341507;--risk-text:#ffd9b3;--risk-line:#fb923c;
+    }
+  }
+  :root[data-tema="escuro"]{
+    --bg:#131315;--text:#f2f2ef;--muted:#b9b9b0;--muted-2:#c9c9c0;
+    --border:#303034;--border-2:#46464b;--tint:#16210c;--tint-border:#2f4a1a;
+    --green:#84cc16;--green-2:#a3e635;--on-green:#18181b;
+    /* Estavam so no bloco do @media: quem escolhia escuro NO BOTAO ficava com
+       o selo de "Erro de tarifa" nas cores do tema claro. Os dois caminhos
+       para o escuro tem de dar exatamente no mesmo lugar. */
+    --erro-bg:#fde3cf;--erro-text:#9a3412;
+    --surface:#1c1c1f;--input-bg:#232326;--bg-rgb:19,19,21;
+    --invert-bg:#f2f2ef;--invert-bg-hover:#e2e2dc;--invert-text:#18181b;
+    --veil-rgb:10,10,9;--veil-a1:.55;--veil-a2:.70;--veil-a3:.62;
+    --risk-bg:#2a1608;--risk-border:#7c3a12;--risk-note-bg:#341507;--risk-text:#ffd9b3;--risk-line:#fb923c;
+  }
+  :root[data-tema="claro"]{
+    --bg:#f7f7f5;--text:#18181b;--muted:#4f4f48;--muted-2:#50504a;
+    --border:#e7e7e3;--border-2:#c9c9c2;--tint:#f1f8e4;--tint-border:#d9edb8;
+    --green:#4d7c0f;--green-2:#3f6212;--on-green:#fff;
+    --surface:#fff;--input-bg:#fbfbfa;--bg-rgb:247,247,245;
+    --invert-bg:#18181b;--invert-bg-hover:#2d2d29;--invert-text:#fff;
+    --veil-rgb:247,247,245;--veil-a1:.30;--veil-a2:.44;--veil-a3:.36;
+    --risk-bg:#fff7ed;--risk-border:#fed7aa;--risk-note-bg:#ffedd5;--risk-text:#9a3412;--risk-line:#f97316;
+  }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;transition:background-color .15s,color .15s;}
   h1,h2,h3{font-family:var(--serif);font-weight:400;line-height:1.08;margin:0;letter-spacing:-.5px;}
   a{color:var(--green);text-decoration:none;}
   a:hover{color:var(--green-2);}
@@ -61,10 +114,10 @@
   .section-head--tight{margin-bottom:24px;}
   .section-link{font-size:15px;font-weight:600;}
   .breadcrumb{margin:0 0 20px;font-size:14px;color:var(--muted-2);}
-  .breadcrumb span{color:#44443f;}
+  .breadcrumb span{color:var(--muted);}
 
   .btn{display:inline-block;border:none;border-radius:12px;padding:13px 22px;font-family:var(--sans);font-size:15px;font-weight:700;cursor:pointer;text-align:center;transition:background .15s,border-color .15s;}
-  .btn-green{background:var(--green);color:#fff;}
+  .btn-green{background:var(--green);color:var(--on-green);}
   .btn-green:hover{background:var(--green-2);color:#fff;}
   .btn-lime{background:var(--lime-2);color:#18181b;}
   .btn-lime:hover{background:#bef264;color:#18181b;}
@@ -108,7 +161,7 @@
   }
   /* Veu de legibilidade: sem ele o texto cinza claro brigaria com a cena. */
   .s3-veil{position:absolute;inset:0;
-    background:linear-gradient(180deg,rgba(247,247,245,.30) 0%,rgba(247,247,245,.44) 42%,rgba(247,247,245,.36) 100%);}
+    background:linear-gradient(180deg,rgba(var(--veil-rgb),var(--veil-a1)) 0%,rgba(var(--veil-rgb),var(--veil-a2)) 42%,rgba(var(--veil-rgb),var(--veil-a3)) 100%);}
   @media (prefers-reduced-motion:reduce){
     /* Nada se move: fica so a estacao atual, parada. */
     .s3-season{animation:none;}
@@ -119,7 +172,7 @@
 
   /* Pular para o conteudo: invisivel ate receber foco pelo teclado. Evita
      percorrer as ~8 paradas do cabecalho em CADA pagina. */
-  .skip-link{position:absolute;left:12px;top:-100px;z-index:100;background:var(--green);color:#fff;
+  .skip-link{position:absolute;left:12px;top:-100px;z-index:100;background:#365314;color:#fff;
     padding:12px 20px;border-radius:0 0 12px 12px;font-weight:700;font-size:15px;transition:top .15s;}
   .skip-link:focus{top:0;color:#fff;}
   main:focus{outline:none;}
@@ -131,7 +184,7 @@
   .hero-pause:hover{background:rgba(24,24,27,.8);}
 
   /* Header */
-  .site-header{position:sticky;top:0;z-index:50;background:rgba(247,247,245,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);}
+  .site-header{position:sticky;top:0;z-index:50;background:rgba(var(--bg-rgb),.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);}
   .site-header-in{height:68px;display:flex;align-items:center;justify-content:space-between;gap:24px;}
   /* --brand-fly = distancia do "a" ate o CENTRO do ponto lime (medida no
      navegador: centro do ponto a 76px da borda esquerda da marca, menos os
@@ -163,7 +216,7 @@
     .brand-dot{animation:none;}
   }
   .site-nav{display:flex;gap:28px;font-size:15px;font-weight:500;}
-  .site-nav a{color:#44443f;display:flex;align-items:center;gap:6px;}
+  .site-nav a{color:var(--muted);display:flex;align-items:center;gap:6px;}
   .site-nav a:hover{color:#18181b;}
   .nav-pill{background:var(--lime);color:#18181b;font-size:10px;font-weight:700;letter-spacing:.04em;padding:2px 6px;border-radius:var(--pill);}
   .nav-ext{font-size:12px;opacity:.6;}
@@ -192,21 +245,26 @@
 
   /* Search card */
   .search-wrap{margin-top:-52px;position:relative;z-index:10;padding-bottom:24px;}
-  .search-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:0 24px 48px -32px rgba(24,24,27,.25);overflow:hidden;}
-  .sc-tabs{display:flex;gap:4px;padding:12px 16px 0;border-bottom:1px solid #f0f0ed;}
+  .search-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:0 24px 48px -32px rgba(24,24,27,.25);overflow:hidden;}
+  .sc-tabs{display:flex;gap:4px;padding:12px 16px 0;border-bottom:1px solid var(--border);}
   .sc-tab{font-size:14px;font-weight:600;color:var(--muted);padding:10px 18px;border-radius:10px 10px 0 0;border-bottom:2px solid transparent;}
   .sc-tab.is-active{background:var(--tint);color:var(--green-2);border-bottom-color:var(--green);}
   .sc-tab--soon{opacity:.45;cursor:not-allowed;}
   .sc-tab--soon::after{content:" · em breve";font-size:11px;font-weight:400;}
-  .sc-notice{margin:14px 20px 0;background:var(--tint);border:1px solid #d9edb8;border-radius:12px;padding:12px 16px;font-size:14px;line-height:1.5;color:var(--green-2);}
+  /* Aviso "como funciona por aqui": tom informativo (verde da marca, nao
+     laranja/vermelho de alerta) com um icone circular no lugar de comecar a
+     frase com uma negativa — a mesma informacao, com menos susto. */
+  .sc-notice{margin:14px 20px 0;display:flex;align-items:flex-start;gap:10px;background:var(--tint);border:1px solid var(--tint-border);border-radius:12px;padding:12px 16px;font-size:14px;line-height:1.5;color:var(--green-2);}
+  .sc-notice::before{content:"i";flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;line-height:1;margin-top:1px;}
+  .sc-notice-tag{display:block;font-weight:700;}
   .sc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:20px;align-items:end;}
   .sc-field{display:flex;flex-direction:column;gap:6px;}
   .sc-field span{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);}
-  .sc-field input{border:1px solid var(--border-2);border-radius:12px;padding:13px 14px;font-family:var(--sans);font-size:15px;background:#fbfbfa;color:#18181b;}
+  .sc-field input{border:1px solid var(--border-2);border-radius:12px;padding:13px 14px;font-family:var(--sans);font-size:15px;background:var(--input-bg);color:#18181b;}
   .sc-submit{min-width:150px;white-space:nowrap;}
   .sc-field--num{min-width:0;}
   .sc-field select{border:1px solid var(--border-2);border-radius:12px;padding:13px 14px;
-    font-family:var(--sans);font-size:15px;background:#fbfbfa;color:#18181b;width:100%;}
+    font-family:var(--sans);font-size:15px;background:var(--input-bg);color:#18181b;width:100%;}
   .sc-hint{font-size:11px;color:var(--muted-2);line-height:1.3;}
   .search-perks{display:flex;gap:28px;padding:18px 8px 0;font-size:14px;color:var(--muted);flex-wrap:wrap;}
   .search-perks span{display:flex;align-items:center;gap:8px;}
@@ -214,7 +272,7 @@
 
   /* Offer cards */
   .of-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:28px;}
-  .of-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;color:inherit;transition:box-shadow .2s,transform .2s;}
+  .of-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;color:inherit;transition:box-shadow .2s,transform .2s;}
   .of-card:hover{box-shadow:0 16px 32px -24px rgba(24,24,27,.35);transform:translateY(-2px);color:inherit;}
   .of-card--erro{border-color:#f3c6a8;}
   .of-media{position:relative;height:160px;}
@@ -228,7 +286,7 @@
   .of-cidade{font-size:20px;font-weight:600;font-family:var(--sans);letter-spacing:-.2px;}
   .of-periodo{font-size:13px;color:var(--muted);}
   .of-preco-row{display:flex;align-items:baseline;gap:8px;margin-top:auto;padding-top:8px;flex-wrap:wrap;}
-  .of-de s{font-size:14px;color:#6b6b66;}
+  .of-de s{font-size:14px;color:var(--muted);}
   .of-preco{font-size:30px;font-weight:700;color:var(--green-2);letter-spacing:-.5px;}
   .of-preco--sm{font-size:23px;margin-left:auto;}
   .of-iv{font-size:13px;color:var(--muted-2);}
@@ -244,7 +302,7 @@
   .style-item h3{margin:12px 0 10px;font-size:32px;}
   .style-item p{margin:0 0 18px;font-size:16px;line-height:1.6;color:var(--muted);}
   .chips{display:flex;gap:8px;flex-wrap:wrap;}
-  .chip{border:1px solid var(--border-2);background:#fff;border-radius:var(--pill);padding:7px 14px;font-size:13px;font-weight:600;color:#44443f;}
+  .chip{border:1px solid var(--border-2);background:var(--surface);border-radius:var(--pill);padding:7px 14px;font-size:13px;font-weight:600;color:var(--muted);}
   .style-cta{margin:18px 0 0;}
   .styles-imgs{position:sticky;top:96px;height:560px;}
   .style-img{position:absolute;inset:0;opacity:0;transition:opacity .5s;border-radius:24px;overflow:hidden;}
@@ -297,11 +355,11 @@
   .rot-body p{margin:0 0 10px;font-size:15px;line-height:1.5;color:#a1a1a6;}
   .rot-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .rot-cta{font-size:14px;font-weight:600;color:var(--lime-2);}
-  .rot-mes{font-size:12px;font-weight:600;color:#71717a;border:1px solid #3f3f42;border-radius:var(--pill);padding:3px 10px;}
+  .rot-mes{font-size:12px;font-weight:600;color:#a1a1a6;border:1px solid #3f3f42;border-radius:var(--pill);padding:3px 10px;}
 
   /* Extras + confianca */
   .extras-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:32px;}
-  .extra-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:26px;display:flex;flex-direction:column;gap:10px;color:inherit;}
+  .extra-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:26px;display:flex;flex-direction:column;gap:10px;color:inherit;}
   .extra-card:hover{border-color:var(--lime);color:inherit;}
   .extra-card--soon{opacity:.72;}
   .extra-cta--soon{color:var(--muted-2);font-style:italic;}
@@ -309,17 +367,17 @@
   .extra-card h3{font-size:20px;font-weight:600;font-family:var(--sans);}
   .extra-card p{margin:0;font-size:15px;color:var(--muted);line-height:1.5;}
   .extra-cta{font-size:14px;font-weight:600;color:var(--green);}
-  .conf-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:32px;align-items:center;}
+  .conf-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:32px;align-items:center;}
   .conf-card h2{font-size:30px;line-height:1.15;}
   .conf-valor{margin:0;font-size:26px;font-weight:700;color:var(--green-2);}
   .conf-stat p:last-child{margin:4px 0 0;font-size:14px;color:var(--muted);line-height:1.4;}
 
   /* Ofertas: filtro de origem + newsletter + como funciona */
-  .orig-bar{position:sticky;top:68px;z-index:40;background:#fff;border-bottom:1px solid var(--border);}
+  .orig-bar{position:sticky;top:68px;z-index:40;background:var(--surface);border-bottom:1px solid var(--border);}
   .orig-in{padding-top:14px;padding-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
   .orig-label{font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);}
   .orig-pills{display:flex;gap:8px;flex-wrap:wrap;}
-  .orig-pill{border:1px solid var(--border-2);background:#fff;color:#44443f;border-radius:var(--pill);padding:8px 16px;font-size:14px;font-weight:600;}
+  .orig-pill{border:1px solid var(--border-2);background:var(--surface);color:var(--muted);border-radius:var(--pill);padding:8px 16px;font-size:14px;font-weight:600;}
   .orig-pill.is-active{background:#18181b;color:#fff;border-color:#18181b;}
   .news-wrap{padding-top:32px;padding-bottom:8px;}
   .news-card{background:#18181b;color:#f7f7f5;border-radius:var(--r-lg);padding:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:32px;align-items:center;}
@@ -329,13 +387,13 @@
   .news-form input,.news-form select{border:1px solid #3f3f42;background:#26262a;border-radius:12px;padding:14px 16px;font-family:var(--sans);font-size:15px;color:#f7f7f5;}
   .news-row{display:flex;gap:12px;flex-wrap:wrap;}
   .news-row input{flex:1;min-width:140px;}
-  .news-fine{font-size:12px;color:var(--muted-2);text-align:center;}
+  .news-fine{font-size:12px;color:#a1a1a6;text-align:center;}
   .news-msg{margin:4px 0 0;font-size:14px;color:var(--lime-2);text-align:center;}
   .feed-count{font-size:14px;color:var(--muted-2);}
   /* Escolha do dia (/hoje) */
   .hoje-head{padding-bottom:0;}
   .hoje-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:28px;}
-  .hoje-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;display:flex;flex-direction:column;}
+  .hoje-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;display:flex;flex-direction:column;}
   .hoje-media{position:relative;height:220px;}
   .hoje-body{padding:24px 26px 26px;display:flex;flex-direction:column;gap:10px;flex:1;}
   .hoje-titulo{font-size:28px;line-height:1.12;margin:2px 0 0;}
@@ -347,19 +405,19 @@
     padding:3px 10px;border-radius:var(--pill);margin-top:2px;white-space:nowrap;}
   .hoje-bullet strong{font-weight:600;}
   .hoje-pontos{margin:2px 0 0;color:var(--muted);font-size:14px;}
-  .hoje-comer{margin:2px 0 0;font-size:14px;color:#44443f;}
+  .hoje-comer{margin:2px 0 0;font-size:14px;color:var(--muted);}
   .hoje-mes{margin:8px 0 0;font-size:14px;color:var(--muted);}
   .hoje-ctas{display:flex;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:14px;}
-  .btn-ghost--claro{color:#18181b;border-color:var(--border-2);}
-  .btn-ghost--claro:hover{color:#18181b;border-color:var(--green);}
-  .feed-vazio{grid-column:1/-1;margin:0;background:#fff;border:1px solid var(--border);border-radius:var(--r);
-    padding:28px;font-size:16px;line-height:1.6;color:#44443f;}
+  .btn-ghost--claro{color:var(--text);border-color:var(--border-2);}
+  .btn-ghost--claro:hover{color:var(--text);border-color:var(--green);}
+  .feed-vazio{grid-column:1/-1;margin:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    padding:28px;font-size:16px;line-height:1.6;color:var(--muted);}
   .cf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-top:8px;}
-  .cf-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:26px;}
+  .cf-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:26px;}
   .cf-num{display:inline-flex;width:36px;height:36px;border-radius:10px;background:var(--tint);color:var(--green);align-items:center;justify-content:center;font-size:16px;font-weight:700;}
   .cf-card h3{margin:14px 0 6px;font-size:19px;font-weight:600;font-family:var(--sans);}
   .cf-card p{margin:0;font-size:15px;color:var(--muted);line-height:1.55;}
-  .cf-note{margin:24px 0 0;font-size:13px;color:#6b6b66;line-height:1.6;max-width:640px;}
+  .cf-note{margin:24px 0 0;font-size:13px;color:var(--muted);line-height:1.6;max-width:640px;}
 
   /* Oferta detalhe */
   .det{padding-top:32px;}
@@ -372,32 +430,37 @@
   .det-local{margin:2px 0 0;font-size:17px;color:var(--muted);}
   .det-preco-row{display:flex;align-items:baseline;gap:14px;margin:24px 0 6px;flex-wrap:wrap;}
   .det-preco{font-size:clamp(40px,8vw,56px);font-weight:700;color:var(--green-2);letter-spacing:-1.5px;line-height:1;}
-  .det-media s{font-size:18px;color:#6b6b66;}
+  .det-media s{font-size:18px;color:var(--muted);}
   .det-econ{display:inline-block;background:var(--tint);color:var(--green-2);font-size:14px;font-weight:700;padding:6px 14px;border-radius:var(--pill);}
-  .det-texto{margin:24px 0 0;font-size:17px;line-height:1.6;color:#44443f;}
+  .det-texto{margin:24px 0 0;font-size:17px;line-height:1.6;color:var(--muted);}
   .det-prova{margin-top:28px;position:relative;height:280px;border-radius:14px;overflow:hidden;background:var(--tint);}
   .det-prova-media{width:100%;height:100%;}
   .det-prova-tag{position:absolute;top:12px;left:12px;background:rgba(24,24,27,.75);color:#f7f7f5;font-size:12px;font-weight:600;padding:5px 12px;border-radius:var(--pill);}
   .det-h2{margin:36px 0 14px;font-size:22px;font-weight:700;font-family:var(--sans);}
   .det-flex{display:flex;flex-direction:column;gap:8px;}
-  .det-flex-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 18px;}
+  .det-flex-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;}
   .det-flex-row strong{color:var(--green-2);font-size:17px;}
   .det-dicas{display:flex;flex-direction:column;gap:10px;}
-  .det-dica{display:flex;gap:10px;font-size:15px;line-height:1.5;color:#44443f;}
+  .det-dica{display:flex;gap:10px;font-size:15px;line-height:1.5;color:var(--muted);}
   .det-dica span:first-child{color:var(--green);font-weight:700;}
   .det-aside{position:sticky;top:92px;display:flex;flex-direction:column;gap:16px;}
-  .det-buy{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:24px;box-shadow:0 24px 48px -34px rgba(24,24,27,.3);}
+  .det-buy{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;box-shadow:0 24px 48px -34px rgba(24,24,27,.3);}
   .det-buy-label{font-size:13px;color:var(--muted-2);}
   .det-buy-preco{margin:2px 0 0;font-size:36px;font-weight:700;color:var(--green-2);letter-spacing:-1px;}
   .det-buy-sub{margin:2px 0 16px;font-size:14px;color:var(--muted);}
   .det-buy-cta{width:100%;font-size:16px;}
-  .det-buy-fine{margin:12px 0 0;font-size:12px;color:#6b6b66;line-height:1.5;text-align:center;}
+  .det-buy-fine{margin:12px 0 0;font-size:12px;color:var(--muted);line-height:1.5;text-align:center;}
+  /* Historico de preco (sparkline). Fica no mesmo cartao claro do aside. */
+  .det-hist{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:16px;}
+  .det-hist-title{margin:0 0 10px;font-size:14px;font-weight:700;color:var(--text);}
+  .det-hist svg{display:block;width:100%;height:auto;max-width:100%;}
+  .det-hist-fine{margin:10px 0 0;font-size:12px;color:var(--muted);line-height:1.45;}
   .det-alert{background:#18181b;color:#f7f7f5;border-radius:var(--r);padding:22px;}
   .det-alert-title{margin:0 0 4px;font-size:15px;font-weight:700;}
   .det-alert p{margin:0 0 14px;font-size:13px;color:#a1a1a6;line-height:1.5;}
   .det-alert .btn{width:100%;}
   .rel-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;}
-  .rel-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:4px;color:inherit;}
+  .rel-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:4px;color:inherit;}
   .rel-card:hover{border-color:var(--lime);color:inherit;}
   .rel-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
   .rel-rota{font-size:13px;font-weight:600;letter-spacing:.06em;color:var(--muted-2);}
@@ -415,24 +478,24 @@
   .flag-dark{background:rgba(24,24,27,.75);color:#f7f7f5;text-transform:uppercase;letter-spacing:.05em;}
   .guia-intro-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:48px;margin-top:36px;align-items:start;}
   .guia-title{font-size:clamp(38px,6vw,54px);line-height:1.05;}
-  .guia-intro{margin:18px 0 0;font-size:18px;line-height:1.6;color:#44443f;}
-  .guia-aside{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:14px;position:sticky;top:92px;}
+  .guia-intro{margin:18px 0 0;font-size:18px;line-height:1.6;color:var(--muted);}
+  .guia-aside{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:14px;position:sticky;top:92px;}
   .guia-aside h3,.guia-aside-h{font-size:16px;font-weight:700;font-family:var(--sans);margin:0;line-height:1.3;}
-  .guia-meta-row{display:flex;justify-content:space-between;gap:12px;font-size:14px;border-bottom:1px solid #f0f0ed;padding-bottom:10px;}
+  .guia-meta-row{display:flex;justify-content:space-between;gap:12px;font-size:14px;border-bottom:1px solid var(--border);padding-bottom:10px;}
   .guia-meta-row span{color:var(--muted-2);}
   .guia-meta-row strong{text-align:right;}
   .guia-aside-preco{font-size:13px;color:var(--muted);text-align:center;}
-  .escopo-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:26px 28px;max-width:860px;}
+  .escopo-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:26px 28px;max-width:860px;}
   .escopo-h{font-size:22px;font-weight:700;font-family:var(--sans);margin:0 0 16px;}
   .escopo-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px;}
   .escopo-tit{margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
   .escopo-tit--sim{color:var(--green-2);}
   .escopo-tit--nao{color:#9a3412;}
-  .escopo-cols ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:15px;line-height:1.5;color:#44443f;}
-  .escopo-nota{margin:18px 0 0;font-size:13px;line-height:1.6;color:var(--muted);border-top:1px solid #f0f0ed;padding-top:14px;}
+  .escopo-cols ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:15px;line-height:1.5;color:var(--muted);}
+  .escopo-nota{margin:18px 0 0;font-size:13px;line-height:1.6;color:var(--muted);border-top:1px solid var(--border);padding-top:14px;}
   .guia-h2{font-size:36px;margin-bottom:28px;}
   .dias{display:flex;flex-direction:column;gap:20px;max-width:860px;}
-  .dia{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:28px;display:grid;grid-template-columns:64px 1fr;gap:24px;}
+  .dia{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px;display:grid;grid-template-columns:64px 1fr;gap:24px;}
   .dia-num{width:56px;height:56px;border-radius:14px;background:#18181b;color:var(--lime-2);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;}
   .dia-num span{font-size:10px;font-weight:700;letter-spacing:.08em;}
   .dia-num strong{font-size:24px;}
@@ -457,8 +520,8 @@
   .dia-map{display:inline-flex;align-items:center;gap:6px;margin-top:14px;font-size:13px;font-weight:600;color:var(--green);}
   .dia-map:hover{color:var(--green-2);}
   .dia-map-pin{font-size:13px;}
-  .lodging{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:14px;align-items:flex-start;max-width:860px;}
-  .lodging-base{margin:0;font-size:16px;color:#44443f;line-height:1.6;}
+  .lodging{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:14px;align-items:flex-start;max-width:860px;}
+  .lodging-base{margin:0;font-size:16px;color:var(--muted);line-height:1.6;}
   .explore{background:#18181b;color:#f7f7f5;border-radius:var(--r-lg);padding:36px;display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center;overflow:hidden;}
   .explore-copy h2{font-size:34px;line-height:1.1;margin:2px 0 0;}
   .explore-copy p{margin:12px 0 20px;font-size:16px;color:#a1a1a6;max-width:44ch;}
@@ -472,7 +535,7 @@
   .opt-head h2{font-size:36px;}
   .opt-sub{margin:0;font-size:15px;color:var(--muted);max-width:460px;line-height:1.5;}
   .opt-grid-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;align-items:start;}
-  .opt-panel{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:24px;}
+  .opt-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;}
   .opt-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;font-size:13px;font-weight:700;}
   .opt-legend{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-2);font-weight:400;}
   .opt-sw{width:14px;height:10px;border-radius:3px;display:inline-block;}
@@ -480,7 +543,7 @@
   .opt-cell{border:1px solid;border-radius:10px;padding:11px 6px;text-align:center;}
   .opt-mon{font-size:12px;font-weight:600;opacity:.8;}
   .opt-price{font-size:14px;font-weight:700;margin-top:3px;}
-  .opt-foot{margin:16px 0 0;font-size:12px;color:#6b6b66;line-height:1.5;}
+  .opt-foot{margin:16px 0 0;font-size:12px;color:var(--muted);line-height:1.5;}
   .opt-side{display:flex;flex-direction:column;gap:16px;}
   .opt-window{background:#18181b;color:#f7f7f5;border-radius:var(--r);padding:24px;}
   .opt-window h3{font-size:30px;margin:10px 0 8px;}
@@ -490,10 +553,10 @@
   .opt-save{display:inline-block;margin:12px 0;background:rgba(163,230,53,.15);color:var(--lime-2);font-size:13px;font-weight:700;padding:5px 12px;border-radius:var(--pill);}
   .opt-window p{margin:0 0 18px;font-size:14px;color:#a1a1a6;line-height:1.5;}
   .opt-window .btn{width:100%;}
-  .opt-sources{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:22px;}
+  .opt-sources{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;}
   .opt-sources-title{font-size:13px;font-weight:700;}
   .opt-sources-list{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
-  .opt-src{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid #f0f0ed;border-radius:10px;padding:12px 14px;}
+  .opt-src{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
   .opt-src--best{background:var(--tint);border-color:#d9edb8;}
   .opt-src-name{font-size:15px;font-weight:700;}
   .opt-src--best .opt-src-name,.opt-src--best .opt-src-price{color:var(--green-2);}
@@ -505,7 +568,7 @@
   /* Datas para viajar (clicar e reservar) */
   .dt-note{font-size:14px;color:var(--muted-2);}
   .dt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:24px;}
-  .dt-card{position:relative;background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:4px;}
+  .dt-card{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:4px;}
   .dt-card--best{border-color:var(--lime);box-shadow:0 16px 32px -26px rgba(24,24,27,.35);}
   .dt-flag{position:absolute;top:-11px;left:20px;background:var(--lime);color:#18181b;font-size:12px;font-weight:700;letter-spacing:.04em;padding:4px 12px;border-radius:var(--pill);}
   .dt-when{font-size:18px;font-weight:700;color:var(--text);}
@@ -533,18 +596,18 @@
   .res-resumo{font-size:15px;color:#a1a1a6;}
   .res-alterar{margin-left:auto;padding:9px 18px;font-size:14px;font-weight:600;border-radius:var(--pill);}
   .res-grid{padding-top:32px;padding-bottom:88px;display:grid;grid-template-columns:minmax(220px,260px) minmax(0,1fr);gap:28px;align-items:start;}
-  .res-side{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:22px;position:sticky;top:92px;}
+  .res-side{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:22px;position:sticky;top:92px;}
   .res-side h3{font-size:16px;font-weight:700;font-family:var(--sans);}
   .res-filtro{display:flex;flex-direction:column;gap:10px;}
   .res-filtro-title{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2);}
   .res-check{display:flex;align-items:center;gap:10px;font-size:15px;cursor:pointer;}
   .res-check input{accent-color:var(--green);width:16px;height:16px;}
-  .res-help{border-top:1px solid #f0f0ed;padding-top:16px;font-size:13px;color:var(--muted);line-height:1.5;}
+  .res-help{border-top:1px solid var(--border);padding-top:16px;font-size:13px;color:var(--muted);line-height:1.5;}
   .res-list{display:flex;flex-direction:column;gap:16px;}
   .res-sortbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:15px;color:var(--muted);}
-  .res-sort{border:1px solid var(--border-2);background:#fff;color:#44443f;border-radius:var(--pill);padding:7px 15px;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .res-sort{border:1px solid var(--border-2);background:var(--surface);color:var(--muted);border-radius:var(--pill);padding:7px 15px;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;}
   .res-sort.is-active{background:#18181b;color:#fff;border-color:#18181b;}
-  .res-voo{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:22px 24px;display:flex;flex-wrap:wrap;gap:20px;align-items:center;position:relative;}
+  .res-voo{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px 24px;display:flex;flex-wrap:wrap;gap:20px;align-items:center;position:relative;}
   .res-voo--melhor{border-color:var(--lime);}
   .res-melhor{position:absolute;top:-11px;left:20px;background:var(--lime);color:#18181b;font-size:12px;font-weight:700;letter-spacing:.04em;padding:4px 12px;border-radius:var(--pill);}
   .res-cia{display:flex;flex-direction:column;gap:4px;width:110px;flex-shrink:0;}
@@ -561,7 +624,7 @@
   .res-parada{font-size:12px;font-weight:600;}
   .res-parada--direto{color:var(--green-2);}
   .res-parada--conex{color:var(--muted-2);}
-  .res-preco{text-align:right;border-left:1px solid #f0f0ed;padding-left:20px;margin-left:auto;}
+  .res-preco{text-align:right;border-left:1px solid var(--border);padding-left:20px;margin-left:auto;}
   .res-preco-label{margin:0;font-size:13px;color:var(--muted-2);}
   .res-preco-val{margin:4px 0 0;font-size:24px;font-weight:700;color:var(--green-2);}
   .res-parcela{margin:2px 0 0;font-size:13px;color:var(--muted);}
@@ -574,16 +637,25 @@
   .map-head{padding-top:40px;}
   .map-title{font-size:clamp(32px,5vw,44px);margin:0 0 8px;}
   .map-sub{margin:0;font-size:17px;color:var(--muted);max-width:60ch;}
+  /* Filtro do /guias. Nasce com [hidden] no HTML; o JS tira. */
+  .guia-busca{margin:20px 0 0;max-width:420px;}
+  .guia-busca[hidden]{display:none;}
+  .guia-busca-lab{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;}
+  .guia-busca-campo{width:100%;padding:12px 14px;border:1px solid var(--border-2);border-radius:var(--pill);
+    background:var(--input-bg);color:var(--text);font:inherit;font-size:16px;}
+  .guia-busca-campo:focus-visible{outline:2px solid var(--green);outline-offset:2px;border-color:var(--green);}
+  .guia-busca-conta{margin:8px 0 0;font-size:14px;color:var(--muted);min-height:1.3em;}
+  .rot-card[hidden]{display:none;}
   .map-grid{margin-top:28px;padding-bottom:88px;display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,340px);gap:24px;align-items:start;}
   .map-canvas{height:560px;border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--border);background:var(--tint);}
   .map-canvas--placeholder{position:relative;display:flex;align-items:center;justify-content:center;}
   .map-canvas--placeholder .media-placeholder{position:absolute;inset:0;opacity:.5;}
   .map-canvas--err{display:flex;align-items:center;justify-content:center;}
-  .map-canvas-msg{position:relative;max-width:360px;margin:0;background:rgba(255,255,255,.92);border:1px solid var(--border);border-radius:12px;padding:16px 18px;font-size:14px;color:#44443f;line-height:1.5;text-align:center;}
+  .map-canvas-msg{position:relative;max-width:360px;margin:0;background:rgba(255,255,255,.92);border:1px solid var(--border);border-radius:12px;padding:16px 18px;font-size:14px;color:var(--muted);line-height:1.5;text-align:center;}
   .map-canvas-msg code{background:var(--tint);color:var(--green-2);padding:1px 6px;border-radius:6px;font-size:13px;}
   .map-list{display:flex;flex-direction:column;gap:8px;max-height:560px;overflow-y:auto;}
-  .map-dest{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:inherit;}
-  .map-dest:hover{border-color:var(--lime);color:inherit;background:#fff;}
+  .map-dest{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:inherit;}
+  .map-dest:hover{border-color:var(--lime);color:inherit;background:var(--surface);}
   .map-dest-pin{color:var(--green);font-size:13px;flex-shrink:0;}
   .map-dest-body{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;}
   .map-dest-body strong{font-size:15px;font-weight:600;}
@@ -591,8 +663,8 @@
   .map-dest-preco{font-size:14px;font-weight:700;color:var(--green-2);white-space:nowrap;}
   .map-iw{max-width:220px;font-family:var(--sans);}
   .map-iw strong{display:block;font-size:15px;color:#18181b;margin-bottom:2px;}
-  .map-iw-tag{display:block;font-size:12px;color:#6b6b66;}
-  .map-iw-resumo{display:block;font-size:13px;color:#44443f;line-height:1.4;margin:6px 0;}
+  .map-iw-tag{display:block;font-size:12px;color:var(--muted);}
+  .map-iw-resumo{display:block;font-size:13px;color:var(--muted);line-height:1.4;margin:6px 0;}
   .map-iw-link{font-size:14px;font-weight:700;color:var(--green);}
 
   /* Integridade / confianca no detalhe da oferta */
@@ -608,7 +680,7 @@
   .opt-foot--disclaimer{color:#8a8a84;}
 
   /* Faixa de captura (strip) */
-  .news-whatsapp-note{font-size:11px;color:var(--muted-2);display:block;margin-top:-4px;}
+  .news-whatsapp-note{font-size:11px;color:#a1a1a6;display:block;margin-top:-4px;}
   .news-strip-wrap{padding:48px 32px 0;}
   .news-strip{background:#18181b;color:#f7f7f5;border-radius:var(--r-lg);padding:28px 32px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;}
   .news-strip-copy{max-width:480px;}
@@ -622,8 +694,11 @@
   /* Resultados: transparencia + captura */
   .res-fine{margin-top:4px;font-size:12px;color:var(--muted-2);text-align:center;}
   .res-amostra--pax{background:#fff7ed;border-color:#fed7aa;color:#9a3412;}
+  /* Busca ao vivo: borda verde solida e fundo mais forte, para separar na
+     hora do aviso de "exemplo". Cor nao e o unico sinal — o texto muda. */
+  .res-amostra--vivo{background:var(--tint);border:1px solid var(--green);border-left-width:4px;color:var(--green-2);}
   .res-amostra{background:var(--tint);border:1px solid #d9edb8;border-radius:var(--r);padding:14px 18px;font-size:14px;color:var(--green-2);margin-bottom:4px;}
-  .res-vazio{background:#fff;border:1px dashed var(--border-2);border-radius:var(--r);padding:22px;text-align:center;color:var(--muted);font-size:14px;}
+  .res-vazio{background:var(--surface);border:1px dashed var(--border-2);border-radius:var(--r);padding:22px;text-align:center;color:var(--muted);font-size:14px;}
   .res-alert-banner{background:#18181b;color:#f7f7f5;border-radius:var(--r);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:15px;}
   .res-alert-banner strong{color:#fff;}
   .res-alert-banner span{color:#a1a1a6;}
@@ -633,7 +708,7 @@
 
   /* Pagina de saida (interstitial) */
   .exit{padding:48px 32px 72px;max-width:920px;}
-  .exit-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:36px;text-align:center;}
+  .exit-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:36px;text-align:center;}
   .exit-card h1{font-size:32px;margin:8px 0 12px;}
   .exit-sub{color:var(--muted);max-width:52ch;margin:0 auto 24px;}
   .exit-cta{font-size:17px;padding:16px 28px;}
@@ -660,7 +735,7 @@
   .status-page .btn{margin-top:8px;}
 
   /* Footer */
-  .site-footer{background:#fff;border-top:1px solid var(--border);margin-top:56px;}
+  .site-footer{background:var(--surface);border-top:1px solid var(--border);margin-top:56px;}
   .foot-grid{padding:56px 32px 40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:40px;}
   .brand--foot{--brand-fly:62px;}
   .brand--foot .brand-word{font-size:26px;}
@@ -670,9 +745,9 @@
   .foot-title{font-weight:700;margin-bottom:4px;}
   .foot-link--soon{color:var(--muted-2);opacity:.7;cursor:not-allowed;}
   .foot-link--soon::after{content:" · em breve";font-size:11px;font-weight:400;}
-  .foot-bar{border-top:1px solid #f0f0ed;}
+  .foot-bar{border-top:1px solid var(--border);}
   .foot-bar-in{padding-top:20px;padding-bottom:24px;display:flex;flex-direction:column;gap:8px;}
-  .foot-places{margin:0;font-size:13px;color:#44443f;}
+  .foot-places{margin:0;font-size:13px;color:var(--muted);}
   .foot-lgpd{margin:0;font-size:12.5px;color:var(--muted);line-height:1.6;max-width:78ch;}
   .foot-legal{margin:0;font-size:12px;color:var(--muted-2);}
 
@@ -731,19 +806,25 @@
 <body>
 <div class="seasons3d" aria-hidden="true"><div class="s3-season s3-season--inverno" style="animation-delay:0s"><div class="s3-stage"><span class="s3-orb" style="left:8%;top:27%;width:54vw;height:54vw;background:radial-gradient(circle,rgba(129,187,224,.96) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-340px) scale(1.378)"></span><span class="s3-orb" style="left:93%;top:69%;width:46vw;height:46vw;background:radial-gradient(circle,rgba(186,203,224,.92) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-130px) scale(1.144)"></span><span class="s3-orb" style="left:50%;top:-7%;width:64vw;height:64vw;background:radial-gradient(circle,rgba(94,151,190,.70) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-520px) scale(1.578)"></span><span class="s3-sun" style="top:34%;left:64%;width:14vw;height:14vw;background:radial-gradient(circle,rgba(226,232,240,.72) 0%,transparent 70%)"></span></div><span class="s3-horizon" style="background:linear-gradient(to top,rgba(94,151,190,.22),transparent)"></span></div><div class="s3-season s3-season--primavera" style="animation-delay:-54s"><div class="s3-stage"><span class="s3-orb" style="left:8%;top:27%;width:52vw;height:52vw;background:radial-gradient(circle,rgba(244,150,182,.88) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-310px) scale(1.344)"></span><span class="s3-orb" style="left:93%;top:69%;width:46vw;height:46vw;background:radial-gradient(circle,rgba(163,230,53,.86) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-125px) scale(1.139)"></span><span class="s3-orb" style="left:50%;top:-7%;width:62vw;height:62vw;background:radial-gradient(circle,rgba(216,180,254,.46) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-510px) scale(1.567)"></span><span class="s3-sun" style="top:20%;left:72%;width:17vw;height:17vw;background:radial-gradient(circle,rgba(254,215,226,.76) 0%,transparent 70%)"></span></div><span class="s3-horizon" style="background:linear-gradient(to top,rgba(132,204,22,.24),transparent)"></span></div><div class="s3-season s3-season--verao" style="animation-delay:-36s"><div class="s3-stage"><span class="s3-orb" style="left:8%;top:26%;width:52vw;height:52vw;background:radial-gradient(circle,rgba(250,204,21,.92) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-320px) scale(1.356)"></span><span class="s3-orb" style="left:93%;top:70%;width:46vw;height:46vw;background:radial-gradient(circle,rgba(132,204,22,.80) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-120px) scale(1.133)"></span><span class="s3-orb" style="left:50%;top:-6%;width:64vw;height:64vw;background:radial-gradient(circle,rgba(56,189,248,.58) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-520px) scale(1.578)"></span><span class="s3-sun" style="top:14%;left:76%;width:18vw;height:18vw;background:radial-gradient(circle,rgba(253,224,71,.80) 0%,transparent 70%)"></span></div><span class="s3-horizon" style="background:linear-gradient(to top,rgba(163,230,53,.26),transparent)"></span></div><div class="s3-season s3-season--outono" style="animation-delay:-18s"><div class="s3-stage"><span class="s3-orb" style="left:7%;top:28%;width:54vw;height:54vw;background:radial-gradient(circle,rgba(234,138,54,.62) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-300px) scale(1.333)"></span><span class="s3-orb" style="left:94%;top:68%;width:46vw;height:46vw;background:radial-gradient(circle,rgba(202,138,4,.56) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-110px) scale(1.122)"></span><span class="s3-orb" style="left:50%;top:-8%;width:62vw;height:62vw;background:radial-gradient(circle,rgba(146,64,14,.38) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-500px) scale(1.556)"></span><span class="s3-sun" style="top:26%;left:70%;width:16vw;height:16vw;background:radial-gradient(circle,rgba(251,191,36,.70) 0%,transparent 70%)"></span></div><span class="s3-horizon" style="background:linear-gradient(to top,rgba(180,83,9,.24),transparent)"></span></div><div class="s3-motes"><span class="s3-mote" style="left:6%;width:4px;height:4px;animation-duration:26s;animation-delay:0s"></span><span class="s3-mote" style="left:16.5%;width:3px;height:3px;animation-duration:33s;animation-delay:-4s"></span><span class="s3-mote" style="left:27%;width:3px;height:3px;animation-duration:40s;animation-delay:-8s"></span><span class="s3-mote" style="left:37.5%;width:4px;height:4px;animation-duration:30s;animation-delay:-12s"></span><span class="s3-mote" style="left:48%;width:3px;height:3px;animation-duration:37s;animation-delay:-16s"></span><span class="s3-mote" style="left:58.5%;width:3px;height:3px;animation-duration:27s;animation-delay:-20s"></span><span class="s3-mote" style="left:69%;width:4px;height:4px;animation-duration:34s;animation-delay:-24s"></span><span class="s3-mote" style="left:79.5%;width:3px;height:3px;animation-duration:41s;animation-delay:-28s"></span><span class="s3-mote" style="left:90%;width:3px;height:3px;animation-duration:31s;animation-delay:-32s"></span></div><div class="s3-veil"></div></div>
 <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
-<header class="site-header"><div class="wrap site-header-in"><a class="brand" href="/"><span class="brand-plane" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M2.2 20.6 22 12 2.2 3.4l0 6.9L15 12 2.2 13.7z"/></svg></span><span class="brand-word">aonde</span><span class="brand-dot"></span></a><nav class="site-nav"><a href="/resultados" title="Buscar um voo específico, por origem e destino">Passagens</a><a href="/hoje">A escolha do dia <span class="nav-pill">NOVO</span></a><a href="/ofertas" title="Ver os achados de passagem já conferidos pela curadoria">Ofertas</a><a href="https://search.hotellook.com/" target="_blank" rel="noopener sponsored" title="Abre o site do parceiro Hotellook em nova aba">Hotéis <span class="nav-ext" aria-hidden="true">↗</span></a><a href="/guias">Guias de destino</a><a href="/mapa">Mapa</a></nav><div class="site-header-right"><a class="site-atend" href="tel:08009420842"><span>Atendimento</span><strong>0800 942 0842</strong></a><a class="btn btn-dark" href="/alertas">Meus alertas</a></div></div></header>
-<main id="conteudo" tabindex="-1"><div class="orig-bar"><div class="wrap orig-in"><span class="orig-label">Partindo de</span><div class="orig-pills"><a class="orig-pill is-active" href="/ofertas">Todas as origens</a><a class="orig-pill" href="/ofertas?origem=CNF">CNF · Belo Horizonte</a><a class="orig-pill" href="/ofertas?origem=FOR">FOR · Fortaleza</a><a class="orig-pill" href="/ofertas?origem=GIG">GIG · Rio de Janeiro</a><a class="orig-pill" href="/ofertas?origem=GRU">GRU · São Paulo</a><a class="orig-pill" href="/ofertas?origem=REC">REC · Recife</a><a class="orig-pill" href="/ofertas?origem=SSA">SSA · Salvador</a><a class="orig-pill" href="/ofertas?origem=VCP">VCP · Campinas</a></div></div></div><div class="feed-ordem"><section class="wrap news-wrap"><div class="news-card"><div class="news-copy"><p class="eyebrow eyebrow--lime">Alertas de preço</p><h1>Os achados de passagem antes que acabem</h1><p>Preços muito abaixo da média e erros de tarifa, garimpados todos os dias. Comparamos cada tarifa com a média dos últimos 90 dias antes de avisar você.</p></div><form class="news-form" data-newsletter action="/api/newsletter/subscribe" method="post"><input name="email" type="email" required aria-label="Seu e-mail" placeholder="Seu melhor e-mail"><div class="news-row"><input name="whatsapp" aria-label="Seu WhatsApp (opcional)" placeholder="WhatsApp (opcional)"><select name="origem" aria-label="Sua cidade de origem"><option value="CNF">Belo Horizonte (CNF)</option><option value="FOR">FOR</option><option value="GIG">Rio de Janeiro (GIG)</option><option value="GRU" selected>São Paulo (GRU)</option><option value="REC">REC</option><option value="SSA">SSA</option><option value="VCP">Campinas (VCP)</option></select></div><span class="news-whatsapp-note">Se informar o WhatsApp, também avisamos por lá — só depois de você confirmar por e-mail.</span><button class="btn btn-lime" type="submit">Quero receber os alertas</button><span class="news-fine">Grátis. Sem spam. Cancele quando quiser.</span><p class="news-msg" data-newsletter-msg hidden></p></form></div></section><section class="wrap section feed-lista"><div class="section-head section-head--tight"><h2>Achados de hoje</h2><span class="feed-count">12 ofertas ativas</span></div><div class="of-grid"><a class="of-card" href="/ofertas/gru-lis"><div class="of-media"><div class="of-media-inner"><div class="media-placeholder"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="Lisboa"><rect width="400" height="260" fill="#f1f8e4"/><rect x="0" y="0" width="400" height="260" fill="none" stroke="#dededa" stroke-width="2"/><path d="M0 200 L110 120 L175 175 L250 105 L400 210 L400 260 L0 260 Z" fill="#a3e635" opacity="0.55"/><path d="M0 225 L90 165 L180 220 L280 150 L400 235 L400 260 L0 260 Z" fill="#84cc16" opacity="0.65"/><circle cx="315" cy="70" r="26" fill="#a3e635"/><text x="200" y="60" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#4d7c0f">Aonde</text><text x="200" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="bold" fill="#18181b">Lisboa</text></svg></div></div><span class="of-badge badge-desconto">48% abaixo da média</span><span class="of-publicado">há 1 dia</span></div><div class="of-body"><span class="of-rota">saindo de São Paulo (GRU)</span><h3 class="of-cidade">Lisboa</h3><div class="of-preco-row"><span class="of-de"><s>R$ 3.540</s></span><span class="of-preco">R$ 1.847</span><span class="of-iv">ida e volta</span></div><span class="of-cia">TAP · 12–24 out</span><span class="of-cta">Ver oferta →</span></div></a>
-<a class="of-card of-card--erro" href="/ofertas/gru-rec"><div class="of-media"><div class="of-media-inner"><div class="media-placeholder"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="Recife"><rect width="400" height="260" fill="#f1f8e4"/><rect x="0" y="0" width="400" height="260" fill="none" stroke="#dededa" stroke-width="2"/><path d="M0 200 L110 120 L175 175 L250 105 L400 210 L400 260 L0 260 Z" fill="#a3e635" opacity="0.55"/><path d="M0 225 L90 165 L180 220 L280 150 L400 235 L400 260 L0 260 Z" fill="#84cc16" opacity="0.65"/><circle cx="315" cy="70" r="26" fill="#a3e635"/><text x="200" y="60" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#4d7c0f">Aonde</text><text x="200" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="bold" fill="#18181b">Recife</text></svg></div></div><span class="of-badge badge-erro">Erro de tarifa</span><span class="of-publicado">há 1 dia</span></div><div class="of-body"><span class="of-rota">saindo de São Paulo (GRU)</span><h3 class="of-cidade">Recife</h3><div class="of-preco-row"><span class="of-de"><s>R$ 1.180</s></span><span class="of-preco">R$ 587</span><span class="of-iv">ida e volta</span></div><span class="of-cia">Azul · 9–16 set</span><span class="of-erro-note">⚠ Preço abaixo do normal por engano da companhia — ela pode corrigir ou cancelar depois da compra. Não reserve hotel/passeio antes de confirmar.</span><span class="of-cta">Ver oferta →</span></div></a>
-<a class="of-card" href="/ofertas/vcp-bue"><div class="of-media"><div class="of-media-inner"><div class="media-placeholder"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="Buenos Aires"><rect width="400" height="260" fill="#f1f8e4"/><rect x="0" y="0" width="400" height="260" fill="none" stroke="#dededa" stroke-width="2"/><path d="M0 200 L110 120 L175 175 L250 105 L400 210 L400 260 L0 260 Z" fill="#a3e635" opacity="0.55"/><path d="M0 225 L90 165 L180 220 L280 150 L400 235 L400 260 L0 260 Z" fill="#84cc16" opacity="0.65"/><circle cx="315" cy="70" r="26" fill="#a3e635"/><text x="200" y="60" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#4d7c0f">Aonde</text><text x="200" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="bold" fill="#18181b">Buenos Aires</text></svg></div></div><span class="of-badge badge-desconto">35% abaixo da média</span><span class="of-publicado">há 1 dia</span></div><div class="of-body"><span class="of-rota">saindo de Campinas (VCP)</span><h3 class="of-cidade">Buenos Aires</h3><div class="of-preco-row"><span class="of-de"><s>R$ 1.520</s></span><span class="of-preco">R$ 989</span><span class="of-iv">ida e volta</span></div><span class="of-cia">GOL · 3–10 set</span><span class="of-cta">Ver oferta →</span></div></a>
-<a class="of-card" href="/ofertas/cnf-fln"><div class="of-media"><div class="of-media-inner"><div class="media-placeholder"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="Florianópolis"><rect width="400" height="260" fill="#f1f8e4"/><rect x="0" y="0" width="400" height="260" fill="none" stroke="#dededa" stroke-width="2"/><path d="M0 200 L110 120 L175 175 L250 105 L400 210 L400 260 L0 260 Z" fill="#a3e635" opacity="0.55"/><path d="M0 225 L90 165 L180 220 L280 150 L400 235 L400 260 L0 260 Z" fill="#84cc16" opacity="0.65"/><circle cx="315" cy="70" r="26" fill="#a3e635"/><text x="200" y="60" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#4d7c0f">Aonde</text><text x="200" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="bold" fill="#18181b">Florianópolis</text></svg></div></div><span class="of-badge badge-desconto">55% abaixo da média</span><span class="of-publicado">há 1 dia</span></div><div class="of-body"><span class="of-rota">saindo de Belo Horizonte (CNF)</span><h3 class="of-cidade">Florianópolis</h3><div class="of-preco-row"><span class="of-de"><s>R$ 690</s></span><span class="of-preco">R$ 312</span><span class="of-iv">ida e volta</span></div><span class="of-cia">GOL · 14–21 out</span><span class="of-cta">Ver oferta →</span></div></a>
-<a class="of-card" href="/ofertas/gig-mia"><div class="of-media"><div class="of-media-inner"><div class="media-placeholder"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="Miami"><rect width="400" height="260" fill="#f1f8e4"/><rect x="0" y="0" width="400" height="260" fill="none" stroke="#dededa" stroke-width="2"/><path d="M0 200 L110 120 L175 175 L250 105 L400 210 L400 260 L0 260 Z" fill="#a3e635" opacity="0.55"/><path d="M0 225 L90 165 L180 220 L280 150 L400 235 L400 260 L0 260 Z" fill="#84cc16" opacity="0.65"/><circle cx="315" cy="70" r="26" fill="#a3e635"/><text x="200" y="60" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#4d7c0f">Aonde</text><text x="200" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="bold" fill="#18181b">Miami</text></svg></div></div><span class="of-badge badge-desconto">39% abaixo da média</span><span class="of-publicado">há 1 dia</span></div><div class="of-body"><span class="of-rota">saindo de Rio de Janeiro (GIG)</span><h3 class="of-cidade">Miami</h3><div class="of-preco-row"><span class="of-de"><s>R$ 3.580</s></span><span class="of-preco">R$ 2.190</span><span class="of-iv">ida e volta</span></div><span class="of-cia">LATAM · 5–18 nov</span><span class="of-cta">Ver oferta →</span></div></a>
-<a class="of-card" href="/ofertas/gru-scl"><div class="of-media"><div class="of-media-inner"><div class="media-placeholder"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="Santiago"><rect width="400" height="260" fill="#f1f8e4"/><rect x="0" y="0" width="400" height="260" fill="none" stroke="#dededa" stroke-width="2"/><path d="M0 200 L110 120 L175 175 L250 105 L400 210 L400 260 L0 260 Z" fill="#a3e635" opacity="0.55"/><path d="M0 225 L90 165 L180 220 L280 150 L400 235 L400 260 L0 260 Z" fill="#84cc16" opacity="0.65"/><circle cx="315" cy="70" r="26" fill="#a3e635"/><text x="200" y="60" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#4d7c0f">Aonde</text><text x="200" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="bold" fill="#18181b">Santiago</text></svg></div></div><span class="of-badge badge-desconto">34% abaixo da média</span><span class="of-publicado">há 2 dias</span></div><div class="of-body"><span class="of-rota">saindo de São Paulo (GRU)</span><h3 class="of-cidade">Santiago</h3><div class="of-preco-row"><span class="of-de"><s>R$ 1.940</s></span><span class="of-preco">R$ 1.290</span><span class="of-iv">ida e volta</span></div><span class="of-cia">LATAM · 2–12 nov</span><span class="of-cta">Ver oferta →</span></div></a>
-<a class="of-card" href="/ofertas/gru-mco"><div class="of-media"><div class="of-media-inner"><div class="media-placeholder"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="Orlando"><rect width="400" height="260" fill="#f1f8e4"/><rect x="0" y="0" width="400" height="260" fill="none" stroke="#dededa" stroke-width="2"/><path d="M0 200 L110 120 L175 175 L250 105 L400 210 L400 260 L0 260 Z" fill="#a3e635" opacity="0.55"/><path d="M0 225 L90 165 L180 220 L280 150 L400 235 L400 260 L0 260 Z" fill="#84cc16" opacity="0.65"/><circle cx="315" cy="70" r="26" fill="#a3e635"/><text x="200" y="60" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#4d7c0f">Aonde</text><text x="200" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="bold" fill="#18181b">Orlando</text></svg></div></div><span class="of-badge badge-desconto">30% abaixo da média</span><span class="of-publicado">há 2 dias</span></div><div class="of-body"><span class="of-rota">saindo de São Paulo (GRU)</span><h3 class="of-cidade">Orlando</h3><div class="of-preco-row"><span class="of-de"><s>R$ 3.660</s></span><span class="of-preco">R$ 2.560</span><span class="of-iv">ida e volta</span></div><span class="of-cia">Azul · 10–24 jan</span><span class="of-cta">Ver oferta →</span></div></a>
-<a class="of-card" href="/ofertas/gig-ssa"><div class="of-media"><div class="of-media-inner"><div class="media-placeholder"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="Salvador"><rect width="400" height="260" fill="#f1f8e4"/><rect x="0" y="0" width="400" height="260" fill="none" stroke="#dededa" stroke-width="2"/><path d="M0 200 L110 120 L175 175 L250 105 L400 210 L400 260 L0 260 Z" fill="#a3e635" opacity="0.55"/><path d="M0 225 L90 165 L180 220 L280 150 L400 235 L400 260 L0 260 Z" fill="#84cc16" opacity="0.65"/><circle cx="315" cy="70" r="26" fill="#a3e635"/><text x="200" y="60" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#4d7c0f">Aonde</text><text x="200" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="bold" fill="#18181b">Salvador</text></svg></div></div><span class="of-badge badge-desconto">42% abaixo da média</span><span class="of-publicado">há 1 dia</span></div><div class="of-body"><span class="of-rota">saindo de Rio de Janeiro (GIG)</span><h3 class="of-cidade">Salvador</h3><div class="of-preco-row"><span class="of-de"><s>R$ 780</s></span><span class="of-preco">R$ 449</span><span class="of-iv">ida e volta</span></div><span class="of-cia">GOL · 7–14 nov</span><span class="of-cta">Ver oferta →</span></div></a>
-<a class="of-card" href="/ofertas/rec-gru"><div class="of-media"><div class="of-media-inner"><div class="media-placeholder"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="São Paulo"><rect width="400" height="260" fill="#f1f8e4"/><rect x="0" y="0" width="400" height="260" fill="none" stroke="#dededa" stroke-width="2"/><path d="M0 200 L110 120 L175 175 L250 105 L400 210 L400 260 L0 260 Z" fill="#a3e635" opacity="0.55"/><path d="M0 225 L90 165 L180 220 L280 150 L400 235 L400 260 L0 260 Z" fill="#84cc16" opacity="0.65"/><circle cx="315" cy="70" r="26" fill="#a3e635"/><text x="200" y="60" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#4d7c0f">Aonde</text><text x="200" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="bold" fill="#18181b">São Paulo</text></svg></div></div><span class="of-badge badge-desconto">45% abaixo da média</span><span class="of-publicado">há 2 dias</span></div><div class="of-body"><span class="of-rota">saindo de Recife (REC)</span><h3 class="of-cidade">São Paulo</h3><div class="of-preco-row"><span class="of-de"><s>R$ 720</s></span><span class="of-preco">R$ 398</span><span class="of-iv">ida e volta</span></div><span class="of-cia">Azul · 5–12 set</span><span class="of-cta">Ver oferta →</span></div></a>
-<a class="of-card" href="/ofertas/rec-gig"><div class="of-media"><div class="of-media-inner"><div class="media-placeholder"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="Rio de Janeiro"><rect width="400" height="260" fill="#f1f8e4"/><rect x="0" y="0" width="400" height="260" fill="none" stroke="#dededa" stroke-width="2"/><path d="M0 200 L110 120 L175 175 L250 105 L400 210 L400 260 L0 260 Z" fill="#a3e635" opacity="0.55"/><path d="M0 225 L90 165 L180 220 L280 150 L400 235 L400 260 L0 260 Z" fill="#84cc16" opacity="0.65"/><circle cx="315" cy="70" r="26" fill="#a3e635"/><text x="200" y="60" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#4d7c0f">Aonde</text><text x="200" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="bold" fill="#18181b">Rio de Janeiro</text></svg></div></div><span class="of-badge badge-desconto">40% abaixo da média</span><span class="of-publicado">há 2 dias</span></div><div class="of-body"><span class="of-rota">saindo de Recife (REC)</span><h3 class="of-cidade">Rio de Janeiro</h3><div class="of-preco-row"><span class="of-de"><s>R$ 715</s></span><span class="of-preco">R$ 429</span><span class="of-iv">ida e volta</span></div><span class="of-cia">GOL · 12–19 jul</span><span class="of-cta">Ver oferta →</span></div></a>
-<a class="of-card" href="/ofertas/ssa-cnf"><div class="of-media"><div class="of-media-inner"><div class="media-placeholder"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="Belo Horizonte"><rect width="400" height="260" fill="#f1f8e4"/><rect x="0" y="0" width="400" height="260" fill="none" stroke="#dededa" stroke-width="2"/><path d="M0 200 L110 120 L175 175 L250 105 L400 210 L400 260 L0 260 Z" fill="#a3e635" opacity="0.55"/><path d="M0 225 L90 165 L180 220 L280 150 L400 235 L400 260 L0 260 Z" fill="#84cc16" opacity="0.65"/><circle cx="315" cy="70" r="26" fill="#a3e635"/><text x="200" y="60" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#4d7c0f">Aonde</text><text x="200" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="bold" fill="#18181b">Belo Horizonte</text></svg></div></div><span class="of-badge badge-desconto">45% abaixo da média</span><span class="of-publicado">há 2 dias</span></div><div class="of-body"><span class="of-rota">saindo de Salvador (SSA)</span><h3 class="of-cidade">Belo Horizonte</h3><div class="of-preco-row"><span class="of-de"><s>R$ 620</s></span><span class="of-preco">R$ 341</span><span class="of-iv">ida e volta</span></div><span class="of-cia">Azul · 20–27 ago</span><span class="of-cta">Ver oferta →</span></div></a>
-<a class="of-card" href="/ofertas/for-ssa"><div class="of-media"><div class="of-media-inner"><div class="media-placeholder"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="Salvador"><rect width="400" height="260" fill="#f1f8e4"/><rect x="0" y="0" width="400" height="260" fill="none" stroke="#dededa" stroke-width="2"/><path d="M0 200 L110 120 L175 175 L250 105 L400 210 L400 260 L0 260 Z" fill="#a3e635" opacity="0.55"/><path d="M0 225 L90 165 L180 220 L280 150 L400 235 L400 260 L0 260 Z" fill="#84cc16" opacity="0.65"/><circle cx="315" cy="70" r="26" fill="#a3e635"/><text x="200" y="60" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#4d7c0f">Aonde</text><text x="200" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="bold" fill="#18181b">Salvador</text></svg></div></div><span class="of-badge badge-desconto">43% abaixo da média</span><span class="of-publicado">há 2 dias</span></div><div class="of-body"><span class="of-rota">saindo de Fortaleza (FOR)</span><h3 class="of-cidade">Salvador</h3><div class="of-preco-row"><span class="of-de"><s>R$ 505</s></span><span class="of-preco">R$ 287</span><span class="of-iv">ida e volta</span></div><span class="of-cia">GOL · 3–10 out</span><span class="of-cta">Ver oferta →</span></div></a></div></section></div><section class="wrap section" id="como-funciona"><h2>Como a gente acha essas tarifas</h2><p class="section-sub">Transparência total: nada de preço milagroso sem explicação. Veja como o Aonde garimpa e por que você pode confiar.</p><div class="cf-grid"><div class="cf-card"><span class="cf-num">1</span><h3>Robôs de olho 24h</h3><p>Monitoramos milhares de rotas o dia inteiro e comparamos cada tarifa com a média histórica dos últimos anos.</p></div><div class="cf-card"><span class="cf-num">2</span><h3>Curadoria humana</h3><p>Só publicamos o que um humano conferiu: preço real, datas que existem e regras de bagagem checadas.</p></div><div class="cf-card"><span class="cf-num">3</span><h3>Você compra direto</h3><p>O botão leva ao site da companhia ou de um parceiro confiável. A reserva é feita lá, com a segurança deles.</p></div></div><p class="cf-note">O Aonde recebe comissão de parceiros quando você compra pelo nosso link — sem custo extra para você. Isso mantém o serviço de alertas gratuito. Só indicamos tarifas que nós mesmos compraríamos.</p></section></main><footer class="site-footer"><div class="wrap foot-grid"><div class="foot-brand"><div class="brand brand--foot"><span class="brand-plane" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M2.2 20.6 22 12 2.2 3.4l0 6.9L15 12 2.2 13.7z"/></svg></span><span class="brand-word">aonde</span><span class="brand-dot"></span></div><p>Viagens pelo Brasil e América do Sul, do jeito que você gosta de viajar.</p></div><div class="foot-col"><span class="foot-title">Reservas</span><a href="/resultados">Passagens aéreas</a><a href="https://search.hotellook.com/" target="_blank" rel="noopener sponsored">Hotéis</a><span class="foot-link--soon" aria-disabled="true" title="Em breve">Aluguel de carros</span><span class="foot-link--soon" aria-disabled="true" title="Em breve">Seguro viagem</span></div><div class="foot-col"><span class="foot-title">Conteúdo</span><a href="/guias">Guias de destino</a><a href="/#estilos">Dicas de viagem</a><a href="/#roteiros">Revista Aonde</a></div><div class="foot-col"><span class="foot-title">Atendimento</span><a href="tel:08009420842">Atendimento: 0800 942 0842</a><a href="/ajuda">Central de ajuda</a><a href="/cancelamentos">Trocas e cancelamentos</a></div></div><div class="foot-bar"><div class="wrap foot-bar-in"><p class="foot-lgpd">Alguns links são de parceiros afiliados: se você comprar por eles, podemos receber uma comissão, <strong>sem custo extra para você</strong>. Isso ajuda a manter o Aonde no ar. Preços e disponibilidade mudam sem aviso — confira sempre no site do parceiro.</p><p class="foot-legal">© 2026 Aonde Viagens Ltda · Reservas operadas em parceria com plataformas certificadas de turismo.</p></div></div></footer>
+<header class="site-header"><div class="wrap site-header-in"><a class="brand" href="/"><span class="brand-plane" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M2.2 20.6 22 12 2.2 3.4l0 6.9L15 12 2.2 13.7z"/></svg></span><span class="brand-word">aonde</span><span class="brand-dot"></span></a><nav class="site-nav"><a href="/resultados" title="Buscar um voo específico, por origem e destino">Passagens</a><a href="/hoje">A escolha do dia <span class="nav-pill">NOVO</span></a><a href="/ofertas" title="Ver os achados de passagem já conferidos pela curadoria">Ofertas</a><a href="https://search.hotellook.com/" target="_blank" rel="noopener sponsored" title="Abre o site do parceiro Hotellook em nova aba">Hotéis <span class="nav-ext" aria-hidden="true">↗</span></a><a href="/guias">Guias de destino</a><a href="/mapa">Mapa</a></nav><div class="site-header-right"><a class="site-atend" href="tel:08009420842"><span>Atendimento</span><strong>0800 942 0842</strong></a><button type="button" class="tema-toggle" data-tema-toggle aria-pressed="false" aria-label="Alternar tema claro/escuro"><span class="tema-toggle-ico" aria-hidden="true" data-tema-toggle-ico>🌙</span><span data-tema-toggle-label>Escuro</span></button><a class="btn btn-dark" href="/alertas">Meus alertas</a></div></div></header>
+<main id="conteudo" tabindex="-1"><div class="orig-bar"><div class="wrap orig-in"><span class="orig-label">Partindo de</span><div class="orig-pills"><a class="orig-pill is-active" href="/ofertas">Todas as origens</a><a class="orig-pill" href="/ofertas?origem=BSB">BSB · Brasília</a><a class="orig-pill" href="/ofertas?origem=CNF">CNF · Belo Horizonte</a><a class="orig-pill" href="/ofertas?origem=FOR">FOR · Fortaleza</a><a class="orig-pill" href="/ofertas?origem=GIG">GIG · Rio de Janeiro</a><a class="orig-pill" href="/ofertas?origem=GRU">GRU · São Paulo</a><a class="orig-pill" href="/ofertas?origem=POA">POA · Porto Alegre</a><a class="orig-pill" href="/ofertas?origem=REC">REC · Recife</a><a class="orig-pill" href="/ofertas?origem=SSA">SSA · Salvador</a><a class="orig-pill" href="/ofertas?origem=VCP">VCP · Campinas</a></div></div></div><div class="feed-ordem"><section class="wrap news-wrap"><div class="news-card"><div class="news-copy"><p class="eyebrow eyebrow--lime">Alertas de preço</p><h1>Os achados de passagem antes que acabem</h1><p>Preços muito abaixo da média e erros de tarifa, garimpados todos os dias. Comparamos cada tarifa com a média dos últimos 90 dias antes de avisar você.</p></div><form class="news-form" data-newsletter action="/api/newsletter/subscribe" method="post"><input name="email" type="email" required aria-label="Seu e-mail" placeholder="Seu melhor e-mail"><div class="news-row"><input name="whatsapp" aria-label="Seu WhatsApp (opcional)" placeholder="WhatsApp (opcional)"><select name="origem" aria-label="Sua cidade de origem"><option value="BSB">BSB</option><option value="CNF">Belo Horizonte (CNF)</option><option value="FOR">FOR</option><option value="GIG">Rio de Janeiro (GIG)</option><option value="GRU" selected>São Paulo (GRU)</option><option value="POA">POA</option><option value="REC">REC</option><option value="SSA">SSA</option><option value="VCP">Campinas (VCP)</option></select></div><span class="news-whatsapp-note">Se informar o WhatsApp, também avisamos por lá — só depois de você confirmar por e-mail.</span><button class="btn btn-lime" type="submit">Quero receber os alertas</button><span class="news-fine">Grátis. Sem spam. Cancele quando quiser.</span><p class="news-msg" data-newsletter-msg hidden></p></form></div></section><section class="wrap section feed-lista"><div class="section-head section-head--tight"><h2>Achados de hoje</h2><span class="feed-count">18 ofertas ativas</span></div><div class="of-grid"><a class="of-card" href="/ofertas/gru-lis"><div class="of-media"><div class="of-media-inner"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Belem%20Tower%2C%20Lisbon%20(8038548360).jpg" alt="Oferta para Lisboa" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Lisboa%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3ELisboa%3C%2Ftext%3E%3C%2Fsvg%3E'"></div><span class="of-badge badge-desconto">48% abaixo da média</span><span class="of-publicado">há 5 dias</span></div><div class="of-body"><span class="of-rota">saindo de São Paulo (GRU)</span><h3 class="of-cidade">Lisboa</h3><div class="of-preco-row"><span class="of-de"><s>R$ 3.540</s></span><span class="of-preco">R$ 1.847</span><span class="of-iv">ida e volta</span></div><span class="of-cia">TAP · 12–24 out</span><span class="of-cta">Ver oferta →</span></div></a>
+<a class="of-card of-card--erro" href="/ofertas/gru-rec"><div class="of-media"><div class="of-media-inner"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Marco%20Zero%20Recife.jpg" alt="Oferta para Recife" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Recife%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3ERecife%3C%2Ftext%3E%3C%2Fsvg%3E'"></div><span class="of-badge badge-erro">Erro de tarifa</span><span class="of-publicado">há 5 dias</span></div><div class="of-body"><span class="of-rota">saindo de São Paulo (GRU)</span><h3 class="of-cidade">Recife</h3><div class="of-preco-row"><span class="of-de"><s>R$ 1.180</s></span><span class="of-preco">R$ 587</span><span class="of-iv">ida e volta</span></div><span class="of-cia">Azul · 9–16 set</span><span class="of-erro-note">⚠ Preço abaixo do normal por engano da companhia — ela pode corrigir ou cancelar depois da compra. Não reserve hotel/passeio antes de confirmar.</span><span class="of-cta">Ver oferta →</span></div></a>
+<a class="of-card" href="/ofertas/vcp-bue"><div class="of-media"><div class="of-media-inner"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Caminito%2C%20La%20Boca%2C%20Buenos%20Aires.jpg" alt="Oferta para Buenos Aires" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Buenos%20Aires%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3EBuenos%20Aires%3C%2Ftext%3E%3C%2Fsvg%3E'"></div><span class="of-badge badge-desconto">35% abaixo da média</span><span class="of-publicado">há 5 dias</span></div><div class="of-body"><span class="of-rota">saindo de Campinas (VCP)</span><h3 class="of-cidade">Buenos Aires</h3><div class="of-preco-row"><span class="of-de"><s>R$ 1.520</s></span><span class="of-preco">R$ 989</span><span class="of-iv">ida e volta</span></div><span class="of-cia">GOL · 3–10 set</span><span class="of-cta">Ver oferta →</span></div></a>
+<a class="of-card" href="/ofertas/cnf-fln"><div class="of-media"><div class="of-media-inner"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Barra%20da%20Lagoa%2C%20Florian%C3%B3polis%20-%20SC%20(2).JPG" alt="Oferta para Florianópolis" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Florian%C3%B3polis%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3EFlorian%C3%B3polis%3C%2Ftext%3E%3C%2Fsvg%3E'"></div><span class="of-badge badge-desconto">55% abaixo da média</span><span class="of-publicado">há 5 dias</span></div><div class="of-body"><span class="of-rota">saindo de Belo Horizonte (CNF)</span><h3 class="of-cidade">Florianópolis</h3><div class="of-preco-row"><span class="of-de"><s>R$ 690</s></span><span class="of-preco">R$ 312</span><span class="of-iv">ida e volta</span></div><span class="of-cia">GOL · 14–21 out</span><span class="of-cta">Ver oferta →</span></div></a>
+<a class="of-card" href="/ofertas/gig-mia"><div class="of-media"><div class="of-media-inner"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Miami%20Skyline%202020.jpg" alt="Oferta para Miami" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Miami%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3EMiami%3C%2Ftext%3E%3C%2Fsvg%3E'"></div><span class="of-badge badge-desconto">39% abaixo da média</span><span class="of-publicado">há 5 dias</span></div><div class="of-body"><span class="of-rota">saindo de Rio de Janeiro (GIG)</span><h3 class="of-cidade">Miami</h3><div class="of-preco-row"><span class="of-de"><s>R$ 3.580</s></span><span class="of-preco">R$ 2.190</span><span class="of-iv">ida e volta</span></div><span class="of-cia">LATAM · 5–18 nov</span><span class="of-cta">Ver oferta →</span></div></a>
+<a class="of-card" href="/ofertas/gru-scl"><div class="of-media"><div class="of-media-inner"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Skyline%20of%20Santiago%2C%20Chile.jpg" alt="Oferta para Santiago" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Santiago%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3ESantiago%3C%2Ftext%3E%3C%2Fsvg%3E'"></div><span class="of-badge badge-desconto">34% abaixo da média</span><span class="of-publicado">há 5 dias</span></div><div class="of-body"><span class="of-rota">saindo de São Paulo (GRU)</span><h3 class="of-cidade">Santiago</h3><div class="of-preco-row"><span class="of-de"><s>R$ 1.940</s></span><span class="of-preco">R$ 1.290</span><span class="of-iv">ida e volta</span></div><span class="of-cia">LATAM · 2–12 nov</span><span class="of-cta">Ver oferta →</span></div></a>
+<a class="of-card" href="/ofertas/gru-mco"><div class="of-media"><div class="of-media-inner"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Orlando%2C%20Florida.jpg" alt="Oferta para Orlando" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Orlando%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3EOrlando%3C%2Ftext%3E%3C%2Fsvg%3E'"></div><span class="of-badge badge-desconto">30% abaixo da média</span><span class="of-publicado">há 5 dias</span></div><div class="of-body"><span class="of-rota">saindo de São Paulo (GRU)</span><h3 class="of-cidade">Orlando</h3><div class="of-preco-row"><span class="of-de"><s>R$ 3.660</s></span><span class="of-preco">R$ 2.560</span><span class="of-iv">ida e volta</span></div><span class="of-cia">Azul · 10–24 jan</span><span class="of-cta">Ver oferta →</span></div></a>
+<a class="of-card" href="/ofertas/gig-ssa"><div class="of-media"><div class="of-media-inner"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Pelourinho%2C%20Salvador%2C%20Bahia.jpg" alt="Oferta para Salvador" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Salvador%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3ESalvador%3C%2Ftext%3E%3C%2Fsvg%3E'"></div><span class="of-badge badge-desconto">42% abaixo da média</span><span class="of-publicado">há 5 dias</span></div><div class="of-body"><span class="of-rota">saindo de Rio de Janeiro (GIG)</span><h3 class="of-cidade">Salvador</h3><div class="of-preco-row"><span class="of-de"><s>R$ 780</s></span><span class="of-preco">R$ 449</span><span class="of-iv">ida e volta</span></div><span class="of-cia">GOL · 7–14 nov</span><span class="of-cta">Ver oferta →</span></div></a>
+<a class="of-card" href="/ofertas/rec-gru"><div class="of-media"><div class="of-media-inner"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Avenida%20Paulista%20Skyline%202012.jpg" alt="Oferta para São Paulo" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22S%C3%A3o%20Paulo%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3ES%C3%A3o%20Paulo%3C%2Ftext%3E%3C%2Fsvg%3E'"></div><span class="of-badge badge-desconto">45% abaixo da média</span><span class="of-publicado">há 5 dias</span></div><div class="of-body"><span class="of-rota">saindo de Recife (REC)</span><h3 class="of-cidade">São Paulo</h3><div class="of-preco-row"><span class="of-de"><s>R$ 720</s></span><span class="of-preco">R$ 398</span><span class="of-iv">ida e volta</span></div><span class="of-cia">Azul · 5–12 set</span><span class="of-cta">Ver oferta →</span></div></a>
+<a class="of-card" href="/ofertas/rec-gig"><div class="of-media"><div class="of-media-inner"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/P%C3%A3o%20de%20A%C3%A7%C3%BAcar%20visto%20do%20Corcovado.jpg" alt="Oferta para Rio de Janeiro" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Rio%20de%20Janeiro%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3ERio%20de%20Janeiro%3C%2Ftext%3E%3C%2Fsvg%3E'"></div><span class="of-badge badge-desconto">40% abaixo da média</span><span class="of-publicado">há 5 dias</span></div><div class="of-body"><span class="of-rota">saindo de Recife (REC)</span><h3 class="of-cidade">Rio de Janeiro</h3><div class="of-preco-row"><span class="of-de"><s>R$ 715</s></span><span class="of-preco">R$ 429</span><span class="of-iv">ida e volta</span></div><span class="of-cia">GOL · 12–19 jul</span><span class="of-cta">Ver oferta →</span></div></a>
+<a class="of-card" href="/ofertas/ssa-cnf"><div class="of-media"><div class="of-media-inner"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/IgrejaPampulha.jpg" alt="Oferta para Belo Horizonte" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Belo%20Horizonte%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3EBelo%20Horizonte%3C%2Ftext%3E%3C%2Fsvg%3E'"></div><span class="of-badge badge-desconto">45% abaixo da média</span><span class="of-publicado">há 5 dias</span></div><div class="of-body"><span class="of-rota">saindo de Salvador (SSA)</span><h3 class="of-cidade">Belo Horizonte</h3><div class="of-preco-row"><span class="of-de"><s>R$ 620</s></span><span class="of-preco">R$ 341</span><span class="of-iv">ida e volta</span></div><span class="of-cia">Azul · 20–27 ago</span><span class="of-cta">Ver oferta →</span></div></a>
+<a class="of-card" href="/ofertas/for-ssa"><div class="of-media"><div class="of-media-inner"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Pelourinho%2C%20Salvador%2C%20Bahia.jpg" alt="Oferta para Salvador" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Salvador%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3ESalvador%3C%2Ftext%3E%3C%2Fsvg%3E'"></div><span class="of-badge badge-desconto">43% abaixo da média</span><span class="of-publicado">há 5 dias</span></div><div class="of-body"><span class="of-rota">saindo de Fortaleza (FOR)</span><h3 class="of-cidade">Salvador</h3><div class="of-preco-row"><span class="of-de"><s>R$ 505</s></span><span class="of-preco">R$ 287</span><span class="of-iv">ida e volta</span></div><span class="of-cia">GOL · 3–10 out</span><span class="of-cta">Ver oferta →</span></div></a>
+<a class="of-card" href="/ofertas/gru-cuz"><div class="of-media"><div class="of-media-inner"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Machu%20Picchu%2C%20Peru.jpg" alt="Oferta para Cusco" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Cusco%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3ECusco%3C%2Ftext%3E%3C%2Fsvg%3E'"></div><span class="of-badge badge-desconto">34% abaixo da média</span><span class="of-publicado">há 17 horas</span></div><div class="of-body"><span class="of-rota">saindo de São Paulo (GRU)</span><h3 class="of-cidade">Cusco</h3><div class="of-preco-row"><span class="of-de"><s>R$ 3.200</s></span><span class="of-preco">R$ 2.100</span><span class="of-iv">ida e volta</span></div><span class="of-cia">LATAM · 10–20 ago</span><span class="of-cta">Ver oferta →</span></div></a>
+<a class="of-card" href="/ofertas/gru-brc"><div class="of-media"><div class="of-media-inner"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Cerro%20Catedral%2C%20Bariloche.jpg" alt="Oferta para Bariloche" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Bariloche%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3EBariloche%3C%2Ftext%3E%3C%2Fsvg%3E'"></div><span class="of-badge badge-desconto">26% abaixo da média</span><span class="of-publicado">há 20 horas</span></div><div class="of-body"><span class="of-rota">saindo de São Paulo (GRU)</span><h3 class="of-cidade">Bariloche</h3><div class="of-preco-row"><span class="of-de"><s>R$ 2.680</s></span><span class="of-preco">R$ 1.980</span><span class="of-iv">ida e volta</span></div><span class="of-cia">LATAM · 12–19 ago</span><span class="of-cta">Ver oferta →</span></div></a>
+<a class="of-card" href="/ofertas/cnf-mao"><div class="of-media"><div class="of-media-inner"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Amazon%20Theatre%20(Manaus%2C%20Brazil)%20(edited).jpg" alt="Oferta para Manaus" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Manaus%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3EManaus%3C%2Ftext%3E%3C%2Fsvg%3E'"></div><span class="of-badge badge-desconto">34% abaixo da média</span><span class="of-publicado">há 1 dia</span></div><div class="of-body"><span class="of-rota">saindo de Belo Horizonte (CNF)</span><h3 class="of-cidade">Manaus</h3><div class="of-preco-row"><span class="of-de"><s>R$ 1.780</s></span><span class="of-preco">R$ 1.180</span><span class="of-iv">ida e volta</span></div><span class="of-cia">Azul · 20–27 set</span><span class="of-cta">Ver oferta →</span></div></a>
+<a class="of-card" href="/ofertas/gig-cnf-op"><div class="of-media"><div class="of-media-inner"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Ouro%20Preto%2C%20Minas%20Gerais.jpg" alt="Oferta para Ouro Preto" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Ouro%20Preto%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3EOuro%20Preto%3C%2Ftext%3E%3C%2Fsvg%3E'"></div><span class="of-badge badge-desconto">45% abaixo da média</span><span class="of-publicado">há 1 dia</span></div><div class="of-body"><span class="of-rota">saindo de Rio de Janeiro (GIG)</span><h3 class="of-cidade">Ouro Preto</h3><div class="of-preco-row"><span class="of-de"><s>R$ 560</s></span><span class="of-preco">R$ 310</span><span class="of-iv">ida e volta</span></div><span class="of-cia">GOL · 15–22 ago</span><span class="of-cta">Ver oferta →</span></div></a>
+<a class="of-card" href="/ofertas/poa-mvd"><div class="of-media"><div class="of-media-inner"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Palacio%20Salvo%2C%20Montevideo%2C%20Uruguay.jpg" alt="Oferta para Montevidéu" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Montevid%C3%A9u%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3EMontevid%C3%A9u%3C%2Ftext%3E%3C%2Fsvg%3E'"></div><span class="of-badge badge-desconto">33% abaixo da média</span><span class="of-publicado">há 1 dia</span></div><div class="of-body"><span class="of-rota">saindo de Porto Alegre (POA)</span><h3 class="of-cidade">Montevidéu</h3><div class="of-preco-row"><span class="of-de"><s>R$ 1.320</s></span><span class="of-preco">R$ 890</span><span class="of-iv">ida e volta</span></div><span class="of-cia">LATAM · 5–12 set</span><span class="of-cta">Ver oferta →</span></div></a>
+<a class="of-card" href="/ofertas/bsb-cgr"><div class="of-media"><div class="of-media-inner"><img class="media-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Gruta%20do%20Lago%20Azul%20-%20Bonito%2C%20MS.JPG" alt="Oferta para Bonito" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20260%22%20role%3D%22img%22%20aria-label%3D%22Bonito%22%3E%3Crect%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22%23f1f8e4%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22400%22%20height%3D%22260%22%20fill%3D%22none%22%20stroke%3D%22%23dededa%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M0%20200%20L110%20120%20L175%20175%20L250%20105%20L400%20210%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%23a3e635%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M0%20225%20L90%20165%20L180%20220%20L280%20150%20L400%20235%20L400%20260%20L0%20260%20Z%22%20fill%3D%22%2384cc16%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22315%22%20cy%3D%2270%22%20r%3D%2226%22%20fill%3D%22%23a3e635%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2222%22%20fill%3D%22%234d7c0f%22%3EAonde%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22130%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2219%22%20font-weight%3D%22bold%22%20fill%3D%22%2318181b%22%3EBonito%3C%2Ftext%3E%3C%2Fsvg%3E'"></div><span class="of-badge badge-desconto">31% abaixo da média</span><span class="of-publicado">há 2 dias</span></div><div class="of-body"><span class="of-rota">saindo de Brasília (BSB)</span><h3 class="of-cidade">Bonito</h3><div class="of-preco-row"><span class="of-de"><s>R$ 980</s></span><span class="of-preco">R$ 680</span><span class="of-iv">ida e volta</span></div><span class="of-cia">Azul · 8–15 ago</span><span class="of-cta">Ver oferta →</span></div></a></div></section></div><section class="wrap section" id="como-funciona"><h2>Como a gente acha essas tarifas</h2><p class="section-sub">Transparência total: nada de preço milagroso sem explicação. Veja como o Aonde garimpa e por que você pode confiar.</p><div class="cf-grid"><div class="cf-card"><span class="cf-num">1</span><h3>Robôs de olho 24h</h3><p>Monitoramos milhares de rotas o dia inteiro e comparamos cada tarifa com a média histórica dos últimos anos.</p></div><div class="cf-card"><span class="cf-num">2</span><h3>Curadoria humana</h3><p>Só publicamos o que um humano conferiu: preço real, datas que existem e regras de bagagem checadas.</p></div><div class="cf-card"><span class="cf-num">3</span><h3>Você compra direto</h3><p>O botão leva ao site da companhia ou de um parceiro confiável. A reserva é feita lá, com a segurança deles.</p></div></div><p class="cf-note">O Aonde recebe comissão de parceiros quando você compra pelo nosso link — sem custo extra para você. Isso mantém o serviço de alertas gratuito. Só indicamos tarifas que nós mesmos compraríamos.</p></section></main><footer class="site-footer"><div class="wrap foot-grid"><div class="foot-brand"><div class="brand brand--foot"><span class="brand-plane" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M2.2 20.6 22 12 2.2 3.4l0 6.9L15 12 2.2 13.7z"/></svg></span><span class="brand-word">aonde</span><span class="brand-dot"></span></div><p>Viagens pelo Brasil e América do Sul, do jeito que você gosta de viajar.</p></div><div class="foot-col"><span class="foot-title">Reservas</span><a href="/resultados">Passagens aéreas</a><a href="https://search.hotellook.com/" target="_blank" rel="noopener sponsored">Hotéis</a><span class="foot-link--soon" aria-disabled="true" title="Em breve">Aluguel de carros</span><span class="foot-link--soon" aria-disabled="true" title="Em breve">Seguro viagem</span></div><div class="foot-col"><span class="foot-title">Conteúdo</span><a href="/guias">Guias de destino</a><a href="/#estilos">Dicas de viagem</a><a href="/#roteiros">Revista Aonde</a></div><div class="foot-col"><span class="foot-title">Atendimento</span><a href="tel:08009420842">Atendimento: 0800 942 0842</a><a href="/ajuda">Central de ajuda</a><a href="/cancelamentos">Trocas e cancelamentos</a></div></div><div class="foot-bar"><div class="wrap foot-bar-in"><p class="foot-lgpd">Alguns links são de parceiros afiliados: se você comprar por eles, podemos receber uma comissão, <strong>sem custo extra para você</strong>. Isso ajuda a manter o Aonde no ar. Preços e disponibilidade mudam sem aviso — confira sempre no site do parceiro.</p><p class="foot-legal">© 2026 Aonde Viagens Ltda · Reservas operadas em parceria com plataformas certificadas de turismo.</p></div></div></footer>
 <script>(function(){
   var bgs=document.querySelectorAll('[data-hero]');
   var tabs=document.querySelectorAll('[data-hero-tab]');
@@ -780,6 +861,81 @@
     if(reduz){para();}else{liga();}
     // Se a preferencia mudar com a pagina aberta, obedece na hora.
     if(mq&&mq.addEventListener){mq.addEventListener('change',function(e){e.matches?para():liga();});}
+  }
+  // Alternador de tema claro/escuro (persistido em localStorage). O CSS puro
+  // ja cobre "prefers-color-scheme" sozinho; aqui so tratamos a ESCOLHA
+  // manual — ler o que esta salvo, aplicar no <html>, e o clique do botao.
+  var temaBtn=document.querySelector('[data-tema-toggle]');
+  if(temaBtn){
+    var temaIco=temaBtn.querySelector('[data-tema-toggle-ico]');
+    var temaLabel=temaBtn.querySelector('[data-tema-toggle-label]');
+    var temaMq=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)');
+    function temaSalvo(){
+      var v=0;
+      try{v=localStorage.getItem('aonde-tema')||0;}catch(e){v=0;}
+      return (v==='claro'||v==='escuro')?v:0;
+    }
+    function temaEfetivo(){
+      var salvo=temaSalvo();
+      if(salvo)return salvo;
+      return (temaMq&&temaMq.matches)?'escuro':'claro';
+    }
+    function temaAplica(t){
+      document.documentElement.setAttribute('data-tema',t);
+      var proximo=t==='escuro'?'claro':'escuro';
+      temaBtn.setAttribute('aria-pressed',t==='escuro'?'true':'false');
+      temaBtn.setAttribute('aria-label','Mudar para o tema '+proximo);
+      if(temaIco)temaIco.textContent=t==='escuro'?'☀️':'🌙';
+      if(temaLabel)temaLabel.textContent=t==='escuro'?'Claro':'Escuro';
+    }
+    temaAplica(temaEfetivo());
+    temaBtn.addEventListener('click',function(){
+      var novo=temaEfetivo()==='escuro'?'claro':'escuro';
+      try{localStorage.setItem('aonde-tema',novo);}catch(e){}
+      temaAplica(novo);
+    });
+    // Se a pessoa nunca escolheu no site (nada salvo) e o sistema mudar de
+    // tema com a pagina aberta, acompanha — mesma logica do carrossel acima.
+    if(temaMq&&temaMq.addEventListener){
+      temaMq.addEventListener('change',function(){ if(!temaSalvo())temaAplica(temaEfetivo()); });
+    }
+  }
+  // Filtro de roteiros do /guias. Compara o que foi digitado (sem acento)
+  // com o palheiro que o servidor ja montou em data-rot-busca. Esconde
+  // cartao por cartao — nao reescreve a lista, entao a ordem nunca muda.
+  var buscaCx=document.querySelector('[data-guia-busca]');
+  if(buscaCx){
+    var buscaCampo=buscaCx.querySelector('[data-guia-busca-campo]');
+    var buscaConta=buscaCx.querySelector('[data-guia-busca-conta]');
+    var rotCards=[].slice.call(document.querySelectorAll('.rot-card[data-rot-busca]'));
+    if(buscaCampo&&rotCards.length){
+      buscaCx.removeAttribute('hidden');
+      var semAc=function(s){
+        return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+      };
+      var filtra=function(){
+        var q=semAc(buscaCampo.value);
+        var vis=0;
+        rotCards.forEach(function(c){
+          var bate=!q||String(c.getAttribute('data-rot-busca')||'').indexOf(q)!==-1;
+          if(bate){c.removeAttribute('hidden');vis++;}
+          else{c.setAttribute('hidden','');}
+        });
+        if(!buscaConta)return;
+        if(!q){buscaConta.textContent='';return;}
+        // Contagem falada em voz alta para leitor de tela (role=status), e o
+        // caso zero diz o que fazer em vez de so mostrar lista vazia.
+        buscaConta.textContent=vis===0
+          ?'Nenhum roteiro com "'+buscaCampo.value.trim()+'". Apague o texto para ver os '+rotCards.length+' roteiros.'
+          :(vis===1?'1 roteiro encontrado':vis+' roteiros encontrados');
+      };
+      buscaCampo.addEventListener('input',filtra);
+      // Esc limpa o campo e devolve a lista inteira.
+      buscaCampo.addEventListener('keydown',function(e){
+        if(e.key==='Escape'&&buscaCampo.value){buscaCampo.value='';filtra();}
+      });
+      filtra();
+    }
   }
   // Pode haver mais de um form de captura por pagina (hero + faixa + widget de rota).
   document.querySelectorAll('[data-newsletter]').forEach(function(form){

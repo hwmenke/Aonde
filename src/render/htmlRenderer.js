@@ -38,6 +38,9 @@ import {
   FLIGHTS,
   FLIGHT_FILTERS,
 } from "./aondeContent.js";
+import { escapeHtml, formatBRL, semAcento } from "./texto.js";
+import { getRouteSeries } from "../store/priceHistory.js";
+import { renderRouteSparkline } from "./sparkline.js";
 import { createHash } from "node:crypto";
 
 import { getConfig } from "../config.js";
@@ -214,44 +217,10 @@ function mapsDirUrl(pontos) {
 // Utilitarios de texto e seguranca
 // ---------------------------------------------------------------------------
 
-/** Escapa os cinco caracteres perigosos em HTML. Nao-string => "". */
-export function escapeHtml(str) {
-  if (str === null || str === undefined) return "";
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-/**
- * Formata centavos como Real (pt-BR), sem centavos quando redondo
- * (184700 => "R$ 1.847"), com duas casas quando ha (184750 => "R$ 1.847,50").
- * Entrada invalida => "".
- */
-export function formatBRL(centavos) {
-  if (typeof centavos !== "number" || Number.isNaN(centavos)) return "";
-  const reais = centavos / 100;
-  const isRedondo = centavos % 100 === 0;
-  const casas = isRedondo ? 0 : 2;
-  try {
-    const nf = new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-      minimumFractionDigits: casas,
-      maximumFractionDigits: casas,
-    });
-    return nf.format(reais).replace(/ /g, " ");
-  } catch {
-    const inteiro = Math.trunc(Math.abs(reais));
-    const milhar = String(inteiro).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    const sinal = reais < 0 ? "-" : "";
-    if (isRedondo) return `${sinal}R$ ${milhar}`;
-    const cent = String(Math.round(Math.abs(centavos) % 100)).padStart(2, "0");
-    return `${sinal}R$ ${milhar},${cent}`;
-  }
-}
+// escapeHtml/formatBRL moram em texto.js (ver o porque la: quebra o ciclo
+// de importacao com sparkline.js). Reexportados para nao quebrar quem
+// ja importava daqui.
+export { escapeHtml, formatBRL };
 
 // ---------------------------------------------------------------------------
 // Placeholder de imagem (SVG "image-slot") + <img> resiliente
@@ -938,6 +907,15 @@ function siteHeader() {
         `<span>${label}</span><strong>${escapeHtml(telLabel())}</strong></a>`
       );
     })() +
+    // Alternador de tema: comeca neutro no servidor (nao sabemos ainda a
+    // preferencia do sistema nem o que a pessoa escolheu antes) — o
+    // enhancementScript() acerta icone/rotulo/estado assim que a pagina carrega
+    // e guarda a escolha em localStorage. Sem JS, o botao so nao faz nada; o
+    // tema escuro pelo sistema operacional continua funcionando via CSS puro.
+    `<button type="button" class="tema-toggle" data-tema-toggle aria-pressed="false" aria-label="Alternar tema claro/escuro">` +
+    `<span class="tema-toggle-ico" aria-hidden="true" data-tema-toggle-ico>🌙</span>` +
+    `<span data-tema-toggle-label>Escuro</span>` +
+    `</button>` +
     `<a class="btn btn-dark" href="/alertas">Meus alertas</a>` +
     `</div>` +
     `</div>` +
@@ -1060,6 +1038,16 @@ function styleTag() {
   return `<style>${pageStyles()}</style>`;
 }
 
+// Script BLOQUEANTE, minusculo, executado antes de qualquer CSS: aplica a
+// escolha de tema SALVA (se houver) no <html> antes da primeira pintura, para
+// nao piscar claro->escuro quando a pessoa ja escolheu escuro antes. Sem
+// escolha salva, o CSS puro (prefers-color-scheme) ja resolve sozinho —
+// este script so entra em cena quando ha uma preferencia EXPLICITA gravada.
+const THEME_INIT_SCRIPT =
+  `(function(){try{var t=localStorage.getItem('aonde-tema');` +
+  `if(t==='escuro'||t==='claro'){document.documentElement.setAttribute('data-tema',t);}` +
+  `}catch(e){}})();`;
+
 /** URL absoluta a partir de um caminho do site ("/guias/rio" -> "https://.../guias/rio"). */
 function absoluteUrl(path) {
   const base = getConfig().siteUrl;
@@ -1090,6 +1078,7 @@ function htmlDocument({ title, body, script, description, jsonld, canonical, ima
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>${THEME_INIT_SCRIPT}</script>
 <title>${t}</title>
 <meta name="description" content="${d}">
 <link rel="icon" href="${FAVICON_SVG}">
@@ -1195,7 +1184,12 @@ function searchCardHtml() {
     // clica em "Buscar voos" e SO ENTAO descobre nos resultados que o preco
     // nao e real. Aqui, em texto normal (nao letra miuda), ela ja sabe o que
     // vai ver antes de gastar o clique.
-    `<p class="sc-notice">A busca de preços em tempo real ainda não existe aqui. Os voos que aparecerem depois são <strong>exemplos</strong> — o preço de verdade você confere no site do parceiro.</p>` +
+    // Texto reescrito: uma pessoa de primeira viagem leu a versao anterior
+    // ("a busca... ainda nao existe aqui") e achou que o site estava quebrado.
+    // A informacao e a mesma (nao ha preco em tempo real, os voos sao
+    // exemplo) mas comeca pelo que JA funciona, com um rotulo curto antes do
+    // texto para dar hierarquia visual sem esconder nada em letra miuda.
+    `<p class="sc-notice"><strong class="sc-notice-tag">Como funciona por aqui:</strong> os voos que aparecem abaixo são <strong>exemplos</strong>, para você ver como fica — ainda não temos busca de preço em tempo real. O valor certo você sempre confere no site do parceiro.</p>` +
     `<div class="sc-grid">` +
     field("Origem", "origem", "São Paulo · GRU") +
     field("Destino", "destino", "Recife · REC") +
@@ -1465,8 +1459,13 @@ function roteirosSectionHtml(guides) {
       const media = g.heroSrc
         ? resilientImg(g.heroSrc, g.titulo, g.heroFoto, "media-img")
         : `<div class="media-placeholder">${placeholderSvgMarkup(g.heroFoto || g.titulo)}</div>`;
+      // Palheiro de busca montado no servidor (sem acento) para o filtro do
+      // /guias nao precisar remexer no DOM para descobrir o que cada cartao diz.
+      const palheiro = semAcento(
+        [g.titulo, g.tag, g.resumo, g.breadcrumb, g.id].filter(Boolean).join(" ")
+      );
       return (
-        `<a class="rot-card" href="/guias/${escapeHtml(g.id)}">` +
+        `<a class="rot-card" href="/guias/${escapeHtml(g.id)}" data-rot-busca="${escapeHtml(palheiro)}">` +
         `<div class="rot-media">${media}<span class="rot-flag">ROTEIRO DE ${escapeHtml((g.dias || []).length)} DIAS</span></div>` +
         `<div class="rot-body">` +
         `<span class="rot-tag">${escapeHtml(g.tag)}</span>` +
@@ -1813,6 +1812,32 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `<p class="news-msg" data-newsletter-msg hidden></p>` +
     `</form>`;
 
+  // HISTORICO DE PRECO desta rota. O modulo decide sozinho se ha amostra
+  // suficiente (minimo 5 observacoes em 90 dias): abaixo disso ele NAO desenha
+  // curva, mostra "ainda estamos juntando historico". Nao ponho `if` aqui de
+  // proposito — quem chama nao deve poder escolher desenhar uma tendencia que
+  // os dados nao sustentam. Rota sem historico nenhum tambem cai nesse caminho.
+  const histBloco = (() => {
+    if (!vm.origem || !vm.destino) return "";
+    let serie;
+    try {
+      serie = getRouteSeries(vm.origem, vm.destino, { windowDays: 90 });
+    } catch {
+      return ""; // historico e enfeite util, nunca motivo para derrubar a pagina
+    }
+    return (
+      `<div class="det-hist">` +
+      `<p class="det-hist-title">Preço desta rota nos últimos 90 dias</p>` +
+      renderRouteSparkline(serie, { variant: "labeled" }) +
+      `<p class="det-hist-fine">${
+        serie && serie.ok
+          ? "São os preços que o Aonde registrou nesta rota no período — não é previsão do que vai acontecer."
+          : "Assim que tivermos observações suficientes, o gráfico aparece aqui."
+      }</p>` +
+      `</div>`
+    );
+  })();
+
   // Reforco de confianca imediatamente antes/depois do CTA (alegacoes reais).
   const trustMini =
     `<div class="trust-mini">` +
@@ -1883,6 +1908,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `<p class="det-buy-fine">${escapeHtml(ctaFine)}</p>` +
     trustMini +
     `</div>` +
+    histBloco +
     alertForm +
     `</aside>` +
     `</div>` +
@@ -2060,7 +2086,17 @@ export function renderGuidesIndexPage() {
     `<main id="conteudo" tabindex="-1">` +
     `<section class="wrap map-head"><p class="eyebrow eyebrow--green">Revista Aonde</p>` +
     `<h1 class="map-title">Roteiros prontos, dia a dia</h1>` +
-    `<p class="map-sub">${escapeHtml(GUIDE_LIST.length)} destinos com roteiro de 5 dias na ordem certa e um bom restaurante para cada dia. Escolha o seu.</p></section>` +
+    `<p class="map-sub">${escapeHtml(GUIDE_LIST.length)} destinos com roteiro de 5 dias na ordem certa e um bom restaurante para cada dia. Escolha o seu.</p>` +
+    // O campo nasce com "hidden": sem JS ele nunca aparece, entao ninguem ve
+    // uma caixa de busca que nao filtra nada. O enhancementScript() tira o
+    // hidden. A lista inteira continua ali, so escondemos cartoes ao filtrar.
+    `<div class="guia-busca" data-guia-busca hidden>` +
+    `<label class="guia-busca-lab" for="guia-busca-campo">Filtrar por destino</label>` +
+    `<input class="guia-busca-campo" id="guia-busca-campo" type="search" autocomplete="off" ` +
+    `placeholder="ex.: Rio, praia, Nordeste" data-guia-busca-campo>` +
+    `<p class="guia-busca-conta" data-guia-busca-conta role="status" aria-live="polite"></p>` +
+    `</div>` +
+    `</section>` +
     roteirosSectionHtml(GUIDE_LIST) +
     `</main>` +
     siteFooter();
@@ -2183,14 +2219,22 @@ export function renderResultsPage(opts = {}) {
   // viaja com eles, dizemos na cara que o valor de exemplo abaixo e por adulto —
   // uma mae de familia travou exatamente aqui na auditoria.
   const pax = opts.pax || null;
+  // voosReais so e verdade quando a busca ao vivo (Amadeus) respondeu de fato —
+  // ver src/flights/buscarVoos.js. Nunca deduzir de opts.voos existir: em
+  // fallback o servidor nao manda voos e caimos em FLIGHTS, que E exemplo.
+  // Rotular exemplo como preco real seria a pior mentira possivel aqui.
+  const voosReais = opts.voosReais === true && Array.isArray(opts.voos) && opts.voos.length > 0;
   const avisoPax =
     pax && (pax.criancas > 0 || pax.bebes > 0)
       ? `<p class="res-amostra res-amostra--pax">Você marcou que viaja com ${
           pax.criancas > 0 ? "criança" : ""
         }${pax.criancas > 0 && pax.bebes > 0 ? " e " : ""}${
           pax.bebes > 0 ? "bebê de colo" : ""
-        }: os valores de exemplo abaixo são <strong>por adulto</strong>. Criança e bebê pagam tarifa própria, calculada pela companhia no site do parceiro — leve isso em conta antes de fechar a conta da viagem.</p>`
+        }: os valores ${voosReais ? "" : "de exemplo "}abaixo são <strong>por adulto</strong>. Criança e bebê pagam tarifa própria, calculada pela companhia no site do parceiro — leve isso em conta antes de fechar a conta da viagem.</p>`
       : "";
+  const avisoOrigem = voosReais
+    ? `<p class="res-amostra res-amostra--vivo"><strong>Preços buscados ao vivo agora.</strong> Estes são os voos que a busca devolveu para ${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)}, com o preço do momento. Tarifa de avião muda rápido: o valor final é o que aparecer no site do parceiro ao clicar em "Selecionar".</p>`
+    : `<p class="res-amostra"><strong>Busca de voos ao vivo em breve.</strong> Os voos abaixo são <strong>exemplos</strong> da rota ${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)} — não são tarifas garantidas. O preço real é confirmado no site do parceiro ao clicar em "Selecionar". Prefere algo já conferido pela nossa curadoria? Veja os <a href="/ofertas">achados de hoje</a>.</p>`;
   const sorts = Array.isArray(opts.sorts) && opts.sorts.length ? opts.sorts : FLIGHT_SORTS;
   // Destino do "Selecionar": SEMPRE a pagina de saida do proprio site, nunca
   // direto pro parceiro — e a mesma tela de aviso que /saida/:id ja usa para
@@ -2268,11 +2312,15 @@ export function renderResultsPage(opts = {}) {
     `</aside>` +
     `<div class="res-list">` +
     avisoPax +
-    `<p class="res-amostra"><strong>Busca de voos ao vivo em breve.</strong> Os voos abaixo são <strong>exemplos</strong> da rota ${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)} — não são tarifas garantidas. O preço real é confirmado no site do parceiro ao clicar em "Selecionar". Prefere algo já conferido pela nossa curadoria? Veja os <a href="/ofertas">achados de hoje</a>.</p>` +
-    `<div class="res-sortbar"><span data-res-count>${escapeHtml(voos.length)} voos de exemplo · ordenar por</span>${sortPills}</div>` +
+    avisoOrigem +
+    `<div class="res-sortbar"><span data-res-count>${escapeHtml(voos.length)} ${voosReais ? "voos encontrados" : "voos de exemplo"} · ordenar por</span>${sortPills}</div>` +
     `<div data-res-lista>${voosHtml}</div>` +
     `<p class="res-vazio" data-res-vazio hidden>Nenhum voo bate com os filtros marcados. Desmarque alguma opção ao lado para ver mais voos.</p>` +
-    `<p class="res-fine">Preços acima são exemplos. Ao selecionar, você vai para o site do parceiro ver as tarifas reais e concluir a compra. O Aonde pode receber comissão, sem custo extra para você.</p>` +
+    `<p class="res-fine">${
+      voosReais
+        ? "Os preços acima vieram da busca ao vivo no momento em que esta página carregou e podem mudar a qualquer momento."
+        : "Preços acima são exemplos."
+    } Ao selecionar, você vai para o site do parceiro ver as tarifas reais e concluir a compra. O Aonde pode receber comissão, sem custo extra para você.</p>` +
     `<div class="res-pix"><strong>Pix</strong><span>Pagando por Pix, todos os preços acima ganham <strong>5% de desconto</strong>, aplicado na hora de finalizar a compra.</span></div>` +
     `<div class="res-alert-banner"><div><strong>Não fechou negócio hoje?</strong> ` +
     `<span>A gente avisa se ${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)} ficar mais barato.</span></div>` +
@@ -2580,6 +2628,81 @@ function enhancementScript() {
     // Se a preferencia mudar com a pagina aberta, obedece na hora.
     if(mq&&mq.addEventListener){mq.addEventListener('change',function(e){e.matches?para():liga();});}
   }
+  // Alternador de tema claro/escuro (persistido em localStorage). O CSS puro
+  // ja cobre "prefers-color-scheme" sozinho; aqui so tratamos a ESCOLHA
+  // manual — ler o que esta salvo, aplicar no <html>, e o clique do botao.
+  var temaBtn=document.querySelector('[data-tema-toggle]');
+  if(temaBtn){
+    var temaIco=temaBtn.querySelector('[data-tema-toggle-ico]');
+    var temaLabel=temaBtn.querySelector('[data-tema-toggle-label]');
+    var temaMq=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)');
+    function temaSalvo(){
+      var v=0;
+      try{v=localStorage.getItem('aonde-tema')||0;}catch(e){v=0;}
+      return (v==='claro'||v==='escuro')?v:0;
+    }
+    function temaEfetivo(){
+      var salvo=temaSalvo();
+      if(salvo)return salvo;
+      return (temaMq&&temaMq.matches)?'escuro':'claro';
+    }
+    function temaAplica(t){
+      document.documentElement.setAttribute('data-tema',t);
+      var proximo=t==='escuro'?'claro':'escuro';
+      temaBtn.setAttribute('aria-pressed',t==='escuro'?'true':'false');
+      temaBtn.setAttribute('aria-label','Mudar para o tema '+proximo);
+      if(temaIco)temaIco.textContent=t==='escuro'?'☀️':'🌙';
+      if(temaLabel)temaLabel.textContent=t==='escuro'?'Claro':'Escuro';
+    }
+    temaAplica(temaEfetivo());
+    temaBtn.addEventListener('click',function(){
+      var novo=temaEfetivo()==='escuro'?'claro':'escuro';
+      try{localStorage.setItem('aonde-tema',novo);}catch(e){}
+      temaAplica(novo);
+    });
+    // Se a pessoa nunca escolheu no site (nada salvo) e o sistema mudar de
+    // tema com a pagina aberta, acompanha — mesma logica do carrossel acima.
+    if(temaMq&&temaMq.addEventListener){
+      temaMq.addEventListener('change',function(){ if(!temaSalvo())temaAplica(temaEfetivo()); });
+    }
+  }
+  // Filtro de roteiros do /guias. Compara o que foi digitado (sem acento)
+  // com o palheiro que o servidor ja montou em data-rot-busca. Esconde
+  // cartao por cartao — nao reescreve a lista, entao a ordem nunca muda.
+  var buscaCx=document.querySelector('[data-guia-busca]');
+  if(buscaCx){
+    var buscaCampo=buscaCx.querySelector('[data-guia-busca-campo]');
+    var buscaConta=buscaCx.querySelector('[data-guia-busca-conta]');
+    var rotCards=[].slice.call(document.querySelectorAll('.rot-card[data-rot-busca]'));
+    if(buscaCampo&&rotCards.length){
+      buscaCx.removeAttribute('hidden');
+      var semAc=function(s){
+        return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+      };
+      var filtra=function(){
+        var q=semAc(buscaCampo.value);
+        var vis=0;
+        rotCards.forEach(function(c){
+          var bate=!q||String(c.getAttribute('data-rot-busca')||'').indexOf(q)!==-1;
+          if(bate){c.removeAttribute('hidden');vis++;}
+          else{c.setAttribute('hidden','');}
+        });
+        if(!buscaConta)return;
+        if(!q){buscaConta.textContent='';return;}
+        // Contagem falada em voz alta para leitor de tela (role=status), e o
+        // caso zero diz o que fazer em vez de so mostrar lista vazia.
+        buscaConta.textContent=vis===0
+          ?'Nenhum roteiro com "'+buscaCampo.value.trim()+'". Apague o texto para ver os '+rotCards.length+' roteiros.'
+          :(vis===1?'1 roteiro encontrado':vis+' roteiros encontrados');
+      };
+      buscaCampo.addEventListener('input',filtra);
+      // Esc limpa o campo e devolve a lista inteira.
+      buscaCampo.addEventListener('keydown',function(e){
+        if(e.key==='Escape'&&buscaCampo.value){buscaCampo.value='';filtra();}
+      });
+      filtra();
+    }
+  }
   // Pode haver mais de um form de captura por pagina (hero + faixa + widget de rota).
   document.querySelectorAll('[data-newsletter]').forEach(function(form){
     var msg=form.querySelector('[data-newsletter-msg]');
@@ -2690,16 +2813,68 @@ function pageStyles() {
     /* Cinzas escurecidos de proposito: dao folga de contraste para o cenario
        das estacoes aparecer no fundo sem derrubar a legibilidade (AA). */
     --bg:#f7f7f5;--text:#18181b;--muted:#4f4f48;--muted-2:#50504a;
-    --border:#e7e7e3;--border-2:#c9c9c2;--tint:#f1f8e4;--dark:#18181b;
-    --green:#4d7c0f;--green-2:#3f6212;--lime:#84cc16;--lime-2:#a3e635;
+    --border:#e7e7e3;--border-2:#c9c9c2;--tint:#f1f8e4;--tint-border:#d9edb8;--dark:#18181b;
+    --green:#4d7c0f;--green-2:#3f6212;--lime:#84cc16;--lime-2:#a3e635;--on-green:#fff;
     --erro-bg:#fde3cf;--erro-text:#9a3412;
+    /* Superficies (cartoes/inputs) e o par "inverso" (chip solido de maximo
+       contraste, usado em botao escuro/estado ativo) — em modo claro e
+       quase-preto sobre quase-branco; em escuro, invertemos os dois. */
+    --surface:#fff;--input-bg:#fbfbfa;--bg-rgb:247,247,245;
+    --invert-bg:#18181b;--invert-bg-hover:#2d2d29;--invert-text:#fff;
+    /* Veu do fundo 3D das estacoes: cor + 3 paradas de opacidade, separadas
+       para poder escurecer mais no tema escuro sem mudar o desenho do gradiente. */
+    --veil-rgb:247,247,245;--veil-a1:.30;--veil-a2:.44;--veil-a3:.36;
+    /* Tratamento de risco (erro de tarifa) — paleta laranja/marrom, deliberadamente
+       fora do verde/lime da marca para não parecer "mais uma promoção". */
+    --risk-bg:#fff7ed;--risk-border:#fed7aa;--risk-note-bg:#ffedd5;--risk-text:#9a3412;--risk-line:#f97316;
     --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
     --sans:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
     --maxw:1200px;--r:16px;--r-lg:20px;--pill:999px;
   }
+  /* --- Tema escuro ---------------------------------------------------------
+     1) @media respeita a preferencia do sistema (prefers-color-scheme) quando
+        a pessoa nunca escolheu nada no site.
+     2) [data-tema="escuro"|"claro"] e a escolha manual (botao no cabecalho,
+        persistida em localStorage) — como o seletor de atributo tem mais
+        especificidade que o ":root" sozinho do bloco @media, a escolha manual
+        sempre vence, em qualquer sentido, sem precisar de :not(). */
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#131315;--text:#f2f2ef;--muted:#b9b9b0;--muted-2:#c9c9c0;
+      --border:#303034;--border-2:#46464b;--tint:#16210c;--tint-border:#2f4a1a;
+      --green:#84cc16;--green-2:#a3e635;--on-green:#18181b;
+      --erro-bg:#fde3cf;--erro-text:#9a3412;
+      --surface:#1c1c1f;--input-bg:#232326;--bg-rgb:19,19,21;
+      --invert-bg:#f2f2ef;--invert-bg-hover:#e2e2dc;--invert-text:#18181b;
+      --veil-rgb:10,10,9;--veil-a1:.55;--veil-a2:.70;--veil-a3:.62;
+      --risk-bg:#2a1608;--risk-border:#7c3a12;--risk-note-bg:#341507;--risk-text:#ffd9b3;--risk-line:#fb923c;
+    }
+  }
+  :root[data-tema="escuro"]{
+    --bg:#131315;--text:#f2f2ef;--muted:#b9b9b0;--muted-2:#c9c9c0;
+    --border:#303034;--border-2:#46464b;--tint:#16210c;--tint-border:#2f4a1a;
+    --green:#84cc16;--green-2:#a3e635;--on-green:#18181b;
+    /* Estavam so no bloco do @media: quem escolhia escuro NO BOTAO ficava com
+       o selo de "Erro de tarifa" nas cores do tema claro. Os dois caminhos
+       para o escuro tem de dar exatamente no mesmo lugar. */
+    --erro-bg:#fde3cf;--erro-text:#9a3412;
+    --surface:#1c1c1f;--input-bg:#232326;--bg-rgb:19,19,21;
+    --invert-bg:#f2f2ef;--invert-bg-hover:#e2e2dc;--invert-text:#18181b;
+    --veil-rgb:10,10,9;--veil-a1:.55;--veil-a2:.70;--veil-a3:.62;
+    --risk-bg:#2a1608;--risk-border:#7c3a12;--risk-note-bg:#341507;--risk-text:#ffd9b3;--risk-line:#fb923c;
+  }
+  :root[data-tema="claro"]{
+    --bg:#f7f7f5;--text:#18181b;--muted:#4f4f48;--muted-2:#50504a;
+    --border:#e7e7e3;--border-2:#c9c9c2;--tint:#f1f8e4;--tint-border:#d9edb8;
+    --green:#4d7c0f;--green-2:#3f6212;--on-green:#fff;
+    --surface:#fff;--input-bg:#fbfbfa;--bg-rgb:247,247,245;
+    --invert-bg:#18181b;--invert-bg-hover:#2d2d29;--invert-text:#fff;
+    --veil-rgb:247,247,245;--veil-a1:.30;--veil-a2:.44;--veil-a3:.36;
+    --risk-bg:#fff7ed;--risk-border:#fed7aa;--risk-note-bg:#ffedd5;--risk-text:#9a3412;--risk-line:#f97316;
+  }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;transition:background-color .15s,color .15s;}
   h1,h2,h3{font-family:var(--serif);font-weight:400;line-height:1.08;margin:0;letter-spacing:-.5px;}
   a{color:var(--green);text-decoration:none;}
   a:hover{color:var(--green-2);}
@@ -2724,10 +2899,10 @@ function pageStyles() {
   .section-head--tight{margin-bottom:24px;}
   .section-link{font-size:15px;font-weight:600;}
   .breadcrumb{margin:0 0 20px;font-size:14px;color:var(--muted-2);}
-  .breadcrumb span{color:#44443f;}
+  .breadcrumb span{color:var(--muted);}
 
   .btn{display:inline-block;border:none;border-radius:12px;padding:13px 22px;font-family:var(--sans);font-size:15px;font-weight:700;cursor:pointer;text-align:center;transition:background .15s,border-color .15s;}
-  .btn-green{background:var(--green);color:#fff;}
+  .btn-green{background:var(--green);color:var(--on-green);}
   .btn-green:hover{background:var(--green-2);color:#fff;}
   .btn-lime{background:var(--lime-2);color:#18181b;}
   .btn-lime:hover{background:#bef264;color:#18181b;}
@@ -2771,7 +2946,7 @@ function pageStyles() {
   }
   /* Veu de legibilidade: sem ele o texto cinza claro brigaria com a cena. */
   .s3-veil{position:absolute;inset:0;
-    background:linear-gradient(180deg,rgba(247,247,245,.30) 0%,rgba(247,247,245,.44) 42%,rgba(247,247,245,.36) 100%);}
+    background:linear-gradient(180deg,rgba(var(--veil-rgb),var(--veil-a1)) 0%,rgba(var(--veil-rgb),var(--veil-a2)) 42%,rgba(var(--veil-rgb),var(--veil-a3)) 100%);}
   @media (prefers-reduced-motion:reduce){
     /* Nada se move: fica so a estacao atual, parada. */
     .s3-season{animation:none;}
@@ -2782,7 +2957,7 @@ function pageStyles() {
 
   /* Pular para o conteudo: invisivel ate receber foco pelo teclado. Evita
      percorrer as ~8 paradas do cabecalho em CADA pagina. */
-  .skip-link{position:absolute;left:12px;top:-100px;z-index:100;background:var(--green);color:#fff;
+  .skip-link{position:absolute;left:12px;top:-100px;z-index:100;background:#365314;color:#fff;
     padding:12px 20px;border-radius:0 0 12px 12px;font-weight:700;font-size:15px;transition:top .15s;}
   .skip-link:focus{top:0;color:#fff;}
   main:focus{outline:none;}
@@ -2794,7 +2969,7 @@ function pageStyles() {
   .hero-pause:hover{background:rgba(24,24,27,.8);}
 
   /* Header */
-  .site-header{position:sticky;top:0;z-index:50;background:rgba(247,247,245,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);}
+  .site-header{position:sticky;top:0;z-index:50;background:rgba(var(--bg-rgb),.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);}
   .site-header-in{height:68px;display:flex;align-items:center;justify-content:space-between;gap:24px;}
   /* --brand-fly = distancia do "a" ate o CENTRO do ponto lime (medida no
      navegador: centro do ponto a 76px da borda esquerda da marca, menos os
@@ -2826,7 +3001,7 @@ function pageStyles() {
     .brand-dot{animation:none;}
   }
   .site-nav{display:flex;gap:28px;font-size:15px;font-weight:500;}
-  .site-nav a{color:#44443f;display:flex;align-items:center;gap:6px;}
+  .site-nav a{color:var(--muted);display:flex;align-items:center;gap:6px;}
   .site-nav a:hover{color:#18181b;}
   .nav-pill{background:var(--lime);color:#18181b;font-size:10px;font-weight:700;letter-spacing:.04em;padding:2px 6px;border-radius:var(--pill);}
   .nav-ext{font-size:12px;opacity:.6;}
@@ -2855,21 +3030,26 @@ function pageStyles() {
 
   /* Search card */
   .search-wrap{margin-top:-52px;position:relative;z-index:10;padding-bottom:24px;}
-  .search-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:0 24px 48px -32px rgba(24,24,27,.25);overflow:hidden;}
-  .sc-tabs{display:flex;gap:4px;padding:12px 16px 0;border-bottom:1px solid #f0f0ed;}
+  .search-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:0 24px 48px -32px rgba(24,24,27,.25);overflow:hidden;}
+  .sc-tabs{display:flex;gap:4px;padding:12px 16px 0;border-bottom:1px solid var(--border);}
   .sc-tab{font-size:14px;font-weight:600;color:var(--muted);padding:10px 18px;border-radius:10px 10px 0 0;border-bottom:2px solid transparent;}
   .sc-tab.is-active{background:var(--tint);color:var(--green-2);border-bottom-color:var(--green);}
   .sc-tab--soon{opacity:.45;cursor:not-allowed;}
   .sc-tab--soon::after{content:" · em breve";font-size:11px;font-weight:400;}
-  .sc-notice{margin:14px 20px 0;background:var(--tint);border:1px solid #d9edb8;border-radius:12px;padding:12px 16px;font-size:14px;line-height:1.5;color:var(--green-2);}
+  /* Aviso "como funciona por aqui": tom informativo (verde da marca, nao
+     laranja/vermelho de alerta) com um icone circular no lugar de comecar a
+     frase com uma negativa — a mesma informacao, com menos susto. */
+  .sc-notice{margin:14px 20px 0;display:flex;align-items:flex-start;gap:10px;background:var(--tint);border:1px solid var(--tint-border);border-radius:12px;padding:12px 16px;font-size:14px;line-height:1.5;color:var(--green-2);}
+  .sc-notice::before{content:"i";flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;line-height:1;margin-top:1px;}
+  .sc-notice-tag{display:block;font-weight:700;}
   .sc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:20px;align-items:end;}
   .sc-field{display:flex;flex-direction:column;gap:6px;}
   .sc-field span{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);}
-  .sc-field input{border:1px solid var(--border-2);border-radius:12px;padding:13px 14px;font-family:var(--sans);font-size:15px;background:#fbfbfa;color:#18181b;}
+  .sc-field input{border:1px solid var(--border-2);border-radius:12px;padding:13px 14px;font-family:var(--sans);font-size:15px;background:var(--input-bg);color:#18181b;}
   .sc-submit{min-width:150px;white-space:nowrap;}
   .sc-field--num{min-width:0;}
   .sc-field select{border:1px solid var(--border-2);border-radius:12px;padding:13px 14px;
-    font-family:var(--sans);font-size:15px;background:#fbfbfa;color:#18181b;width:100%;}
+    font-family:var(--sans);font-size:15px;background:var(--input-bg);color:#18181b;width:100%;}
   .sc-hint{font-size:11px;color:var(--muted-2);line-height:1.3;}
   .search-perks{display:flex;gap:28px;padding:18px 8px 0;font-size:14px;color:var(--muted);flex-wrap:wrap;}
   .search-perks span{display:flex;align-items:center;gap:8px;}
@@ -2877,7 +3057,7 @@ function pageStyles() {
 
   /* Offer cards */
   .of-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:28px;}
-  .of-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;color:inherit;transition:box-shadow .2s,transform .2s;}
+  .of-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;color:inherit;transition:box-shadow .2s,transform .2s;}
   .of-card:hover{box-shadow:0 16px 32px -24px rgba(24,24,27,.35);transform:translateY(-2px);color:inherit;}
   .of-card--erro{border-color:#f3c6a8;}
   .of-media{position:relative;height:160px;}
@@ -2891,7 +3071,7 @@ function pageStyles() {
   .of-cidade{font-size:20px;font-weight:600;font-family:var(--sans);letter-spacing:-.2px;}
   .of-periodo{font-size:13px;color:var(--muted);}
   .of-preco-row{display:flex;align-items:baseline;gap:8px;margin-top:auto;padding-top:8px;flex-wrap:wrap;}
-  .of-de s{font-size:14px;color:#6b6b66;}
+  .of-de s{font-size:14px;color:var(--muted);}
   .of-preco{font-size:30px;font-weight:700;color:var(--green-2);letter-spacing:-.5px;}
   .of-preco--sm{font-size:23px;margin-left:auto;}
   .of-iv{font-size:13px;color:var(--muted-2);}
@@ -2907,7 +3087,7 @@ function pageStyles() {
   .style-item h3{margin:12px 0 10px;font-size:32px;}
   .style-item p{margin:0 0 18px;font-size:16px;line-height:1.6;color:var(--muted);}
   .chips{display:flex;gap:8px;flex-wrap:wrap;}
-  .chip{border:1px solid var(--border-2);background:#fff;border-radius:var(--pill);padding:7px 14px;font-size:13px;font-weight:600;color:#44443f;}
+  .chip{border:1px solid var(--border-2);background:var(--surface);border-radius:var(--pill);padding:7px 14px;font-size:13px;font-weight:600;color:var(--muted);}
   .style-cta{margin:18px 0 0;}
   .styles-imgs{position:sticky;top:96px;height:560px;}
   .style-img{position:absolute;inset:0;opacity:0;transition:opacity .5s;border-radius:24px;overflow:hidden;}
@@ -2960,11 +3140,11 @@ function pageStyles() {
   .rot-body p{margin:0 0 10px;font-size:15px;line-height:1.5;color:#a1a1a6;}
   .rot-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .rot-cta{font-size:14px;font-weight:600;color:var(--lime-2);}
-  .rot-mes{font-size:12px;font-weight:600;color:#71717a;border:1px solid #3f3f42;border-radius:var(--pill);padding:3px 10px;}
+  .rot-mes{font-size:12px;font-weight:600;color:#a1a1a6;border:1px solid #3f3f42;border-radius:var(--pill);padding:3px 10px;}
 
   /* Extras + confianca */
   .extras-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:32px;}
-  .extra-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:26px;display:flex;flex-direction:column;gap:10px;color:inherit;}
+  .extra-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:26px;display:flex;flex-direction:column;gap:10px;color:inherit;}
   .extra-card:hover{border-color:var(--lime);color:inherit;}
   .extra-card--soon{opacity:.72;}
   .extra-cta--soon{color:var(--muted-2);font-style:italic;}
@@ -2972,17 +3152,17 @@ function pageStyles() {
   .extra-card h3{font-size:20px;font-weight:600;font-family:var(--sans);}
   .extra-card p{margin:0;font-size:15px;color:var(--muted);line-height:1.5;}
   .extra-cta{font-size:14px;font-weight:600;color:var(--green);}
-  .conf-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:32px;align-items:center;}
+  .conf-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:32px;align-items:center;}
   .conf-card h2{font-size:30px;line-height:1.15;}
   .conf-valor{margin:0;font-size:26px;font-weight:700;color:var(--green-2);}
   .conf-stat p:last-child{margin:4px 0 0;font-size:14px;color:var(--muted);line-height:1.4;}
 
   /* Ofertas: filtro de origem + newsletter + como funciona */
-  .orig-bar{position:sticky;top:68px;z-index:40;background:#fff;border-bottom:1px solid var(--border);}
+  .orig-bar{position:sticky;top:68px;z-index:40;background:var(--surface);border-bottom:1px solid var(--border);}
   .orig-in{padding-top:14px;padding-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
   .orig-label{font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);}
   .orig-pills{display:flex;gap:8px;flex-wrap:wrap;}
-  .orig-pill{border:1px solid var(--border-2);background:#fff;color:#44443f;border-radius:var(--pill);padding:8px 16px;font-size:14px;font-weight:600;}
+  .orig-pill{border:1px solid var(--border-2);background:var(--surface);color:var(--muted);border-radius:var(--pill);padding:8px 16px;font-size:14px;font-weight:600;}
   .orig-pill.is-active{background:#18181b;color:#fff;border-color:#18181b;}
   .news-wrap{padding-top:32px;padding-bottom:8px;}
   .news-card{background:#18181b;color:#f7f7f5;border-radius:var(--r-lg);padding:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:32px;align-items:center;}
@@ -2992,13 +3172,13 @@ function pageStyles() {
   .news-form input,.news-form select{border:1px solid #3f3f42;background:#26262a;border-radius:12px;padding:14px 16px;font-family:var(--sans);font-size:15px;color:#f7f7f5;}
   .news-row{display:flex;gap:12px;flex-wrap:wrap;}
   .news-row input{flex:1;min-width:140px;}
-  .news-fine{font-size:12px;color:var(--muted-2);text-align:center;}
+  .news-fine{font-size:12px;color:#a1a1a6;text-align:center;}
   .news-msg{margin:4px 0 0;font-size:14px;color:var(--lime-2);text-align:center;}
   .feed-count{font-size:14px;color:var(--muted-2);}
   /* Escolha do dia (/hoje) */
   .hoje-head{padding-bottom:0;}
   .hoje-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:28px;}
-  .hoje-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;display:flex;flex-direction:column;}
+  .hoje-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;display:flex;flex-direction:column;}
   .hoje-media{position:relative;height:220px;}
   .hoje-body{padding:24px 26px 26px;display:flex;flex-direction:column;gap:10px;flex:1;}
   .hoje-titulo{font-size:28px;line-height:1.12;margin:2px 0 0;}
@@ -3010,19 +3190,19 @@ function pageStyles() {
     padding:3px 10px;border-radius:var(--pill);margin-top:2px;white-space:nowrap;}
   .hoje-bullet strong{font-weight:600;}
   .hoje-pontos{margin:2px 0 0;color:var(--muted);font-size:14px;}
-  .hoje-comer{margin:2px 0 0;font-size:14px;color:#44443f;}
+  .hoje-comer{margin:2px 0 0;font-size:14px;color:var(--muted);}
   .hoje-mes{margin:8px 0 0;font-size:14px;color:var(--muted);}
   .hoje-ctas{display:flex;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:14px;}
-  .btn-ghost--claro{color:#18181b;border-color:var(--border-2);}
-  .btn-ghost--claro:hover{color:#18181b;border-color:var(--green);}
-  .feed-vazio{grid-column:1/-1;margin:0;background:#fff;border:1px solid var(--border);border-radius:var(--r);
-    padding:28px;font-size:16px;line-height:1.6;color:#44443f;}
+  .btn-ghost--claro{color:var(--text);border-color:var(--border-2);}
+  .btn-ghost--claro:hover{color:var(--text);border-color:var(--green);}
+  .feed-vazio{grid-column:1/-1;margin:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    padding:28px;font-size:16px;line-height:1.6;color:var(--muted);}
   .cf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-top:8px;}
-  .cf-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:26px;}
+  .cf-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:26px;}
   .cf-num{display:inline-flex;width:36px;height:36px;border-radius:10px;background:var(--tint);color:var(--green);align-items:center;justify-content:center;font-size:16px;font-weight:700;}
   .cf-card h3{margin:14px 0 6px;font-size:19px;font-weight:600;font-family:var(--sans);}
   .cf-card p{margin:0;font-size:15px;color:var(--muted);line-height:1.55;}
-  .cf-note{margin:24px 0 0;font-size:13px;color:#6b6b66;line-height:1.6;max-width:640px;}
+  .cf-note{margin:24px 0 0;font-size:13px;color:var(--muted);line-height:1.6;max-width:640px;}
 
   /* Oferta detalhe */
   .det{padding-top:32px;}
@@ -3035,32 +3215,37 @@ function pageStyles() {
   .det-local{margin:2px 0 0;font-size:17px;color:var(--muted);}
   .det-preco-row{display:flex;align-items:baseline;gap:14px;margin:24px 0 6px;flex-wrap:wrap;}
   .det-preco{font-size:clamp(40px,8vw,56px);font-weight:700;color:var(--green-2);letter-spacing:-1.5px;line-height:1;}
-  .det-media s{font-size:18px;color:#6b6b66;}
+  .det-media s{font-size:18px;color:var(--muted);}
   .det-econ{display:inline-block;background:var(--tint);color:var(--green-2);font-size:14px;font-weight:700;padding:6px 14px;border-radius:var(--pill);}
-  .det-texto{margin:24px 0 0;font-size:17px;line-height:1.6;color:#44443f;}
+  .det-texto{margin:24px 0 0;font-size:17px;line-height:1.6;color:var(--muted);}
   .det-prova{margin-top:28px;position:relative;height:280px;border-radius:14px;overflow:hidden;background:var(--tint);}
   .det-prova-media{width:100%;height:100%;}
   .det-prova-tag{position:absolute;top:12px;left:12px;background:rgba(24,24,27,.75);color:#f7f7f5;font-size:12px;font-weight:600;padding:5px 12px;border-radius:var(--pill);}
   .det-h2{margin:36px 0 14px;font-size:22px;font-weight:700;font-family:var(--sans);}
   .det-flex{display:flex;flex-direction:column;gap:8px;}
-  .det-flex-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 18px;}
+  .det-flex-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;}
   .det-flex-row strong{color:var(--green-2);font-size:17px;}
   .det-dicas{display:flex;flex-direction:column;gap:10px;}
-  .det-dica{display:flex;gap:10px;font-size:15px;line-height:1.5;color:#44443f;}
+  .det-dica{display:flex;gap:10px;font-size:15px;line-height:1.5;color:var(--muted);}
   .det-dica span:first-child{color:var(--green);font-weight:700;}
   .det-aside{position:sticky;top:92px;display:flex;flex-direction:column;gap:16px;}
-  .det-buy{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:24px;box-shadow:0 24px 48px -34px rgba(24,24,27,.3);}
+  .det-buy{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;box-shadow:0 24px 48px -34px rgba(24,24,27,.3);}
   .det-buy-label{font-size:13px;color:var(--muted-2);}
   .det-buy-preco{margin:2px 0 0;font-size:36px;font-weight:700;color:var(--green-2);letter-spacing:-1px;}
   .det-buy-sub{margin:2px 0 16px;font-size:14px;color:var(--muted);}
   .det-buy-cta{width:100%;font-size:16px;}
-  .det-buy-fine{margin:12px 0 0;font-size:12px;color:#6b6b66;line-height:1.5;text-align:center;}
+  .det-buy-fine{margin:12px 0 0;font-size:12px;color:var(--muted);line-height:1.5;text-align:center;}
+  /* Historico de preco (sparkline). Fica no mesmo cartao claro do aside. */
+  .det-hist{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:16px;}
+  .det-hist-title{margin:0 0 10px;font-size:14px;font-weight:700;color:var(--text);}
+  .det-hist svg{display:block;width:100%;height:auto;max-width:100%;}
+  .det-hist-fine{margin:10px 0 0;font-size:12px;color:var(--muted);line-height:1.45;}
   .det-alert{background:#18181b;color:#f7f7f5;border-radius:var(--r);padding:22px;}
   .det-alert-title{margin:0 0 4px;font-size:15px;font-weight:700;}
   .det-alert p{margin:0 0 14px;font-size:13px;color:#a1a1a6;line-height:1.5;}
   .det-alert .btn{width:100%;}
   .rel-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;}
-  .rel-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:4px;color:inherit;}
+  .rel-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:4px;color:inherit;}
   .rel-card:hover{border-color:var(--lime);color:inherit;}
   .rel-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
   .rel-rota{font-size:13px;font-weight:600;letter-spacing:.06em;color:var(--muted-2);}
@@ -3078,24 +3263,24 @@ function pageStyles() {
   .flag-dark{background:rgba(24,24,27,.75);color:#f7f7f5;text-transform:uppercase;letter-spacing:.05em;}
   .guia-intro-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:48px;margin-top:36px;align-items:start;}
   .guia-title{font-size:clamp(38px,6vw,54px);line-height:1.05;}
-  .guia-intro{margin:18px 0 0;font-size:18px;line-height:1.6;color:#44443f;}
-  .guia-aside{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:14px;position:sticky;top:92px;}
+  .guia-intro{margin:18px 0 0;font-size:18px;line-height:1.6;color:var(--muted);}
+  .guia-aside{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:14px;position:sticky;top:92px;}
   .guia-aside h3,.guia-aside-h{font-size:16px;font-weight:700;font-family:var(--sans);margin:0;line-height:1.3;}
-  .guia-meta-row{display:flex;justify-content:space-between;gap:12px;font-size:14px;border-bottom:1px solid #f0f0ed;padding-bottom:10px;}
+  .guia-meta-row{display:flex;justify-content:space-between;gap:12px;font-size:14px;border-bottom:1px solid var(--border);padding-bottom:10px;}
   .guia-meta-row span{color:var(--muted-2);}
   .guia-meta-row strong{text-align:right;}
   .guia-aside-preco{font-size:13px;color:var(--muted);text-align:center;}
-  .escopo-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:26px 28px;max-width:860px;}
+  .escopo-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:26px 28px;max-width:860px;}
   .escopo-h{font-size:22px;font-weight:700;font-family:var(--sans);margin:0 0 16px;}
   .escopo-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px;}
   .escopo-tit{margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
   .escopo-tit--sim{color:var(--green-2);}
   .escopo-tit--nao{color:#9a3412;}
-  .escopo-cols ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:15px;line-height:1.5;color:#44443f;}
-  .escopo-nota{margin:18px 0 0;font-size:13px;line-height:1.6;color:var(--muted);border-top:1px solid #f0f0ed;padding-top:14px;}
+  .escopo-cols ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:15px;line-height:1.5;color:var(--muted);}
+  .escopo-nota{margin:18px 0 0;font-size:13px;line-height:1.6;color:var(--muted);border-top:1px solid var(--border);padding-top:14px;}
   .guia-h2{font-size:36px;margin-bottom:28px;}
   .dias{display:flex;flex-direction:column;gap:20px;max-width:860px;}
-  .dia{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:28px;display:grid;grid-template-columns:64px 1fr;gap:24px;}
+  .dia{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px;display:grid;grid-template-columns:64px 1fr;gap:24px;}
   .dia-num{width:56px;height:56px;border-radius:14px;background:#18181b;color:var(--lime-2);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;}
   .dia-num span{font-size:10px;font-weight:700;letter-spacing:.08em;}
   .dia-num strong{font-size:24px;}
@@ -3120,8 +3305,8 @@ function pageStyles() {
   .dia-map{display:inline-flex;align-items:center;gap:6px;margin-top:14px;font-size:13px;font-weight:600;color:var(--green);}
   .dia-map:hover{color:var(--green-2);}
   .dia-map-pin{font-size:13px;}
-  .lodging{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:14px;align-items:flex-start;max-width:860px;}
-  .lodging-base{margin:0;font-size:16px;color:#44443f;line-height:1.6;}
+  .lodging{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:14px;align-items:flex-start;max-width:860px;}
+  .lodging-base{margin:0;font-size:16px;color:var(--muted);line-height:1.6;}
   .explore{background:#18181b;color:#f7f7f5;border-radius:var(--r-lg);padding:36px;display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center;overflow:hidden;}
   .explore-copy h2{font-size:34px;line-height:1.1;margin:2px 0 0;}
   .explore-copy p{margin:12px 0 20px;font-size:16px;color:#a1a1a6;max-width:44ch;}
@@ -3135,7 +3320,7 @@ function pageStyles() {
   .opt-head h2{font-size:36px;}
   .opt-sub{margin:0;font-size:15px;color:var(--muted);max-width:460px;line-height:1.5;}
   .opt-grid-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;align-items:start;}
-  .opt-panel{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:24px;}
+  .opt-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;}
   .opt-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;font-size:13px;font-weight:700;}
   .opt-legend{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-2);font-weight:400;}
   .opt-sw{width:14px;height:10px;border-radius:3px;display:inline-block;}
@@ -3143,7 +3328,7 @@ function pageStyles() {
   .opt-cell{border:1px solid;border-radius:10px;padding:11px 6px;text-align:center;}
   .opt-mon{font-size:12px;font-weight:600;opacity:.8;}
   .opt-price{font-size:14px;font-weight:700;margin-top:3px;}
-  .opt-foot{margin:16px 0 0;font-size:12px;color:#6b6b66;line-height:1.5;}
+  .opt-foot{margin:16px 0 0;font-size:12px;color:var(--muted);line-height:1.5;}
   .opt-side{display:flex;flex-direction:column;gap:16px;}
   .opt-window{background:#18181b;color:#f7f7f5;border-radius:var(--r);padding:24px;}
   .opt-window h3{font-size:30px;margin:10px 0 8px;}
@@ -3153,10 +3338,10 @@ function pageStyles() {
   .opt-save{display:inline-block;margin:12px 0;background:rgba(163,230,53,.15);color:var(--lime-2);font-size:13px;font-weight:700;padding:5px 12px;border-radius:var(--pill);}
   .opt-window p{margin:0 0 18px;font-size:14px;color:#a1a1a6;line-height:1.5;}
   .opt-window .btn{width:100%;}
-  .opt-sources{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:22px;}
+  .opt-sources{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;}
   .opt-sources-title{font-size:13px;font-weight:700;}
   .opt-sources-list{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
-  .opt-src{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid #f0f0ed;border-radius:10px;padding:12px 14px;}
+  .opt-src{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
   .opt-src--best{background:var(--tint);border-color:#d9edb8;}
   .opt-src-name{font-size:15px;font-weight:700;}
   .opt-src--best .opt-src-name,.opt-src--best .opt-src-price{color:var(--green-2);}
@@ -3168,7 +3353,7 @@ function pageStyles() {
   /* Datas para viajar (clicar e reservar) */
   .dt-note{font-size:14px;color:var(--muted-2);}
   .dt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:24px;}
-  .dt-card{position:relative;background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:4px;}
+  .dt-card{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:4px;}
   .dt-card--best{border-color:var(--lime);box-shadow:0 16px 32px -26px rgba(24,24,27,.35);}
   .dt-flag{position:absolute;top:-11px;left:20px;background:var(--lime);color:#18181b;font-size:12px;font-weight:700;letter-spacing:.04em;padding:4px 12px;border-radius:var(--pill);}
   .dt-when{font-size:18px;font-weight:700;color:var(--text);}
@@ -3196,18 +3381,18 @@ function pageStyles() {
   .res-resumo{font-size:15px;color:#a1a1a6;}
   .res-alterar{margin-left:auto;padding:9px 18px;font-size:14px;font-weight:600;border-radius:var(--pill);}
   .res-grid{padding-top:32px;padding-bottom:88px;display:grid;grid-template-columns:minmax(220px,260px) minmax(0,1fr);gap:28px;align-items:start;}
-  .res-side{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:22px;position:sticky;top:92px;}
+  .res-side{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:22px;position:sticky;top:92px;}
   .res-side h3{font-size:16px;font-weight:700;font-family:var(--sans);}
   .res-filtro{display:flex;flex-direction:column;gap:10px;}
   .res-filtro-title{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2);}
   .res-check{display:flex;align-items:center;gap:10px;font-size:15px;cursor:pointer;}
   .res-check input{accent-color:var(--green);width:16px;height:16px;}
-  .res-help{border-top:1px solid #f0f0ed;padding-top:16px;font-size:13px;color:var(--muted);line-height:1.5;}
+  .res-help{border-top:1px solid var(--border);padding-top:16px;font-size:13px;color:var(--muted);line-height:1.5;}
   .res-list{display:flex;flex-direction:column;gap:16px;}
   .res-sortbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:15px;color:var(--muted);}
-  .res-sort{border:1px solid var(--border-2);background:#fff;color:#44443f;border-radius:var(--pill);padding:7px 15px;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .res-sort{border:1px solid var(--border-2);background:var(--surface);color:var(--muted);border-radius:var(--pill);padding:7px 15px;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;}
   .res-sort.is-active{background:#18181b;color:#fff;border-color:#18181b;}
-  .res-voo{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:22px 24px;display:flex;flex-wrap:wrap;gap:20px;align-items:center;position:relative;}
+  .res-voo{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px 24px;display:flex;flex-wrap:wrap;gap:20px;align-items:center;position:relative;}
   .res-voo--melhor{border-color:var(--lime);}
   .res-melhor{position:absolute;top:-11px;left:20px;background:var(--lime);color:#18181b;font-size:12px;font-weight:700;letter-spacing:.04em;padding:4px 12px;border-radius:var(--pill);}
   .res-cia{display:flex;flex-direction:column;gap:4px;width:110px;flex-shrink:0;}
@@ -3224,7 +3409,7 @@ function pageStyles() {
   .res-parada{font-size:12px;font-weight:600;}
   .res-parada--direto{color:var(--green-2);}
   .res-parada--conex{color:var(--muted-2);}
-  .res-preco{text-align:right;border-left:1px solid #f0f0ed;padding-left:20px;margin-left:auto;}
+  .res-preco{text-align:right;border-left:1px solid var(--border);padding-left:20px;margin-left:auto;}
   .res-preco-label{margin:0;font-size:13px;color:var(--muted-2);}
   .res-preco-val{margin:4px 0 0;font-size:24px;font-weight:700;color:var(--green-2);}
   .res-parcela{margin:2px 0 0;font-size:13px;color:var(--muted);}
@@ -3237,16 +3422,25 @@ function pageStyles() {
   .map-head{padding-top:40px;}
   .map-title{font-size:clamp(32px,5vw,44px);margin:0 0 8px;}
   .map-sub{margin:0;font-size:17px;color:var(--muted);max-width:60ch;}
+  /* Filtro do /guias. Nasce com [hidden] no HTML; o JS tira. */
+  .guia-busca{margin:20px 0 0;max-width:420px;}
+  .guia-busca[hidden]{display:none;}
+  .guia-busca-lab{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;}
+  .guia-busca-campo{width:100%;padding:12px 14px;border:1px solid var(--border-2);border-radius:var(--pill);
+    background:var(--input-bg);color:var(--text);font:inherit;font-size:16px;}
+  .guia-busca-campo:focus-visible{outline:2px solid var(--green);outline-offset:2px;border-color:var(--green);}
+  .guia-busca-conta{margin:8px 0 0;font-size:14px;color:var(--muted);min-height:1.3em;}
+  .rot-card[hidden]{display:none;}
   .map-grid{margin-top:28px;padding-bottom:88px;display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,340px);gap:24px;align-items:start;}
   .map-canvas{height:560px;border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--border);background:var(--tint);}
   .map-canvas--placeholder{position:relative;display:flex;align-items:center;justify-content:center;}
   .map-canvas--placeholder .media-placeholder{position:absolute;inset:0;opacity:.5;}
   .map-canvas--err{display:flex;align-items:center;justify-content:center;}
-  .map-canvas-msg{position:relative;max-width:360px;margin:0;background:rgba(255,255,255,.92);border:1px solid var(--border);border-radius:12px;padding:16px 18px;font-size:14px;color:#44443f;line-height:1.5;text-align:center;}
+  .map-canvas-msg{position:relative;max-width:360px;margin:0;background:rgba(255,255,255,.92);border:1px solid var(--border);border-radius:12px;padding:16px 18px;font-size:14px;color:var(--muted);line-height:1.5;text-align:center;}
   .map-canvas-msg code{background:var(--tint);color:var(--green-2);padding:1px 6px;border-radius:6px;font-size:13px;}
   .map-list{display:flex;flex-direction:column;gap:8px;max-height:560px;overflow-y:auto;}
-  .map-dest{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:inherit;}
-  .map-dest:hover{border-color:var(--lime);color:inherit;background:#fff;}
+  .map-dest{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:inherit;}
+  .map-dest:hover{border-color:var(--lime);color:inherit;background:var(--surface);}
   .map-dest-pin{color:var(--green);font-size:13px;flex-shrink:0;}
   .map-dest-body{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;}
   .map-dest-body strong{font-size:15px;font-weight:600;}
@@ -3254,8 +3448,8 @@ function pageStyles() {
   .map-dest-preco{font-size:14px;font-weight:700;color:var(--green-2);white-space:nowrap;}
   .map-iw{max-width:220px;font-family:var(--sans);}
   .map-iw strong{display:block;font-size:15px;color:#18181b;margin-bottom:2px;}
-  .map-iw-tag{display:block;font-size:12px;color:#6b6b66;}
-  .map-iw-resumo{display:block;font-size:13px;color:#44443f;line-height:1.4;margin:6px 0;}
+  .map-iw-tag{display:block;font-size:12px;color:var(--muted);}
+  .map-iw-resumo{display:block;font-size:13px;color:var(--muted);line-height:1.4;margin:6px 0;}
   .map-iw-link{font-size:14px;font-weight:700;color:var(--green);}
 
   /* Integridade / confianca no detalhe da oferta */
@@ -3271,7 +3465,7 @@ function pageStyles() {
   .opt-foot--disclaimer{color:#8a8a84;}
 
   /* Faixa de captura (strip) */
-  .news-whatsapp-note{font-size:11px;color:var(--muted-2);display:block;margin-top:-4px;}
+  .news-whatsapp-note{font-size:11px;color:#a1a1a6;display:block;margin-top:-4px;}
   .news-strip-wrap{padding:48px 32px 0;}
   .news-strip{background:#18181b;color:#f7f7f5;border-radius:var(--r-lg);padding:28px 32px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;}
   .news-strip-copy{max-width:480px;}
@@ -3285,8 +3479,11 @@ function pageStyles() {
   /* Resultados: transparencia + captura */
   .res-fine{margin-top:4px;font-size:12px;color:var(--muted-2);text-align:center;}
   .res-amostra--pax{background:#fff7ed;border-color:#fed7aa;color:#9a3412;}
+  /* Busca ao vivo: borda verde solida e fundo mais forte, para separar na
+     hora do aviso de "exemplo". Cor nao e o unico sinal — o texto muda. */
+  .res-amostra--vivo{background:var(--tint);border:1px solid var(--green);border-left-width:4px;color:var(--green-2);}
   .res-amostra{background:var(--tint);border:1px solid #d9edb8;border-radius:var(--r);padding:14px 18px;font-size:14px;color:var(--green-2);margin-bottom:4px;}
-  .res-vazio{background:#fff;border:1px dashed var(--border-2);border-radius:var(--r);padding:22px;text-align:center;color:var(--muted);font-size:14px;}
+  .res-vazio{background:var(--surface);border:1px dashed var(--border-2);border-radius:var(--r);padding:22px;text-align:center;color:var(--muted);font-size:14px;}
   .res-alert-banner{background:#18181b;color:#f7f7f5;border-radius:var(--r);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:15px;}
   .res-alert-banner strong{color:#fff;}
   .res-alert-banner span{color:#a1a1a6;}
@@ -3296,7 +3493,7 @@ function pageStyles() {
 
   /* Pagina de saida (interstitial) */
   .exit{padding:48px 32px 72px;max-width:920px;}
-  .exit-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:36px;text-align:center;}
+  .exit-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:36px;text-align:center;}
   .exit-card h1{font-size:32px;margin:8px 0 12px;}
   .exit-sub{color:var(--muted);max-width:52ch;margin:0 auto 24px;}
   .exit-cta{font-size:17px;padding:16px 28px;}
@@ -3323,7 +3520,7 @@ function pageStyles() {
   .status-page .btn{margin-top:8px;}
 
   /* Footer */
-  .site-footer{background:#fff;border-top:1px solid var(--border);margin-top:56px;}
+  .site-footer{background:var(--surface);border-top:1px solid var(--border);margin-top:56px;}
   .foot-grid{padding:56px 32px 40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:40px;}
   .brand--foot{--brand-fly:62px;}
   .brand--foot .brand-word{font-size:26px;}
@@ -3333,9 +3530,9 @@ function pageStyles() {
   .foot-title{font-weight:700;margin-bottom:4px;}
   .foot-link--soon{color:var(--muted-2);opacity:.7;cursor:not-allowed;}
   .foot-link--soon::after{content:" · em breve";font-size:11px;font-weight:400;}
-  .foot-bar{border-top:1px solid #f0f0ed;}
+  .foot-bar{border-top:1px solid var(--border);}
   .foot-bar-in{padding-top:20px;padding-bottom:24px;display:flex;flex-direction:column;gap:8px;}
-  .foot-places{margin:0;font-size:13px;color:#44443f;}
+  .foot-places{margin:0;font-size:13px;color:var(--muted);}
   .foot-lgpd{margin:0;font-size:12.5px;color:var(--muted);line-height:1.6;max-width:78ch;}
   .foot-legal{margin:0;font-size:12px;color:var(--muted-2);}
 
