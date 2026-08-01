@@ -293,3 +293,31 @@ test("as fotos do Commons sao pedidas redimensionadas", () => {
     assert.match(img, /srcset="/, "sem srcset: o celular baixa a versao grande");
   }
 });
+
+test("todo <button> visivel tem aparencia propria, nao a caixa padrao do navegador", () => {
+  // O botao de tema foi adicionado sem NENHUMA regra de CSS: renderizava com a
+  // aparencia padrao do navegador — um retangulo branco no meio da barra, e no
+  // tema escuro destoava de tudo. Nenhum teste pegava porque o markup estava
+  // correto; so a folha de estilo estava incompleta. Achado olhando a tela.
+  //
+  // A regra vale para <button>, que traz caixa cinza e borda de sistema por
+  // padrao. Um <a> nao tem esse problema, entao nao entra aqui.
+  const css = pageStylesCss();
+  const html = renderHomePage();
+  const classesDeBotao = new Set();
+  for (const m of html.matchAll(/<button[^>]*class="([^"]+)"/g)) {
+    // pega a primeira classe (a "base" do componente)
+    const base = m[1].trim().split(/\s+/)[0];
+    if (base) classesDeBotao.add(base);
+  }
+  assert.ok(classesDeBotao.size > 0, "nenhum <button> com classe na home");
+  for (const cls of classesDeBotao) {
+    const m = new RegExp(`\\.${cls}\\{([^}]*)\\}`).exec(css);
+    assert.ok(m, `.${cls} e um <button> sem nenhuma regra de estilo`);
+    assert.match(
+      m[1],
+      /background|border|appearance/,
+      `.${cls} nao define aparencia — cai na caixa padrao do navegador`
+    );
+  }
+});
