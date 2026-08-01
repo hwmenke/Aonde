@@ -13,6 +13,7 @@ import {
   renderOfferPage,
   renderOffersPage,
   renderMapPage,
+  renderServerErrorPage,
   pageStylesCss,
 } from "../src/render/htmlRenderer.js";
 import { OFFERS, GUIDES, formatRelativePublicado } from "../src/render/aondeContent.js";
@@ -319,5 +320,66 @@ test("todo <button> visivel tem aparencia propria, nao a caixa padrao do navegad
       /background|border|appearance/,
       `.${cls} nao define aparencia — cai na caixa padrao do navegador`
     );
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Paginas de erro: quem erra a URL nao pode ficar preso
+// ---------------------------------------------------------------------------
+
+test("404 de navegador e pagina com saida; de cliente de API continua JSON", async () => {
+  // Antes, QUALQUER caminho desconhecido devolvia JSON cru:
+  //   {"error":"Rota nao encontrada: GET /nao-existe"}
+  // Quem digitou a URL errada, ou seguiu um link velho de uma busca ou de um
+  // post compartilhado, via isso na tela — sem HTML e sem caminho de volta.
+  const { createServer } = await import("../src/server.js");
+  const srv = createServer();
+  await new Promise((r) => srv.listen(0, r));
+  const base = `http://127.0.0.1:${srv.address().port}`;
+  const NAVEGADOR = { accept: "text/html,application/xhtml+xml,*/*;q=0.8" };
+  try {
+    const nav = await fetch(`${base}/nao-existe`, { headers: NAVEGADOR });
+    const htmlNav = await nav.text();
+    assert.equal(nav.status, 404);
+    assert.match(nav.headers.get("content-type") || "", /text\/html/);
+    assert.match(htmlNav, /não encontrada/i);
+    assert.ok(
+      (htmlNav.match(/href="\/(ofertas|guias)?"/g) || []).length >= 2,
+      "a pagina de 404 precisa oferecer para onde ir"
+    );
+
+    // Cliente de API (sem Accept de HTML) continua recebendo JSON.
+    const api = await fetch(`${base}/nao-existe`);
+    assert.match(api.headers.get("content-type") || "", /application\/json/);
+
+    // E /api/* e sempre JSON, mesmo que o Accept peca HTML.
+    const apiPath = await fetch(`${base}/api/nao-existe`, { headers: NAVEGADOR });
+    assert.match(apiPath.headers.get("content-type") || "", /application\/json/);
+  } finally {
+    srv.close();
+  }
+});
+
+test("a pagina de erro do servidor nao mostra a mensagem interna", () => {
+  // O tratador devolvia `err.message` direto para o navegador: nao ajuda quem
+  // le e expoe detalhe de implementacao. O diagnostico vai para o log.
+  const h = renderServerErrorPage();
+  assert.match(h, /Alguma coisa quebrou do nosso lado/);
+  assert.doesNotMatch(h, /Error:|at Object\.|node:internal|undefined/);
+  assert.match(h, /href="\/"/, "precisa de caminho de volta");
+});
+
+test("os headers de seguranca valem tambem no 404", async () => {
+  const { createServer } = await import("../src/server.js");
+  const srv = createServer();
+  await new Promise((r) => srv.listen(0, r));
+  const base = `http://127.0.0.1:${srv.address().port}`;
+  try {
+    const r = await fetch(`${base}/nao-existe`, { headers: { accept: "text/html" } });
+    const csp = r.headers.get("content-security-policy") || "";
+    assert.match(csp, /default-src/, "404 sem CSP completa");
+    assert.equal(r.headers.get("x-content-type-options"), "nosniff");
+  } finally {
+    srv.close();
   }
 });

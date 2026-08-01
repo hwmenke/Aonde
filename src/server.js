@@ -57,6 +57,8 @@ import {
   renderAlertsPage,
   renderNewsletterStatusPage,
   renderUnsubscribePage,
+  renderNotFoundPage,
+  renderServerErrorPage,
   renderTodayPage,
   styleAssetPath,
   pageStylesCss,
@@ -89,9 +91,10 @@ function corsHeaders() {
   };
 }
 
-// Headers de seguranca aplicados a TODA resposta. O CSP e conservador de
-// proposito: nao usa `default-src` (nao quebra fontes/Maps/imagens externas),
-// so bloqueia plugins, sequestro de <base> e enquadramento (clickjacking).
+// Headers de seguranca aplicados a TODA resposta, inclusive 404 e 500.
+// A CSP declara default-src e libera explicitamente so o que o site usa
+// (fontes do Google, Maps, imagens https). 'unsafe-inline' segue necessario
+// porque ha <script>/<style> embutidos — trocar por nonce e o proximo passo.
 function securityHeaders() {
   return {
     "X-Content-Type-Options": "nosniff",
@@ -129,6 +132,16 @@ function isAdminRequest(req) {
 // entao a troca acontece aqui, na saida — sem estado global no renderer.
 function externalizeStyles(html) {
   return html.replace(STYLE_TAG_RE, `<link rel="stylesheet" href="${styleAssetPath()}">`);
+}
+
+/**
+ * Verdadeiro quando quem pediu foi um NAVEGADOR navegando (aceita text/html),
+ * e o caminho nao e de API. Serve para decidir entre pagina e JSON nos erros.
+ */
+function querHtml(req, pathname) {
+  if (typeof pathname === "string" && pathname.startsWith("/api/")) return false;
+  const aceita = String((req && req.headers && req.headers.accept) || "");
+  return aceita.includes("text/html");
 }
 
 /**
@@ -925,11 +938,19 @@ export function createServer() {
         return;
       }
 
-      sendJson(res, 404, { error: `Rota nao encontrada: ${method} ${pathname}` });
+      // Navegador que pediu HTML recebe pagina; cliente de API recebe JSON.
+      // Antes era JSON para todo mundo: quem digitava a URL errada ou seguia um
+      // link velho via {"error":"Rota nao encontrada"} na tela, sem volta.
+      if (querHtml(req, pathname)) sendHtml(res, 404, renderNotFoundPage({ caminho: pathname }));
+      else sendJson(res, 404, { error: `Rota nao encontrada: ${method} ${pathname}` });
     } catch (err) {
       // Nunca derruba o processo por um request malformado.
       try {
-        sendJson(res, 500, { error: (err && err.message) || String(err) });
+        // O diagnostico vai para o LOG, nao para a tela: a mensagem interna nao
+        // ajuda quem esta lendo e ainda expoe detalhe de implementacao.
+        console.error("[aonde-affiliates] Falha ao responder:", err);
+        if (querHtml(req, pathname)) sendHtml(res, 500, renderServerErrorPage());
+        else sendJson(res, 500, { error: "Erro interno." });
       } catch {
         // Se ate o envio de erro falhar, encerra a resposta sem estourar.
         try {

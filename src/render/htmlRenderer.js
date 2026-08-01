@@ -2594,6 +2594,60 @@ export function renderAlertsPage() {
  *
  * O formulario funciona sem JavaScript.
  */
+/**
+ * Pagina 404 para navegacao de navegador.
+ *
+ * Antes, um caminho desconhecido (URL digitada errada, link velho de uma busca
+ * ou de um post compartilhado) devolvia JSON cru:
+ *   {"error":"Rota nao encontrada: GET /nao-existe"}
+ * — sem HTML e sem nenhum caminho de volta. As rotas de detalhe
+ * (/ofertas/:id, /guias/:id) ja devolviam pagina; a rota generica nao.
+ *
+ * Nao e so estetica: 404 e uma porta de entrada comum, vinda de buscador e de
+ * link compartilhado. Oferece as saidas obvias em vez de deixar a pessoa presa.
+ */
+export function renderNotFoundPage({ caminho = "" } = {}) {
+  const body =
+    `<main id="conteudo" tabindex="-1"><section class="wrap map-head status-page">` +
+    `<p class="eyebrow eyebrow--green">Página não encontrada</p>` +
+    `<h1 class="map-title">Esse endereço não existe por aqui</h1>` +
+    `<p class="map-sub">Pode ser um link antigo, ou um endereço digitado com algum erro${
+      caminho ? ` (<code>${escapeHtml(caminho)}</code>)` : ""
+    }. O site continua inteiro — é só escolher por onde seguir.</p>` +
+    `<p class="nf-saidas">` +
+    `<a class="btn btn-green" href="/ofertas">Ver os achados de hoje →</a> ` +
+    `<a class="btn btn-ghost btn-ghost--claro" href="/guias">Roteiros de 5 dias</a> ` +
+    `<a class="btn btn-ghost btn-ghost--claro" href="/">Página inicial</a>` +
+    `</p>` +
+    `<p class="map-sub">Se você chegou aqui por um link do próprio site, avise pela <a href="/ajuda">Central de ajuda</a> — é falha nossa, não sua.</p>` +
+    `</section></main>` +
+    siteFooter();
+  return htmlDocument({
+    title: "Página não encontrada · Aonde",
+    description: "Este endereço não existe no Aonde. Veja os achados de passagem do dia ou escolha um roteiro de 5 dias.",
+    body,
+    script: enhancementScript(),
+  });
+}
+
+/**
+ * Pagina de erro do servidor. NAO recebe nem mostra a mensagem interna: o
+ * tratador anterior devolvia `err.message` direto para o navegador, o que nao
+ * ajuda quem le e ainda expoe detalhe de implementacao. O diagnostico vai para
+ * o log do servidor, onde serve para alguem.
+ */
+export function renderServerErrorPage() {
+  const body =
+    `<main id="conteudo" tabindex="-1"><section class="wrap map-head status-page">` +
+    `<p class="eyebrow eyebrow--green">Erro nosso</p>` +
+    `<h1 class="map-title">Alguma coisa quebrou do nosso lado</h1>` +
+    `<p class="map-sub">Não foi você. Tente de novo em alguns instantes — e, se continuar, a <a href="/ajuda">Central de ajuda</a> registra o problema.</p>` +
+    `<p class="nf-saidas"><a class="btn btn-green" href="/">Voltar para o início</a></p>` +
+    `</section></main>` +
+    siteFooter();
+  return htmlDocument({ title: "Erro no servidor · Aonde", body });
+}
+
 export function renderUnsubscribePage({ email = "" } = {}) {
   const body =
     `<main id="conteudo" tabindex="-1"><section class="wrap map-head status-page">` +
@@ -3469,6 +3523,7 @@ function pageStyles() {
   .det-hist-title{margin:0 0 10px;font-size:14px;font-weight:700;color:var(--text);}
   .det-hist svg{display:block;width:100%;height:auto;max-width:100%;}
   .det-hist-fine{margin:10px 0 0;font-size:12px;color:var(--muted);line-height:1.45;}
+  .nf-saidas{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0;}
   .unsub-form{display:flex;flex-direction:column;gap:8px;max-width:380px;margin:18px 0;}
   .unsub-lab{font-size:13px;font-weight:600;color:var(--muted);}
   .unsub-input{padding:12px 14px;border:1px solid var(--border-2);border-radius:var(--pill);background:var(--input-bg);color:var(--text);font:inherit;font-size:16px;}
