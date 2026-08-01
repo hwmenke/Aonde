@@ -137,13 +137,17 @@ export function formatRelativePublicado(isoInstant, now = new Date()) {
 
   if (diffMs < MINUTO_MS) return "agora mesmo";
 
-  const diffMin = Math.round(diffMs / MINUTO_MS);
+  // floor, nao round: arredondar para cima INVENTA tempo que nao passou. Uma
+  // oferta de 6,6 dias virava "ha mais de uma semana" (round(6.6)=7), o que e
+  // simplesmente falso. Com floor o rotulo e sempre "ja se passaram pelo menos
+  // isto", que e verdade em qualquer ponto do intervalo.
+  const diffMin = Math.floor(diffMs / MINUTO_MS);
   if (diffMin < 60) return `há ${diffMin} minuto${diffMin === 1 ? "" : "s"}`;
 
-  const diffH = Math.round(diffMs / HORA_MS);
+  const diffH = Math.floor(diffMs / HORA_MS);
   if (diffH < 24) return `há ${diffH} hora${diffH === 1 ? "" : "s"}`;
 
-  const diffDias = Math.round(diffMs / DIA_MS);
+  const diffDias = Math.floor(diffMs / DIA_MS);
   if (diffDias < 7) return `há ${diffDias} dia${diffDias === 1 ? "" : "s"}`;
 
   return "há mais de uma semana";
@@ -152,8 +156,8 @@ export function formatRelativePublicado(isoInstant, now = new Date()) {
 export const OFFERS = [
   { id: "gru-lis", origem: "GRU", destino: "LIS", cidade: "Lisboa", local: "Portugal", preco: "R$ 1.847", media: "R$ 3.540", economia: "R$ 1.693", cia: "TAP", datas: "12–24 out", tipo: "Internacional", publicadoEm: "2026-07-25T10:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "48% abaixo da média",
     thumbUrl: wiki("Belem Tower, Lisbon (8038548360).jpg"), credit: "Torre de Belém — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Lisbon",
-    texto: "Tarifa cheia São Paulo–Lisboa raramente cai abaixo de R$ 2.500 na alta. Achamos assentos em outubro por menos de R$ 1.900 ida e volta, com uma escala curta em algumas datas. Somos o melhor preço para Portugal no ano.",
-    dicas: ["Inclui 1 bagagem de mão; despachada é paga à parte na TAP", "Datas de terça e quarta são as mais baratas do período", "Preço encontrado às 9h de hoje — tarifas assim somem em horas"],
+    texto: "Tarifa cheia São Paulo–Lisboa raramente cai abaixo de R$ 2.500 na alta. Achamos assentos em outubro por menos de R$ 1.900 ida e volta, com uma escala curta em algumas datas.",
+    dicas: ["Inclui 1 bagagem de mão; despachada é paga à parte na TAP", "Datas de terça e quarta são as mais baratas do período"],
     flex: [{ d: "12–24 out", p: "R$ 1.847" }, { d: "15–27 out", p: "R$ 1.912" }, { d: "19–31 out", p: "R$ 2.045" }] },
   { id: "gru-rec", origem: "GRU", destino: "REC", cidade: "Recife", local: "Pernambuco", preco: "R$ 587", media: "R$ 1.180", economia: "R$ 593", cia: "Azul", datas: "9–16 set", tipo: "Nacional", publicadoEm: "2026-07-25T12:29:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: true, badge: "Erro de tarifa",
     thumbUrl: wiki("Marco Zero Recife.jpg"), credit: "Marco Zero, Recife — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Marco_Zero_(Recife)",

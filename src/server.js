@@ -55,6 +55,7 @@ import {
   renderCancelPage,
   renderAlertsPage,
   renderNewsletterStatusPage,
+  renderUnsubscribePage,
   renderTodayPage,
   styleAssetPath,
   pageStylesCss,
@@ -62,6 +63,7 @@ import {
 } from "./render/htmlRenderer.js";
 import { renderExitFlightPage, buildAviasalesSearchUrl } from "./render/exitFlight.js";
 import { OFFERS as CONTENT_OFFERS, GUIDES, RESULTS_ROUTE } from "./render/aondeContent.js";
+import { resolveAeroporto } from "./render/aeroportos.js";
 import { buscarVoosAoVivo } from "./flights/buscarVoos.js";
 import { pacoteDoDia } from "./daily/dailyPick.js";
 import { listRoutes } from "./store/priceHistory.js";
@@ -183,6 +185,19 @@ function readJsonBody(req) {
       if (aborted) return;
       const raw = Buffer.concat(chunks).toString("utf-8").trim();
       if (raw === "") return resolve({ ok: true, body: {} });
+
+      // Um <form method="post"> sem JavaScript manda
+      // application/x-www-form-urlencoded, nao JSON. Antes so aceitavamos JSON,
+      // entao quem estava sem JS (ou com ele quebrado) recebia
+      // 400 {"error":...} cru na tela, sem HTML e sem caminho de volta — nos
+      // tres formularios do site: newsletter, alerta de preco e descadastro.
+      const tipo = String((req.headers && req.headers["content-type"]) || "");
+      if (tipo.includes("application/x-www-form-urlencoded")) {
+        const body = {};
+        for (const [k, v] of new URLSearchParams(raw)) body[k] = v;
+        return resolve({ ok: true, body, form: true });
+      }
+
       try {
         resolve({ ok: true, body: JSON.parse(raw) });
       } catch {
@@ -267,14 +282,19 @@ function handleClick(req, res, id) {
 
 async function handleNewsletterSubscribe(req, res) {
   const parsed = await readJsonBody(req);
+  // Submit de <form> nativo (sem JS) merece HTML, nao JSON cru na tela. O JS
+  // da pagina manda JSON e continua recebendo JSON, como antes.
+  const veioDeForm = parsed.form === true;
   if (!parsed.ok) {
-    sendJson(res, 400, { error: parsed.error });
+    if (veioDeForm) sendHtml(res, 400, renderNewsletterStatusPage({ ok: false, error: parsed.error }));
+    else sendJson(res, 400, { error: parsed.error });
     return;
   }
   const { email, whatsapp, origem, destino, precoAlvoCentavos } = parsed.body || {};
   const result = subscribeNewsletter({ email, whatsapp, origem, destino, precoAlvoCentavos });
   if (!result.ok) {
-    sendJson(res, 400, { error: result.error });
+    if (veioDeForm) sendHtml(res, 400, renderNewsletterStatusPage({ ok: false, error: result.error }));
+    else sendJson(res, 400, { error: result.error });
     return;
   }
 
@@ -295,6 +315,12 @@ async function handleNewsletterSubscribe(req, res) {
   // diferenciado (nao reenviamos opt-in para quem ja confirmou — ver
   // subscriberStore.subscribe()); so a resposta publica foi uniformizada. O
   // token JAMAIS aparece na resposta publica.
+  if (veioDeForm) {
+    // Mesma mensagem uniforme do JSON (nao revela se o e-mail ja existia),
+    // so que numa pagina de verdade, com caminho de volta para o site.
+    sendHtml(res, 200, renderNewsletterStatusPage({ ok: true, pendente: true }));
+    return;
+  }
   sendJson(res, 200, { status: "ok" });
 }
 
@@ -345,14 +371,20 @@ async function handleNewsletterUnsubscribe(req, res) {
     sendJson(res, 400, { error: parsed.error });
     return;
   }
+  const veioDeForm = parsed.form === true;
   const { email } = parsed.body || {};
   const result = unsubscribeNewsletter(email);
   if (!result.ok) {
     // Unico caso de 400: input invalido (e-mail malformado).
-    sendJson(res, 400, { error: result.error });
+    if (veioDeForm) sendHtml(res, 400, renderNewsletterStatusPage({ ok: false, error: result.error }));
+    else sendJson(res, 400, { error: result.error });
     return;
   }
   // Idempotente e sem vazar existencia: sempre a mesma resposta.
+  if (veioDeForm) {
+    sendHtml(res, 200, renderNewsletterStatusPage({ ok: true, descadastrado: true }));
+    return;
+  }
   sendJson(res, 200, { ok: true, message: "Se o e-mail estava inscrito, foi descadastrado." });
 }
 
@@ -543,10 +575,22 @@ async function handleResultsHtml(res, url) {
     bebes: paxCount(url, "bebes", 0, 4, 0),
   };
   const temPax = ["adultos", "criancas", "bebes"].some((k) => url.searchParams.get(k) !== null);
+  // Aceita codigo IATA OU nome de cidade. Quando nao reconhece, guarda o que
+  // a pessoa digitou para AVISAR na pagina, em vez de trocar em silencio pelo
+  // padrao — que era o comportamento antigo: "Porto Alegre" -> "Sao Paulo"
+  // virava GRU->SAO, e "xyz" era aceito como aeroporto.
+  const origemPedida = String(oQS || "").trim();
+  const destinoPedido = String(dQS || "").trim();
+  const origemIata = resolveAeroporto(origemPedida);
+  const destinoIata = resolveAeroporto(destinoPedido);
+  const naoEntendi = [
+    origemPedida && !origemIata ? origemPedida : "",
+    destinoPedido && !destinoIata ? destinoPedido : "",
+  ].filter(Boolean);
   const rota = searched
     ? {
-        origem: extractIata(oQS) || RESULTS_ROUTE.origem,
-        destino: extractIata(dQS) || RESULTS_ROUTE.destino,
+        origem: origemIata || RESULTS_ROUTE.origem,
+        destino: destinoIata || RESULTS_ROUTE.destino,
         resumo: [periodo, temPax ? paxResumo(pax) : ""].filter(Boolean).join(" · ") || RESULTS_ROUTE.resumo,
       }
     : undefined;
@@ -574,7 +618,7 @@ async function handleResultsHtml(res, url) {
     }
   }
 
-  sendHtml(res, 200, renderResultsPage({ rota, searched, pax: temPax ? pax : null, voos, voosReais }));
+  sendHtml(res, 200, renderResultsPage({ rota, searched, pax: temPax ? pax : null, voos, voosReais, naoEntendi }));
 }
 
 // Interstitial de saida: registra o clique e resolve o link do parceiro. Um
@@ -783,8 +827,16 @@ export function createServer() {
       }
 
       if (pathname === "/api/newsletter/unsubscribe") {
+        // O link do e-mail e um GET. Antes devolvia 405 com JSON cru, embora o
+        // proprio e-mail prometesse cancelar a inscricao em um clique. Agora
+        // GET abre a pagina de confirmacao (que NAO muda estado: antivirus e
+        // provedores pre-abrem links de e-mail) e o botao faz o POST.
+        if (method === "GET") {
+          sendHtml(res, 200, renderUnsubscribePage({ email: url.searchParams.get("email") || "" }));
+          return;
+        }
         if (method !== "POST") {
-          sendJson(res, 405, { error: "Metodo nao permitido; use POST." });
+          sendJson(res, 405, { error: "Metodo nao permitido; use GET ou POST." });
           return;
         }
         if (enforceInboundRateLimit(req, res, "newsletter-unsubscribe")) return;

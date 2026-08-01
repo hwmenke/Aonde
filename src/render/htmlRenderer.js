@@ -831,14 +831,14 @@ function optimizerHtml(opt) {
     `<div class="opt-head">` +
     `<div><p class="eyebrow eyebrow--green">Otimizador de datas</p>` +
     `<h2>Quando ir e por quanto</h2></div>` +
-    `<p class="opt-sub">Monitoramos as tarifas GRU → ${escapeHtml(destName)} todos os dias e comparamos com Google Flights, Kayak e Skyscanner. O mês em verde é o mais barato do ano.</p>` +
+    `<p class="opt-sub">Referência de preço por mês para GRU → ${escapeHtml(destName)}, levantada pela nossa curadoria. O mês em verde é o mais barato do ano segundo esse levantamento — serve para escolher a época, não como cotação do dia.</p>` +
     `</div>` +
     `<div class="opt-grid-wrap">` +
     `<div class="opt-panel">` +
     `<div class="opt-panel-head"><span>Preço por mês · ida e volta</span>` +
     `<span class="opt-legend">mais barato <i class="opt-sw" style="background:#4d7c0f"></i><i class="opt-sw" style="background:#f8e3ce"></i> mais caro</span></div>` +
     `<div class="opt-ring-wrap">${ring}</div>` +
-    `<p class="opt-foot">Cada fatia é um mês; quanto mais verde, mais barato. Valores por pessoa, classe econômica, atualizados nas últimas 24h.</p>` +
+    `<p class="opt-foot">Cada fatia é um mês; quanto mais verde, mais barato. Valores por pessoa, classe econômica, de um levantamento manual — confira o preço atual no parceiro antes de decidir.</p>` +
     `</div>` +
     `<div class="opt-side">` +
     (win.label
@@ -852,7 +852,7 @@ function optimizerHtml(opt) {
     (sourcesHtml
       ? `<div class="opt-sources"><span class="opt-sources-title">Comparado com outros sites</span>` +
         `<div class="opt-sources-list">${sourcesHtml}</div>` +
-        `<p class="opt-foot opt-foot--disclaimer">Valores de referência coletados manualmente pela curadoria — podem não refletir o preço exibido agora nesses sites. Não somos afiliados a eles; a comparação é só para contexto. No Aonde o valor já inclui 12x sem juros e 5% no Pix.</p></div>`
+        `<p class="opt-foot opt-foot--disclaimer">Valores de referência coletados manualmente pela curadoria — podem não refletir o preço exibido agora nesses sites. Não somos afiliados a eles; a comparação é só para contexto.</p></div>`
       : "") +
     `</div>` +
     `</div>` +
@@ -1202,9 +1202,12 @@ function searchCardHtml() {
     `</div>` +
     `</form>` +
     `<div class="search-perks">` +
-    `<span><i></i>Em até 12x sem juros no cartão</span>` +
-    `<span><i></i>5% de desconto no Pix</span>` +
-    `<span><i></i>Atendimento humano por WhatsApp, todos os dias</span>` +
+    // Parcelamento e Pix sao condicao DO PARCEIRO, nao do Aonde — quem
+    // processa o pagamento e sempre ele. E o WhatsApp so aparece se estiver
+    // mesmo configurado (regra do topo do arquivo, linhas 58-61).
+    `<span><i></i>Parcelamento em até 12x, conforme o parceiro</span>` +
+    `<span><i></i>Desconto no Pix em boa parte dos parceiros</span>` +
+    (waHref("x") ? `<span><i></i>Atendimento humano por WhatsApp, todos os dias</span>` : "") +
     `</div>` +
     `</section>`
   );
@@ -2224,6 +2227,19 @@ export function renderResultsPage(opts = {}) {
   // fallback o servidor nao manda voos e caimos em FLIGHTS, que E exemplo.
   // Rotular exemplo como preco real seria a pior mentira possivel aqui.
   const voosReais = opts.voosReais === true && Array.isArray(opts.voos) && opts.voos.length > 0;
+  const rotuloVoos = voosReais ? "voos encontrados" : "voos de exemplo";
+  // Quando o servidor nao reconheceu o que a pessoa digitou, dizemos isso na
+  // cara em vez de mostrar outra rota como se fosse a pedida. Antes,
+  // "Porto Alegre" virava GRU sem nenhum aviso — a pessoa via voos saindo de
+  // outra cidade e nao tinha como perceber.
+  const naoEntendi = Array.isArray(opts.naoEntendi) ? opts.naoEntendi.filter(Boolean) : [];
+  const avisoRota = naoEntendi.length
+    ? `<p class="res-amostra res-amostra--erro" role="status">Não reconhecemos ` +
+      naoEntendi.map((t) => `<strong>${escapeHtml(t)}</strong>`).join(" nem ") +
+      ` como aeroporto ou cidade que atendemos, então mostramos ` +
+      `<strong>${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)}</strong> abaixo. ` +
+      `Tente o nome da cidade (ex.: Porto Alegre) ou o código de três letras (ex.: POA).</p>`
+    : "";
   const avisoPax =
     pax && (pax.criancas > 0 || pax.bebes > 0)
       ? `<p class="res-amostra res-amostra--pax">Você marcou que viaja com ${
@@ -2311,9 +2327,14 @@ export function renderResultsPage(opts = {}) {
     `<div class="res-help">Precisa de ajuda para escolher? <a href="${escapeHtml(ajudaHref("Oi! Preciso de ajuda para escolher um voo."))}"${waHref("x") ? ` target="_blank" rel="noopener"` : ""}>${waHref("x") ? "Fale no WhatsApp" : "Central de ajuda"}</a></div>` +
     `</aside>` +
     `<div class="res-list">` +
+    avisoRota +
     avisoPax +
     avisoOrigem +
-    `<div class="res-sortbar"><span data-res-count>${escapeHtml(voos.length)} ${voosReais ? "voos encontrados" : "voos de exemplo"} · ordenar por</span>${sortPills}</div>` +
+    // O rotulo vai num data-attribute porque o JS do cliente reescreve este
+    // texto a cada filtro. Antes ele cravava "voos de exemplo", e no primeiro
+    // clique em qualquer filtro o preco REAL da Amadeus era rotulado como
+    // exemplo — a correcao anterior tinha parado na camada do servidor.
+    `<div class="res-sortbar"><span data-res-count data-res-rotulo="${escapeHtml(rotuloVoos)}">${escapeHtml(voos.length)} ${escapeHtml(rotuloVoos)} · ordenar por</span>${sortPills}</div>` +
     `<div data-res-lista>${voosHtml}</div>` +
     `<p class="res-vazio" data-res-vazio hidden>Nenhum voo bate com os filtros marcados. Desmarque alguma opção ao lado para ver mais voos.</p>` +
     `<p class="res-fine">${
@@ -2462,11 +2483,55 @@ export function renderAlertsPage() {
   return htmlDocument({ title: "Gerenciar meus alertas · Aonde", body, script: enhancementScript(), canonical: "/alertas" });
 }
 
-export function renderNewsletterStatusPage({ ok, error } = {}) {
+/**
+ * Pagina de confirmacao de descadastro, aberta pelo link do e-mail (GET).
+ *
+ * Por que GET nao descadastra direto: antivirus e o proprio provedor de e-mail
+ * costumam PRE-ABRIR os links da mensagem para checar seguranca. Se o GET
+ * mudasse estado, essas visitas automaticas descadastrariam gente que nunca
+ * clicou. Entao o link abre esta pagina e o botao faz o POST.
+ *
+ * O formulario funciona sem JavaScript.
+ */
+export function renderUnsubscribePage({ email = "" } = {}) {
+  const body =
+    `<main id="conteudo" tabindex="-1"><section class="wrap map-head status-page">` +
+    `<p class="eyebrow eyebrow--green">Cancelar inscrição</p>` +
+    `<h1 class="map-title">Quer parar de receber?</h1>` +
+    `<p class="map-sub">É só confirmar abaixo. Não vamos perguntar o motivo nem pedir para você repensar.</p>` +
+    `<form method="post" action="/api/newsletter/unsubscribe" class="unsub-form">` +
+    `<label class="unsub-lab" for="unsub-email">Seu e-mail</label>` +
+    `<input class="unsub-input" id="unsub-email" name="email" type="email" required ` +
+    `value="${escapeHtml(email)}" placeholder="voce@exemplo.com">` +
+    `<button class="btn btn-green" type="submit">Confirmar cancelamento</button>` +
+    `</form>` +
+    `<p class="map-sub"><a href="/">Voltar para o site</a></p>` +
+    `</section></main>` +
+    siteFooter();
+  return htmlDocument({
+    title: "Cancelar inscrição · Aonde",
+    body,
+    script: enhancementScript(),
+    canonical: "/api/newsletter/unsubscribe",
+  });
+}
+
+export function renderNewsletterStatusPage({ ok, error, pendente, descadastrado } = {}) {
   const body =
     `<main id="conteudo" tabindex="-1"><section class="wrap map-head status-page">` +
     (ok
-      ? `<p class="eyebrow eyebrow--green">Tudo certo</p><h1 class="map-title">Inscrição confirmada!</h1>` +
+      ? descadastrado
+        ? `<p class="eyebrow eyebrow--green">Pronto</p><h1 class="map-title">Cancelamento feito</h1>` +
+          `<p class="map-sub">Se este e-mail estava inscrito, não mandamos mais nada para ele. Nenhuma pergunta, nenhum "tem certeza?".</p>` +
+          `<p><a class="btn btn-green" href="/">Voltar para o site</a></p>`
+      : pendente
+        // Inscricao RECEBIDA nao e inscricao CONFIRMADA: ainda falta a pessoa
+        // clicar no link do e-mail (double opt-in). Dizer "confirmada" aqui
+        // seria prometer o que ainda nao aconteceu.
+        ? `<p class="eyebrow eyebrow--green">Quase lá</p><h1 class="map-title">Confira seu e-mail</h1>` +
+          `<p class="map-sub">Se este for um e-mail válido, acabamos de enviar um link de confirmação. A inscrição só vale depois que você clicar nele — é assim que a gente garante que ninguém inscreve você sem querer.</p>` +
+          `<p><a class="btn btn-green" href="/ofertas">Ver ofertas de hoje →</a></p>`
+      : `<p class="eyebrow eyebrow--green">Tudo certo</p><h1 class="map-title">Inscrição confirmada!</h1>` +
         `<p class="map-sub">Pronto — você vai receber os próximos achados de passagem que saem da sua cidade. É só ficar de olho no e-mail.</p>` +
         `<p><a class="btn btn-green" href="/ofertas">Ver ofertas de hoje →</a></p>`
       : `<p class="eyebrow eyebrow--green">Ops</p><h1 class="map-title">Não foi possível confirmar</h1>` +
@@ -2790,7 +2855,12 @@ function enhancementScript() {
         art.hidden=!ok;
         if(ok)visiveis++;
       });
-      if(contador)contador.textContent=visiveis+' voos de exemplo · ordenar por';
+      if(contador){
+        // Le o rotulo que o servidor decidiu (real x exemplo). Nunca cravar
+        // aqui: com busca ao vivo isso rotulava preco real como exemplo.
+        var rot=contador.getAttribute('data-res-rotulo')||'voos';
+        contador.textContent=visiveis+' '+rot+' · ordenar por';
+      }
       if(vazio)vazio.hidden=visiveis!==0;
     }
     caixas.forEach(function(cb){cb.addEventListener('change',aplicaFiltros);});
@@ -3240,6 +3310,9 @@ function pageStyles() {
   .det-hist-title{margin:0 0 10px;font-size:14px;font-weight:700;color:var(--text);}
   .det-hist svg{display:block;width:100%;height:auto;max-width:100%;}
   .det-hist-fine{margin:10px 0 0;font-size:12px;color:var(--muted);line-height:1.45;}
+  .unsub-form{display:flex;flex-direction:column;gap:8px;max-width:380px;margin:18px 0;}
+  .unsub-lab{font-size:13px;font-weight:600;color:var(--muted);}
+  .unsub-input{padding:12px 14px;border:1px solid var(--border-2);border-radius:var(--pill);background:var(--input-bg);color:var(--text);font:inherit;font-size:16px;}
   .det-alert{background:#18181b;color:#f7f7f5;border-radius:var(--r);padding:22px;}
   .det-alert-title{margin:0 0 4px;font-size:15px;font-weight:700;}
   .det-alert p{margin:0 0 14px;font-size:13px;color:#a1a1a6;line-height:1.5;}
@@ -3479,6 +3552,7 @@ function pageStyles() {
   /* Resultados: transparencia + captura */
   .res-fine{margin-top:4px;font-size:12px;color:var(--muted-2);text-align:center;}
   .res-amostra--pax{background:#fff7ed;border-color:#fed7aa;color:#9a3412;}
+  .res-amostra--erro{background:var(--risk-bg);border:1px solid var(--risk-border);border-left-width:4px;color:var(--risk-text);}
   /* Busca ao vivo: borda verde solida e fundo mais forte, para separar na
      hora do aviso de "exemplo". Cor nao e o unico sinal — o texto muda. */
   .res-amostra--vivo{background:var(--tint);border:1px solid var(--green);border-left-width:4px;color:var(--green-2);}

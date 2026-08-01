@@ -89,6 +89,11 @@ export function getConfig() {
     // relativo nao serve: sitemap.xml, robots.txt, <link rel="canonical"> e as
     // metatags de compartilhamento (og:url/og:image). Sempre sem barra no fim.
     siteUrl: (process.env.AONDE_SITE_URL || "https://aonde.com.br").replace(/\/+$/, ""),
+    // Confiar no cabecalho X-Forwarded-For SO quando o servidor estiver mesmo
+    // atras de um proxy que o reescreve. Ligado por engano (ou por padrao),
+    // qualquer um forja um IP diferente por requisicao e o limite de taxa das
+    // rotas de escrita deixa de existir — medido: 30 POSTs, 30 aceitos.
+    trustProxy: /^(1|true|sim|yes)$/i.test(String(process.env.AONDE_TRUST_PROXY || "")),
     // Google Maps Platform — usada pelo gerador de roteiros (Places API New).
     // Ver src/guides/ e docs/PESQUISA-GOOGLE.md.
     googleMaps: {

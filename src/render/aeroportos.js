@@ -73,3 +73,54 @@ export function rotuloAeroporto(iata) {
   const cidade = cidadeDoIata(code);
   return cidade ? `${code} · ${cidade}` : code;
 }
+
+/**
+ * Resolve o que a pessoa digitou num codigo IATA conhecido.
+ *
+ * Aceita o codigo ("GRU", "gru"), o nome da cidade ("Porto Alegre",
+ * "sao paulo", "Florianopolis" sem acento) ou o nome dentro de uma frase
+ * ("Voos para Recife").
+ *
+ * Devolve null quando NAO reconhece. Isso e de proposito: antes, o servidor
+ * varria a string atras de qualquer palavra de 3 letras e caia no padrao GRU
+ * quando nao achava. Resultado medido: quem digitava "Porto Alegre -> Sao
+ * Paulo" recebia voos GRU->SAO (origem trocada em silencio), e "xyz" era
+ * aceito como aeroporto. Devolver null deixa quem chama AVISAR em vez de
+ * adivinhar.
+ */
+export function resolveAeroporto(entrada) {
+  const bruto = String(entrada || "").trim();
+  if (!bruto) return null;
+
+  const semAc = (t) =>
+    String(t)
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .trim();
+
+  // 1) codigo IATA exato e conhecido
+  const talvezCodigo = bruto.toUpperCase().replace(/[^A-Z]/g, "");
+  if (talvezCodigo.length === 3 && AEROPORTOS[talvezCodigo]) return talvezCodigo;
+
+  // 2) nome de cidade exato (sem acento, sem caixa). Uma cidade pode ter mais
+  //    de um aeroporto (GRU/CGH, GIG/SDU): fica o primeiro declarado, que e o
+  //    de maior movimento internacional.
+  const alvo = semAc(bruto);
+  for (const [iata, cidade] of Object.entries(AEROPORTOS)) {
+    if (semAc(cidade) === alvo) return iata;
+  }
+
+  // 3) nome de cidade dentro de uma frase ("passagem para Belo Horizonte").
+  //    Vai do nome mais longo para o mais curto, senao "Rio de Janeiro" seria
+  //    capturado por um "Rio" de outra cidade.
+  const porTamanho = Object.entries(AEROPORTOS).sort(
+    (a, b) => semAc(b[1]).length - semAc(a[1]).length
+  );
+  for (const [iata, cidade] of porTamanho) {
+    const nome = semAc(cidade);
+    if (nome.length >= 4 && alvo.includes(nome)) return iata;
+  }
+
+  return null;
+}
