@@ -96,7 +96,24 @@ function securityHeaders() {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "X-Frame-Options": "SAMEORIGIN",
-    "Content-Security-Policy": "object-src 'none'; base-uri 'self'; frame-ancestors 'self'",
+    // script-src/style-src explicitos: sem eles nao havia restricao NENHUMA
+    // sobre execucao de script — mais fraco que declarar 'unsafe-inline'. Hoje
+    // nao ha XSS conhecido (foi atacado com payload real e seguraram), mas isto
+    // e defesa em profundidade: se um escape falhar amanha, a CSP limita o
+    // estrago. 'unsafe-inline' e necessario porque o site serve <script> e
+    // <style> embutidos; o passo seguinte e trocar por nonce por resposta.
+    "Content-Security-Policy": [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com data:",
+      "img-src 'self' data: https:",
+      "connect-src 'self' https://maps.googleapis.com",
+      "frame-src 'none'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "frame-ancestors 'self'",
+    ].join("; "),
   };
 }
 

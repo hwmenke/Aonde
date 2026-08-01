@@ -13,7 +13,13 @@
 //     <script> independente (varios blocos JSON-LD por pagina, cada um
 //     autocontido).
 
-export const SITE_URL = "https://aonde.com.br";
+// Le a mesma fonte que alimenta canonical/og:url. Estava cravado: com
+// AONDE_SITE_URL=staging, o canonical seguia o ambiente mas TouristTrip.url,
+// Organization e BreadcrumbList continuavam apontando para producao — o dado
+// estruturado do staging anunciava as URLs do site de verdade.
+import { getConfig } from "../config.js";
+
+export const SITE_URL = getConfig().siteUrl;
 
 // Absolutiza um caminho relativo ("/guias/salvador") usando SITE_URL. URLs
 // absolutas (http/https) passam intactas. Vazio/invalido => "".

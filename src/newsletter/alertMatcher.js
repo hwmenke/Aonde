@@ -15,7 +15,7 @@
 // e-mail em claro.
 
 import path from "node:path";
-import { appendFileSync } from "node:fs";
+import { appendFileSync, readFileSync } from "node:fs";
 
 import { resolveDataDir, ensureDir } from "../store/dataDir.js";
 import { listSubscribers, hashEmail } from "./subscriberStore.js";
@@ -112,18 +112,73 @@ function queueFile() {
  * @param {Array<object>} offers ofertas no shape do offerAdapter (origem, destino, preco_centavos, id?)
  * @returns {{ok: true, queued: number, items: object[]}}
  */
-export function dispatchAlerts(offers = []) {
+/** Janela padrao de silencio por (assinante, rota): 24h. */
+export const COOLDOWN_PADRAO_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Le a fila ja gravada e devolve, por chave (assinante+rota+canal), o instante
+ * do ultimo envio. Usada para nao notificar a mesma pessoa sobre a mesma rota
+ * varias vezes no mesmo dia.
+ *
+ * A fila e a fonte da verdade porque e o unico registro persistente do que ja
+ * saiu. Fila ilegivel ou inexistente => mapa vazio: na duvida a gente NAO
+ * bloqueia um alerta legitimo (perder um aviso e pior que repetir um).
+ */
+function ultimosEnvios() {
+  const mapa = new Map();
+  try {
+    const txt = readFileSync(queueFile(), "utf-8");
+    for (const linha of txt.split("\n")) {
+      if (!linha.trim()) continue;
+      let item;
+      try {
+        item = JSON.parse(linha);
+      } catch {
+        continue; // linha corrompida nao invalida o resto da fila
+      }
+      const chave = `${item.subscriberEmailHash}|${item.offerRoute}|${item.canal}`;
+      const t = Date.parse(item.queuedAt || "");
+      if (!Number.isFinite(t)) continue;
+      const anterior = mapa.get(chave);
+      if (anterior === undefined || t > anterior) mapa.set(chave, t);
+    }
+  } catch {
+    return mapa;
+  }
+  return mapa;
+}
+
+/**
+ * Enfileira notificacoes para as ofertas que casam com alertas ativos.
+ *
+ * DEDUPLICACAO: sem ela, medido, 24 chamadas seguidas com a mesma oferta abaixo
+ * do preco-alvo geravam 24 notificacoes para o MESMO assinante. Um cron rodando
+ * mais de uma vez por dia sobre uma tarifa persistente viraria spam garantido
+ * assim que houvesse envio real. Agora cada par (assinante, rota, canal) so
+ * volta a ser notificado depois de `cooldownMs`.
+ */
+export function dispatchAlerts(offers = [], { cooldownMs = COOLDOWN_PADRAO_MS, agora = Date.now() } = {}) {
   const list = Array.isArray(offers) ? offers : [offers];
   const rules = listAlertRules();
   const subscribers = listSubscribers();
 
   const items = [];
   const lines = [];
-  const nowIso = new Date().toISOString();
+  const nowIso = new Date(agora).toISOString();
+  const enviados = ultimosEnvios();
+  let suprimidos = 0;
 
   for (const offer of list) {
     const matches = matchAlerts(offer, { rules, subscribers });
     for (const { subscriber, canal } of matches) {
+      const rota = `${String(offer.origem || "").toUpperCase()}-${String(offer.destino || "").toUpperCase()}`;
+      const chave = `${hashEmail(subscriber.email)}|${rota}|${canal}`;
+      const ultimo = enviados.get(chave);
+      if (ultimo !== undefined && agora - ultimo < cooldownMs) {
+        suprimidos++;
+        continue;
+      }
+      enviados.set(chave, agora); // conta tambem dentro da MESMA chamada
       const item = {
         queuedAt: nowIso,
         subscriberEmailHash: hashEmail(subscriber.email),
@@ -145,5 +200,5 @@ export function dispatchAlerts(offers = []) {
     appendFileSync(queueFile(), lines.join("\n") + "\n", "utf-8");
   }
 
-  return { ok: true, queued: items.length, items };
+  return { ok: true, queued: items.length, suprimidos, items };
 }

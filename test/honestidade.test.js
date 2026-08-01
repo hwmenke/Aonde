@@ -77,7 +77,7 @@ test("cada voo carrega data-stops/data-cia/data-hora coerentes com os proprios d
   ];
   const html = renderResultsPage({ voos });
 
-  const artigos = [...html.matchAll(/<article class="res-voo[^"]*" data-res-voo data-stops="(-?\d+)" data-cia="([^"]+)" data-hora="(-?\d+)">/g)];
+  const artigos = [...html.matchAll(/<article class="res-voo[^"]*" data-res-voo data-stops="(-?\d+)" data-cia="([^"]+)" data-hora="(-?\d+)"/g)];
   assert.equal(artigos.length, 3, "um artigo de voo por item, cada um com os 3 data-*");
 
   assert.equal(artigos[0][1], "0", "voo direto tem 0 paradas");

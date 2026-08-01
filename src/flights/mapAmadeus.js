@@ -16,7 +16,7 @@
 // shape esperado e simplesmente pulada — nunca derruba as demais nem lanca
 // excecao.
 
-import { formatBRL } from "../render/htmlRenderer.js";
+import { formatBRL } from "../render/texto.js";
 
 // Nomes populares (pt-BR) das companhias mais comuns nas rotas do Brasil e
 // America do Sul/Europa. Fora dessa lista, usa o nome do dicionario da

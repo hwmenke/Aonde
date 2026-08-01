@@ -101,9 +101,21 @@ test("o pacote do dia traz oferta + roteiro prontos para publicar", () => {
   }
 });
 
-test("chaveDoDia aceita Date e string", () => {
+test("chaveDoDia aceita Date e string, sempre no fuso do produto", () => {
+  // String so-dia e data de CALENDARIO: sai igual como entrou, sem conversao.
   assert.equal(chaveDoDia("2026-07-26"), "2026-07-26");
-  assert.equal(chaveDoDia(new Date(2026, 6, 5)), "2026-07-05", "zero a esquerda");
+  // Date e INSTANTE: vira o dia correspondente no Brasil. Meio-dia para nao
+  // depender do fuso em que o processo de teste roda.
+  assert.equal(chaveDoDia(new Date("2026-07-05T12:00:00-03:00")), "2026-07-05", "zero a esquerda");
+});
+
+test("o dia do robo e o dia do BRASIL, nao o do servidor", () => {
+  // ISSO ERA BUG: com o servidor em UTC, a partir de ~21h em Brasilia a pagina
+  // /hoje ja mostrava a escolha do dia seguinte, com a data rotulada errada.
+  // 2026-08-01T02:30Z ainda e 31 de julho no Brasil (UTC-3).
+  assert.equal(chaveDoDia(new Date("2026-08-01T02:30:00Z")), "2026-07-31");
+  // e o inverso: 03:30Z ja virou dia 1 la e aqui.
+  assert.equal(chaveDoDia(new Date("2026-08-01T03:30:00Z")), "2026-08-01");
 });
 
 test("a pagina /hoje renderiza os topicos e nao promete preco garantido", () => {

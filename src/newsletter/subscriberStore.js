@@ -233,7 +233,22 @@ export function unsubscribe(email) {
   const index = all.findIndex((s) => s && normalizeEmail(s.email) === normalizedEmail);
 
   if (index !== -1 && !all[index].unsubscribed_at) {
-    all[index] = { ...all[index], unsubscribed_at: new Date().toISOString() };
+    // LGPD: descadastrar apaga o dado pessoal, nao so marca uma data. Antes, o
+    // e-mail e o WhatsApp ficavam em texto puro no arquivo para sempre, sem
+    // caminho de apagamento efetivo sob pedido do titular.
+    //
+    // O registro CONTINUA existindo (sem PII) por dois motivos legitimos:
+    // o hash permite honrar a supressao sem guardar o endereco, e o id mantem
+    // as regras de alerta consistentes. O hash nao permite recuperar o e-mail.
+    const anterior = all[index];
+    all[index] = {
+      ...anterior,
+      email: "",
+      email_hash: hashEmail(anterior.email),
+      whatsapp: "",
+      unsubscribed_at: new Date().toISOString(),
+      pii_purged_at: new Date().toISOString(),
+    };
     writeAll(all);
   }
   // Se nao existe ou ja estava descadastrado: no-op silencioso (idempotente,

@@ -28,11 +28,43 @@ import { cidadeDoIata } from "../render/aeroportos.js";
  * e derrubava o robo inteiro com "Cannot destructure property 'offer'" — um cron
  * com parametro errado tirava a pagina do dia do ar.
  */
+/**
+ * Fuso do produto. O Aonde e brasileiro: "hoje" e o hoje de quem le, nao o do
+ * servidor. Sem isto, `getFullYear/getMonth/getDate` usavam o fuso do PROCESSO
+ * — rodando em UTC, a partir de ~21h em Brasilia a pagina /hoje ja mostrava a
+ * escolha do dia seguinte, com a data rotulada errada.
+ */
+const FUSO_PRODUTO = process.env.AONDE_TIMEZONE || "America/Sao_Paulo";
+
 export function chaveDoDia(date = new Date()) {
+  // "2026-07-26" ja E uma data de calendario, nao um instante: converter para
+  // fuso jogaria para o dia anterior (meia-noite UTC = 21h do dia anterior em
+  // Brasilia). So instante vira dia; dia continua dia.
+  if (typeof date === "string") {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date.trim());
+    if (m) {
+      const [, a, mes, dia] = m;
+      const valida = new Date(`${a}-${mes}-${dia}T12:00:00Z`);
+      if (!Number.isNaN(valida.getTime()) && valida.getUTCDate() === Number(dia)) {
+        return `${a}-${mes}-${dia}`;
+      }
+    }
+  }
   let d = date instanceof Date ? date : new Date(date);
   if (Number.isNaN(d.getTime())) d = new Date();
-  const p = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  try {
+    // en-CA formata como AAAA-MM-DD, que e exatamente a chave que queremos.
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: FUSO_PRODUTO,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+  } catch {
+    // Ambiente sem base de fusos (build minimo do ICU): cai no fuso local.
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  }
 }
 
 /** True quando a data e utilizavel. Serve para quem quiser AVISAR em vez de cair para hoje. */

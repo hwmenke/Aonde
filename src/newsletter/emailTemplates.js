@@ -24,7 +24,7 @@
 //   - sem urgencia falsa ("ultimas horas", "so hoje", "corra") — o tom e o do
 //     site: direto, e diz o que nao sabe.
 
-import { escapeHtml, formatBRL } from "../render/htmlRenderer.js";
+import { escapeHtml, formatBRL } from "../render/texto.js";
 import { describeAlertTarget } from "./subscriberStore.js";
 
 const COR_TEXTO = "#1f2937";

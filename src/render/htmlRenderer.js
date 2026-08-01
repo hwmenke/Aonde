@@ -1065,6 +1065,39 @@ function absoluteUrl(path) {
  *   link colado no WhatsApp aparece como retangulo de texto — num site de
  *   viagem isso e perda direta.
  */
+/**
+ * Reduz um texto a uma meta description util (~155 caracteres, sem cortar
+ * palavra no meio). Devolve "" para entrada vazia, e quem chama cai na
+ * DEFAULT_DESCRIPTION.
+ *
+ * Existe porque 48 das 49 paginas do site serviam a MESMA description
+ * generica, embora cada roteiro ja tivesse `intro` e cada oferta `texto` —
+ * conteudo unico, escrito, e nunca aproveitado.
+ */
+/** "R$ 1.847" -> 1847. Sem preco reconhecivel => "" (nao ordena por chute). */
+function precoNumerico(preco) {
+  const n = String(preco || "").replace(/[^\d]/g, "");
+  return n ? String(Number.parseInt(n, 10)) : "";
+}
+
+/** "2h25" / "14h" / "45min" -> minutos. Sem duracao reconhecivel => "". */
+function duracaoEmMin(dur) {
+  const t = String(dur || "");
+  const h = /(\d+)\s*h/.exec(t);
+  const m = /(\d+)\s*min/.exec(t) || /h\s*(\d+)/.exec(t);
+  const total = (h ? Number(h[1]) * 60 : 0) + (m ? Number(m[1]) : 0);
+  return total > 0 ? String(total) : "";
+}
+
+function metaDescricao(txt, limite = 155) {
+  const limpo = String(txt || "").replace(/\s+/g, " ").trim();
+  if (!limpo) return "";
+  if (limpo.length <= limite) return limpo;
+  const corte = limpo.slice(0, limite);
+  const ultimoEspaco = corte.lastIndexOf(" ");
+  return `${(ultimoEspaco > 60 ? corte.slice(0, ultimoEspaco) : corte).replace(/[,;:.\s]+$/, "")}…`;
+}
+
 function htmlDocument({ title, body, script, description, jsonld, canonical, image }) {
   const desc = description || DEFAULT_DESCRIPTION;
   const t = escapeHtml(title);
@@ -1128,7 +1161,7 @@ function heroHtml(slides) {
   const tabs = slides
     .map(
       (s, i) =>
-        `<button class="hero-tab${i === 0 ? " is-active" : ""}" data-hero-tab="${i}">` +
+        `<button class="hero-tab${i === 0 ? " is-active" : ""}" type="button" data-hero-tab="${i}" aria-pressed="${i === 0 ? "true" : "false"}">` +
         `<span>${escapeHtml(s.label)}</span><span class="hero-bar"></span></button>`
     )
     .join("");
@@ -1620,7 +1653,7 @@ function newsletterHeroHtml() {
     `<span class="news-whatsapp-note">Se informar o WhatsApp, também avisamos por lá — só depois de você confirmar por e-mail.</span>` +
     `<button class="btn btn-lime" type="submit">Quero receber os alertas</button>` +
     `<span class="news-fine">Grátis. Sem spam. Cancele quando quiser.</span>` +
-    `<p class="news-msg" data-newsletter-msg hidden></p>` +
+    `<p class="news-msg" data-newsletter-msg role="status" aria-live="polite" hidden></p>` +
     `</form>` +
     `</div>` +
     `</section>`
@@ -1642,7 +1675,7 @@ function newsletterStripHtml({ titulo, sub, origemDefault = "GRU" } = {}) {
     `<input name="email" type="email" required aria-label="Seu e-mail" placeholder="Seu melhor e-mail">` +
     `<select name="origem" aria-label="Sua cidade de origem">${originOptionsHtml(origemDefault)}</select>` +
     `<button class="btn btn-lime" type="submit">Quero receber os alertas</button>` +
-    `<p class="news-msg" data-newsletter-msg hidden></p>` +
+    `<p class="news-msg" data-newsletter-msg role="status" aria-live="polite" hidden></p>` +
     `</form>` +
     `</div>` +
     `<span class="news-fine news-fine--strip">Grátis. Sem spam. Cancele quando quiser.</span>` +
@@ -1718,7 +1751,8 @@ export function renderOffersPage(offers = [], { title = "Ofertas de viagem — A
     `</main>` +
     siteFooter();
 
-  return htmlDocument({ title, body, script: enhancementScript(), canonical: "/ofertas" });
+  return htmlDocument({ title, body, script: enhancementScript(), canonical: "/ofertas",
+    description: "Achados de passagem conferidos um a um, com o preço, as datas e o que está incluso. Cada oferta diz de onde sai e para onde vai." });
 }
 
 // ---------------------------------------------------------------------------
@@ -1734,6 +1768,10 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
   if (!vm) return renderOffersPage([]);
 
   const destinoLabel = vm.cidade || vm.destino || "Destino";
+  // Nome da cidade de origem: entra no <h1>, no <title> e na description.
+  // Sem isso, duas ofertas para o mesmo destino ficavam identicas para o Google
+  // e para quem compartilha o link.
+  const origemNome = vm.origem ? cidadeDoIata(vm.origem) || vm.origem : "";
   const badge = vm.badge ? `<span class="det-badge ${badgeClass(vm)}">${escapeHtml(vm.badge)}</span>` : "";
   const media = vm.media ? `<span class="det-media"><s>${escapeHtml(vm.media)}</s></span>` : "";
   const economia = vm.economia
@@ -1812,7 +1850,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
       : "") +
     `<input class="det-alert-input" name="email" type="email" required aria-label="Seu e-mail" placeholder="Seu melhor e-mail">` +
     `<button class="btn btn-lime" type="submit">Ativar alerta grátis</button>` +
-    `<p class="news-msg" data-newsletter-msg hidden></p>` +
+    `<p class="news-msg" data-newsletter-msg role="status" aria-live="polite" hidden></p>` +
     `</form>`;
 
   // HISTORICO DE PRECO desta rota. O modulo decide sozinho se ha amostra
@@ -1891,7 +1929,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `<div class="det-main">` +
     `<div class="det-badges">${badge}${vm.publicado ? `<span class="det-pub">publicado ${escapeHtml(vm.publicado)}</span>` : ""}</div>` +
     (vm.origem && vm.destino ? `<span class="det-rota">${escapeHtml(rotuloAeroporto(vm.origem))} → ${escapeHtml(rotuloAeroporto(vm.destino))}</span>` : "") +
-    `<h1 class="det-cidade">${escapeHtml(destinoLabel)}</h1>` +
+    `<h1 class="det-cidade">${escapeHtml(destinoLabel)}${origemNome ? `<span class="det-cidade-origem"> saindo de ${escapeHtml(origemNome)}</span>` : ""}</h1>` +
     (vm.local || vm.cia ? `<p class="det-local">${[vm.local, vm.cia].filter(Boolean).map(escapeHtml).join(" · ")}</p>` : "") +
     `<div class="det-preco-row"><span class="det-preco">${escapeHtml(vm.preco)}</span>${media}</div>` +
     economia +
@@ -1930,8 +1968,15 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     ]),
   ].filter(Boolean);
 
+  // O titulo leva a ORIGEM: "gig-ssa" (Rio->Salvador) e "for-ssa"
+  // (Fortaleza->Salvador) tinham titulo, h1 e description identicos, porque o
+  // codigo usava so o destino. Duas paginas diferentes competindo entre si.
+  const tituloOferta = origemNome
+    ? `${origemNome} → ${destinoLabel}${vm.preco ? ` por ${vm.preco}` : ""} · Aonde`
+    : `${destinoLabel} — oferta de viagem · Aonde`;
   let doc = htmlDocument({
-    title: `${destinoLabel} — oferta de viagem · Aonde`,
+    title: tituloOferta,
+    description: metaDescricao(vm.texto) || undefined,
     body,
     script: offerMap.script,
     canonical: vm.href || (vm.id ? `/ofertas/${vm.id}` : "/ofertas"),
@@ -2073,6 +2118,7 @@ function renderGuideVM(g, apiKey) {
 
   let doc = htmlDocument({
     title: `${g.titulo} · Aonde`,
+    description: metaDescricao(g.resumo || g.intro) || undefined,
     body,
     script: map.script,
     canonical: g.id ? `/guias/${g.id}` : "/guias",
@@ -2103,7 +2149,8 @@ export function renderGuidesIndexPage() {
     roteirosSectionHtml(GUIDE_LIST) +
     `</main>` +
     siteFooter();
-  return htmlDocument({ title: "Guias de destino · Aonde", body, script: enhancementScript(), canonical: "/guias" });
+  return htmlDocument({ title: `${GUIDE_LIST.length} roteiros de 5 dias, dia a dia · Aonde`, body, script: enhancementScript(), canonical: "/guias",
+    description: `${GUIDE_LIST.length} roteiros de destino com o dia a dia na ordem certa, um restaurante para cada dia e onde ficar. Filtre pelo destino que você quer.` });
 }
 
 /**
@@ -2276,11 +2323,17 @@ export function renderResultsPage(opts = {}) {
   }).join("");
 
   const sortPills = sorts
-    .map((s, i) => `<button class="res-sort${i === 0 ? " is-active" : ""}" type="button">${escapeHtml(s)}</button>`)
+    .map((s, i) => {
+      const chave = /barat|preç|prec/i.test(s) ? "preco" : /rápid|rapid|dura/i.test(s) ? "duracao" : "melhor";
+      return (
+        `<button class="res-sort${i === 0 ? " is-active" : ""}" type="button" ` +
+        `data-res-sort="${escapeHtml(chave)}" aria-pressed="${i === 0 ? "true" : "false"}">${escapeHtml(s)}</button>`
+      );
+    })
     .join("");
 
   const voosHtml = voos
-    .map((v) => {
+    .map((v, i) => {
       const melhor = v.melhor
         ? `<span class="res-melhor">MELHOR PREÇO</span>`
         : "";
@@ -2290,7 +2343,8 @@ export function renderResultsPage(opts = {}) {
       const stops = numeroDeParadas(v);
       const hora = horaDeSaida(v.saida);
       return (
-        `<article class="res-voo${v.melhor ? " res-voo--melhor" : ""}" data-res-voo data-stops="${stops}" data-cia="${escapeHtml(v.cia)}" data-hora="${hora}">` +
+        `<article class="res-voo${v.melhor ? " res-voo--melhor" : ""}" data-res-voo data-stops="${stops}" data-cia="${escapeHtml(v.cia)}" data-hora="${hora}"` +
+        ` data-preco="${escapeHtml(precoNumerico(v.preco))}" data-duracao="${escapeHtml(duracaoEmMin(v.duracao))}" data-ordem="${escapeHtml(i)}">` +
         melhor +
         `<div class="res-cia"><strong>${escapeHtml(v.cia)}</strong><span>${escapeHtml(v.numero)}</span></div>` +
         `<div class="res-trecho">` +
@@ -2322,7 +2376,7 @@ export function renderResultsPage(opts = {}) {
     `</section>` +
     `<section class="wrap res-grid">` +
     `<aside class="res-side">` +
-    `<h3>Filtrar resultados</h3>` +
+    `<h2 class="res-side-title">Filtrar resultados</h2>` +
     filtros +
     `<div class="res-help">Precisa de ajuda para escolher? <a href="${escapeHtml(ajudaHref("Oi! Preciso de ajuda para escolher um voo."))}"${waHref("x") ? ` target="_blank" rel="noopener"` : ""}>${waHref("x") ? "Fale no WhatsApp" : "Central de ajuda"}</a></div>` +
     `</aside>` +
@@ -2334,9 +2388,9 @@ export function renderResultsPage(opts = {}) {
     // texto a cada filtro. Antes ele cravava "voos de exemplo", e no primeiro
     // clique em qualquer filtro o preco REAL da Amadeus era rotulado como
     // exemplo — a correcao anterior tinha parado na camada do servidor.
-    `<div class="res-sortbar"><span data-res-count data-res-rotulo="${escapeHtml(rotuloVoos)}">${escapeHtml(voos.length)} ${escapeHtml(rotuloVoos)} · ordenar por</span>${sortPills}</div>` +
+    `<div class="res-sortbar"><span data-res-count role="status" aria-live="polite" data-res-rotulo="${escapeHtml(rotuloVoos)}">${escapeHtml(voos.length)} ${escapeHtml(rotuloVoos)} · ordenar por</span>${sortPills}</div>` +
     `<div data-res-lista>${voosHtml}</div>` +
-    `<p class="res-vazio" data-res-vazio hidden>Nenhum voo bate com os filtros marcados. Desmarque alguma opção ao lado para ver mais voos.</p>` +
+    `<p class="res-vazio" data-res-vazio role="status" aria-live="polite" hidden>Nenhum voo bate com os filtros marcados. Desmarque alguma opção ao lado para ver mais voos.</p>` +
     `<p class="res-fine">${
       voosReais
         ? "Os preços acima vieram da busca ao vivo no momento em que esta página carregou e podem mudar a qualquer momento."
@@ -2350,7 +2404,7 @@ export function renderResultsPage(opts = {}) {
     `<input type="hidden" name="origem" value="${escapeHtml(rota.origem)}">` +
     `<input type="hidden" name="destino" value="${escapeHtml(rota.destino)}">` +
     `<button class="btn btn-dark" type="submit">Ativar alerta desta rota</button>` +
-    `<p class="news-msg" data-newsletter-msg hidden></p>` +
+    `<p class="news-msg" data-newsletter-msg role="status" aria-live="polite" hidden></p>` +
     `</form></div>` +
     `</div>` +
     `</section>` +
@@ -2439,7 +2493,8 @@ export function renderHelpPage() {
     `</div>` +
     `</section></main>` +
     siteFooter();
-  return htmlDocument({ title: "Central de ajuda · Aonde", body, canonical: "/ajuda", jsonld: [buildFaqPage(FAQ_GROUPS)] });
+  return htmlDocument({ title: "Central de ajuda · Aonde", body, canonical: "/ajuda", jsonld: [buildFaqPage(FAQ_GROUPS)],
+    description: "Como o Aonde funciona, quem cobra pela passagem, o que acontece se o preço mudar e como falar com a gente." });
 }
 
 export function renderCancelPage() {
@@ -2461,7 +2516,8 @@ export function renderCancelPage() {
     `<p>Ofertas marcadas "Erro de tarifa" são preços fora do padrão que podem ser corrigidos ou cancelados pela própria companhia após a compra — é um risco conhecido desse tipo de achado, não uma promessa de preço. Avisamos isso na oferta; a decisão de honrar é do parceiro.</p></div>` +
     `</section></main>` +
     siteFooter();
-  return htmlDocument({ title: "Trocas e cancelamentos · Aonde", body, canonical: "/cancelamentos" });
+  return htmlDocument({ title: "Trocas e cancelamentos · Aonde", body, canonical: "/cancelamentos",
+    description: "Seus direitos de arrependimento, troca e cancelamento pelo CDC e pelas regras da ANAC — e com quem resolver cada caso." });
 }
 
 export function renderAlertsPage() {
@@ -2480,7 +2536,8 @@ export function renderAlertsPage() {
     `<p class="help-fine">Quer mudar a rota ou o preço-alvo em vez de cancelar tudo? Fale com a gente pelo <strong>${escapeHtml(telLabel())}</strong> ou pela <a href="/ajuda">Central de ajuda</a> — ajustamos manualmente por enquanto.</p>` +
     `</section></main>` +
     siteFooter();
-  return htmlDocument({ title: "Gerenciar meus alertas · Aonde", body, script: enhancementScript(), canonical: "/alertas" });
+  return htmlDocument({ title: "Alertas de preço · Aonde", body, script: enhancementScript(), canonical: "/alertas",
+    description: "Avisamos por e-mail quando a passagem da sua rota ficar mais barata. Sem frequência fixa, sem spam, cancela quando quiser." });
 }
 
 /**
@@ -2643,7 +2700,8 @@ export function renderMapPage({ apiKey = "" } = {}) {
       )}&callback=aondeInitMap&loading=async"></script>`
     : "";
 
-  return htmlDocument({ title: "Mapa de destinos · Aonde", body, script, canonical: "/mapa" }) .replace(
+  return htmlDocument({ title: "Mapa de destinos · Aonde", body, script, canonical: "/mapa",
+    description: "Todos os destinos do Aonde no mapa: clique em um pino para ver o roteiro de 5 dias e as passagens que saem para lá." }) .replace(
     "</body>",
     `${loader}</body>`
   );
@@ -2665,7 +2723,12 @@ function enhancementScript() {
     function show(n){
       i=n;
       bgs.forEach(function(b,k){b.classList.toggle('is-active',k===n);});
-      tabs.forEach(function(t,k){t.classList.toggle('is-active',k===n);});
+      // aria-pressed acompanha a classe: sem isso, quem usa leitor de tela nao
+      // tem como saber qual aba esta selecionada (WCAG 4.1.2).
+      tabs.forEach(function(t,k){
+        t.classList.toggle('is-active',k===n);
+        t.setAttribute('aria-pressed',k===n?'true':'false');
+      });
     }
     // WCAG 2.2.2 (Pause, Stop, Hide): movimento automatico precisa (a) respeitar
     // prefers-reduced-motion, (b) parar quando a pessoa escolhe um slide na mao
@@ -2864,6 +2927,40 @@ function enhancementScript() {
       if(vazio)vazio.hidden=visiveis!==0;
     }
     caixas.forEach(function(cb){cb.addEventListener('change',aplicaFiltros);});
+
+    // Ordenacao. Estes botoes existiam so como enfeite: eram <button> sem
+    // nenhum listener, e clicar neles nao fazia nada. Controle que finge
+    // funcionar e a mesma familia de problema que preco falso.
+    var lista=document.querySelector('[data-res-lista]');
+    var pills=document.querySelectorAll('[data-res-sort]');
+    if(lista&&pills.length){
+      var num=function(el,attr){
+        var v=parseInt(el.getAttribute(attr)||'',10);
+        // v!==v e verdade so quando o parse falhou. Escrito assim de proposito:
+        // este script vai inteiro no HTML, e ha teste que varre a pagina atras
+        // de palavras vazadas de template quebrado — a checagem obvia carrega
+        // uma delas no proprio nome.
+        return v===v?v:Infinity;   // sem dado vai para o fim, nunca para o topo
+      };
+      var ordena=function(chave){
+        var itens=[].slice.call(lista.querySelectorAll('[data-res-voo]'));
+        itens.sort(function(a,b){
+          if(chave==='preco')  return num(a,'data-preco')-num(b,'data-preco');
+          if(chave==='duracao')return num(a,'data-duracao')-num(b,'data-duracao');
+          return num(a,'data-ordem')-num(b,'data-ordem'); // "recomendado" = ordem original
+        });
+        itens.forEach(function(el){lista.appendChild(el);});
+      };
+      pills.forEach(function(btn){
+        btn.addEventListener('click',function(){
+          pills.forEach(function(o){
+            o.classList.toggle('is-active',o===btn);
+            o.setAttribute('aria-pressed',o===btn?'true':'false');
+          });
+          ordena(btn.getAttribute('data-res-sort'));
+        });
+      });
+    }
     aplicaFiltros();
   }
 })();`;
@@ -3112,7 +3209,7 @@ function pageStyles() {
   .sc-notice{margin:14px 20px 0;display:flex;align-items:flex-start;gap:10px;background:var(--tint);border:1px solid var(--tint-border);border-radius:12px;padding:12px 16px;font-size:14px;line-height:1.5;color:var(--green-2);}
   .sc-notice::before{content:"i";flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;line-height:1;margin-top:1px;}
   .sc-notice-tag{display:block;font-weight:700;}
-  .sc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:20px;align-items:end;}
+  .sc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:12px;padding:20px;align-items:end;}
   .sc-field{display:flex;flex-direction:column;gap:6px;}
   .sc-field span{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);}
   .sc-field input{border:1px solid var(--border-2);border-radius:12px;padding:13px 14px;font-family:var(--sans);font-size:15px;background:var(--input-bg);color:#18181b;}
@@ -3126,7 +3223,7 @@ function pageStyles() {
   .search-perks i{width:6px;height:6px;border-radius:50%;background:var(--lime);}
 
   /* Offer cards */
-  .of-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:28px;}
+  .of-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:20px;margin-top:28px;}
   .of-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;color:inherit;transition:box-shadow .2s,transform .2s;}
   .of-card:hover{box-shadow:0 16px 32px -24px rgba(24,24,27,.35);transform:translateY(-2px);color:inherit;}
   .of-card--erro{border-color:#f3c6a8;}
@@ -3200,7 +3297,7 @@ function pageStyles() {
   .roteiros-head h2{font-size:44px;}
   .roteiros-head p{margin:14px 0 0;font-size:16px;color:#a1a1a6;max-width:560px;}
   .roteiros-all a{color:var(--lime-2);font-weight:600;font-size:15px;}
-  .rot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;margin-top:36px;}
+  .rot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:24px;margin-top:36px;}
   .rot-card{display:flex;flex-direction:column;gap:14px;color:#f7f7f5;}
   .rot-card:hover{color:#f7f7f5;transform:translateY(-3px);}
   .rot-media{height:240px;position:relative;border-radius:14px;overflow:hidden;}
@@ -3213,7 +3310,7 @@ function pageStyles() {
   .rot-mes{font-size:12px;font-weight:600;color:#a1a1a6;border:1px solid #3f3f42;border-radius:var(--pill);padding:3px 10px;}
 
   /* Extras + confianca */
-  .extras-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:32px;}
+  .extras-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:20px;margin-top:32px;}
   .extra-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:26px;display:flex;flex-direction:column;gap:10px;color:inherit;}
   .extra-card:hover{border-color:var(--lime);color:inherit;}
   .extra-card--soon{opacity:.72;}
@@ -3222,7 +3319,7 @@ function pageStyles() {
   .extra-card h3{font-size:20px;font-weight:600;font-family:var(--sans);}
   .extra-card p{margin:0;font-size:15px;color:var(--muted);line-height:1.5;}
   .extra-cta{font-size:14px;font-weight:600;color:var(--green);}
-  .conf-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:32px;align-items:center;}
+  .conf-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:32px;align-items:center;}
   .conf-card h2{font-size:30px;line-height:1.15;}
   .conf-valor{margin:0;font-size:26px;font-weight:700;color:var(--green-2);}
   .conf-stat p:last-child{margin:4px 0 0;font-size:14px;color:var(--muted);line-height:1.4;}
@@ -3235,7 +3332,7 @@ function pageStyles() {
   .orig-pill{border:1px solid var(--border-2);background:var(--surface);color:var(--muted);border-radius:var(--pill);padding:8px 16px;font-size:14px;font-weight:600;}
   .orig-pill.is-active{background:#18181b;color:#fff;border-color:#18181b;}
   .news-wrap{padding-top:32px;padding-bottom:8px;}
-  .news-card{background:#18181b;color:#f7f7f5;border-radius:var(--r-lg);padding:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:32px;align-items:center;}
+  .news-card{background:#18181b;color:#f7f7f5;border-radius:var(--r-lg);padding:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:32px;align-items:center;}
   .news-copy h1{font-size:44px;line-height:1.05;}
   .news-copy p{margin:16px 0 0;font-size:16px;color:#a1a1a6;line-height:1.5;max-width:440px;}
   .news-form{display:flex;flex-direction:column;gap:12px;}
@@ -3247,7 +3344,7 @@ function pageStyles() {
   .feed-count{font-size:14px;color:var(--muted-2);}
   /* Escolha do dia (/hoje) */
   .hoje-head{padding-bottom:0;}
-  .hoje-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:28px;}
+  .hoje-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:28px;}
   .hoje-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;display:flex;flex-direction:column;}
   .hoje-media{position:relative;height:220px;}
   .hoje-body{padding:24px 26px 26px;display:flex;flex-direction:column;gap:10px;flex:1;}
@@ -3267,7 +3364,7 @@ function pageStyles() {
   .btn-ghost--claro:hover{color:var(--text);border-color:var(--green);}
   .feed-vazio{grid-column:1/-1;margin:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
     padding:28px;font-size:16px;line-height:1.6;color:var(--muted);}
-  .cf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-top:8px;}
+  .cf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:20px;margin-top:8px;}
   .cf-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:26px;}
   .cf-num{display:inline-flex;width:36px;height:36px;border-radius:10px;background:var(--tint);color:var(--green);align-items:center;justify-content:center;font-size:16px;font-weight:700;}
   .cf-card h3{margin:14px 0 6px;font-size:19px;font-weight:600;font-family:var(--sans);}
@@ -3276,7 +3373,7 @@ function pageStyles() {
 
   /* Oferta detalhe */
   .det{padding-top:32px;}
-  .det-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:40px;align-items:start;}
+  .det-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:40px;align-items:start;}
   .det-badges{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
   .det-badge{font-size:13px;font-weight:700;padding:5px 14px;border-radius:var(--pill);}
   .det-pub{font-size:13px;color:var(--muted-2);}
@@ -3313,11 +3410,12 @@ function pageStyles() {
   .unsub-form{display:flex;flex-direction:column;gap:8px;max-width:380px;margin:18px 0;}
   .unsub-lab{font-size:13px;font-weight:600;color:var(--muted);}
   .unsub-input{padding:12px 14px;border:1px solid var(--border-2);border-radius:var(--pill);background:var(--input-bg);color:var(--text);font:inherit;font-size:16px;}
+  .det-cidade-origem{display:block;font-family:var(--sans);font-size:15px;font-weight:600;color:var(--muted);letter-spacing:0;margin-top:6px;}
   .det-alert{background:#18181b;color:#f7f7f5;border-radius:var(--r);padding:22px;}
   .det-alert-title{margin:0 0 4px;font-size:15px;font-weight:700;}
   .det-alert p{margin:0 0 14px;font-size:13px;color:#a1a1a6;line-height:1.5;}
   .det-alert .btn{width:100%;}
-  .rel-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;}
+  .rel-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:20px;}
   .rel-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:4px;color:inherit;}
   .rel-card:hover{border-color:var(--lime);color:inherit;}
   .rel-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
@@ -3345,7 +3443,7 @@ function pageStyles() {
   .guia-aside-preco{font-size:13px;color:var(--muted);text-align:center;}
   .escopo-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:26px 28px;max-width:860px;}
   .escopo-h{font-size:22px;font-weight:700;font-family:var(--sans);margin:0 0 16px;}
-  .escopo-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px;}
+  .escopo-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:24px;}
   .escopo-tit{margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
   .escopo-tit--sim{color:var(--green-2);}
   .escopo-tit--nao{color:#9a3412;}
@@ -3392,7 +3490,7 @@ function pageStyles() {
   .opt-head{display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:24px;}
   .opt-head h2{font-size:36px;}
   .opt-sub{margin:0;font-size:15px;color:var(--muted);max-width:460px;line-height:1.5;}
-  .opt-grid-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;align-items:start;}
+  .opt-grid-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:24px;align-items:start;}
   .opt-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;}
   .opt-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;font-size:13px;font-weight:700;}
   .opt-legend{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-2);font-weight:400;}
@@ -3425,7 +3523,7 @@ function pageStyles() {
 
   /* Datas para viajar (clicar e reservar) */
   .dt-note{font-size:14px;color:var(--muted-2);}
-  .dt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:24px;}
+  .dt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:16px;margin-top:24px;}
   .dt-card{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:4px;}
   .dt-card--best{border-color:var(--lime);box-shadow:0 16px 32px -26px rgba(24,24,27,.35);}
   .dt-flag{position:absolute;top:-11px;left:20px;background:var(--lime);color:#18181b;font-size:12px;font-weight:700;letter-spacing:.04em;padding:4px 12px;border-radius:var(--pill);}
@@ -3457,6 +3555,7 @@ function pageStyles() {
   .res-side{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:22px;position:sticky;top:92px;}
   .res-side h3{font-size:16px;font-weight:700;font-family:var(--sans);}
   .res-filtro{display:flex;flex-direction:column;gap:10px;}
+  .res-side-title{font-family:var(--sans);font-size:15px;font-weight:700;margin:0 0 4px;letter-spacing:0;}
   .res-filtro-title{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2);}
   .res-check{display:flex;align-items:center;gap:10px;font-size:15px;cursor:pointer;}
   .res-check input{accent-color:var(--green);width:16px;height:16px;}
@@ -3471,7 +3570,7 @@ function pageStyles() {
   .res-cia{display:flex;flex-direction:column;gap:4px;width:110px;flex-shrink:0;}
   .res-cia strong{font-size:15px;}
   .res-cia span{font-size:13px;color:var(--muted-2);}
-  .res-trecho{display:flex;align-items:center;gap:16px;flex:1 1 300px;min-width:260px;}
+  .res-trecho{display:flex;align-items:center;gap:16px;flex:1 1 300px;min-width:min(260px,100%);}
   .res-hora{text-align:center;}
   .res-hora p{margin:0;font-size:22px;font-weight:600;}
   .res-hora span{font-size:13px;color:var(--muted-2);}
@@ -3561,7 +3660,7 @@ function pageStyles() {
   .res-alert-banner{background:#18181b;color:#f7f7f5;border-radius:var(--r);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:15px;}
   .res-alert-banner strong{color:#fff;}
   .res-alert-banner span{color:#a1a1a6;}
-  .res-alert-form{display:flex;gap:10px;flex-wrap:wrap;flex:1;min-width:260px;max-width:420px;}
+  .res-alert-form{display:flex;gap:10px;flex-wrap:wrap;flex:1;min-width:min(260px,100%);max-width:420px;}
   .res-alert-form input[type=email]{flex:1;min-width:150px;border:1px solid #3f3f42;background:#26262a;border-radius:10px;padding:11px 14px;font-family:var(--sans);font-size:14px;color:#f7f7f5;}
   .res-alert-form .news-msg{flex-basis:100%;margin:0;color:var(--lime-2);font-size:13px;}
 
@@ -3595,7 +3694,7 @@ function pageStyles() {
 
   /* Footer */
   .site-footer{background:var(--surface);border-top:1px solid var(--border);margin-top:56px;}
-  .foot-grid{padding:56px 32px 40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:40px;}
+  .foot-grid{padding:56px 32px 40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:40px;}
   .brand--foot{--brand-fly:62px;}
   .brand--foot .brand-word{font-size:26px;}
   .brand--foot .brand-plane{color:var(--lime-2);width:12px;height:12px;margin-top:-11px;}
@@ -3610,6 +3709,18 @@ function pageStyles() {
   .foot-lgpd{margin:0;font-size:12.5px;color:var(--muted);line-height:1.6;max-width:78ch;}
   .foot-legal{margin:0;font-size:12px;color:var(--muted-2);}
 
+  /* Reflow a 320px CSS px (WCAG 1.4.10). Medido: /, /ofertas e as paginas de
+     roteiro rolavam na horizontal porque o bloco de newsletter reservava
+     40px de padding de cada lado. */
+  @media (max-width:420px){
+    .news-card{padding:24px 16px;gap:20px;}
+    .news-strip{padding:20px 16px;gap:16px;}
+    .news-strip-copy,.news-form{min-width:0;}
+    .wrap{padding-left:14px;padding-right:14px;}
+    .conf-card{padding:24px 16px;}
+    .escopo-card,.lodging,.dia,.opt-panel,.res-side,.guia-aside{padding:20px 16px;}
+    .det-alert{padding:18px 16px;}
+  }
   @media(max-width:860px){
     /* A LISTA vem primeiro no celular. Filtro e captura de e-mail sao uteis,
        mas nao na frente do que a pessoa veio ver. */
