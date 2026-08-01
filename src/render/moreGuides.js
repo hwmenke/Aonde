@@ -68,7 +68,7 @@ export const EXTRA_GUIDES = {
         {
           "name": "Aonde",
           "price": "R$ 780",
-          "note": "12x sem juros · 5% no Pix",
+          "note": "tarifa encontrada pela nossa curadoria",
           "best": true
         },
         {
@@ -259,7 +259,7 @@ export const EXTRA_GUIDES = {
         {
           "name": "Aonde",
           "price": "R$ 850",
-          "note": "12x sem juros · 5% no Pix",
+          "note": "tarifa encontrada pela nossa curadoria",
           "best": true
         },
         {
@@ -442,7 +442,7 @@ export const EXTRA_GUIDES = {
         {
           "name": "Aonde",
           "price": "R$ 830",
-          "note": "12x sem juros · 5% no Pix",
+          "note": "tarifa encontrada pela nossa curadoria",
           "best": true
         },
         {
@@ -637,7 +637,7 @@ export const EXTRA_GUIDES = {
         {
           "name": "Aonde",
           "price": "R$ 349",
-          "note": "12x sem juros · 5% no Pix",
+          "note": "tarifa encontrada pela nossa curadoria",
           "best": true
         },
         {
@@ -824,7 +824,7 @@ export const EXTRA_GUIDES = {
         {
           "name": "Aonde",
           "price": "R$ 399",
-          "note": "12x sem juros · 5% no Pix",
+          "note": "tarifa encontrada pela nossa curadoria",
           "best": true
         },
         {
@@ -1011,7 +1011,7 @@ export const EXTRA_GUIDES = {
         {
           "name": "Aonde",
           "price": "R$ 400",
-          "note": "12x sem juros · 5% no Pix",
+          "note": "tarifa encontrada pela nossa curadoria",
           "best": true
         },
         {
@@ -1198,7 +1198,7 @@ export const EXTRA_GUIDES = {
         {
           "name": "Aonde",
           "price": "R$ 480",
-          "note": "12x sem juros · 5% no Pix",
+          "note": "tarifa encontrada pela nossa curadoria",
           "best": true
         },
         {
@@ -1373,7 +1373,7 @@ export const EXTRA_GUIDES = {
         {
           "name": "Aonde",
           "price": "R$ 400",
-          "note": "12x sem juros · 5% no Pix",
+          "note": "tarifa encontrada pela nossa curadoria",
           "best": true
         },
         {
@@ -1548,7 +1548,7 @@ export const EXTRA_GUIDES = {
         {
           "name": "Aonde",
           "price": "R$ 680",
-          "note": "12x sem juros · 5% no Pix",
+          "note": "tarifa encontrada pela nossa curadoria",
           "best": true
         },
         {
@@ -1723,7 +1723,7 @@ export const EXTRA_GUIDES = {
         {
           "name": "Aonde",
           "price": "R$ 1.980",
-          "note": "12x sem juros · 5% no Pix",
+          "note": "tarifa encontrada pela nossa curadoria",
           "best": true
         },
         {
@@ -1910,7 +1910,7 @@ export const EXTRA_GUIDES = {
         {
           "name": "Aonde",
           "price": "R$ 1.850",
-          "note": "12x sem juros · 5% no Pix",
+          "note": "tarifa encontrada pela nossa curadoria",
           "best": true
         },
         {
@@ -2089,7 +2089,7 @@ export const EXTRA_GUIDES = {
         {
           "name": "Aonde",
           "price": "R$ 1.290",
-          "note": "12x sem juros · 5% no Pix",
+          "note": "tarifa encontrada pela nossa curadoria",
           "best": true
         },
         {

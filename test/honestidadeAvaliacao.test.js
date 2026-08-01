@@ -9,6 +9,9 @@ import {
   renderHomePage,
   renderResultsPage,
   renderGuidePage,
+  renderGuidesIndexPage,
+  renderOfferPage,
+  renderOffersPage,
 } from "../src/render/htmlRenderer.js";
 import { OFFERS, GUIDES, formatRelativePublicado } from "../src/render/aondeContent.js";
 import { resolveAeroporto } from "../src/render/aeroportos.js";
@@ -160,4 +163,73 @@ test("o contador de voos do cliente le o rotulo do servidor", () => {
 
   const exemplo = renderResultsPage({ searched: true });
   assert.match(exemplo, /data-res-rotulo="voos de exemplo"/);
+});
+
+// ---------------------------------------------------------------------------
+// Segunda rodada de avaliacao — o que escapou da primeira
+// ---------------------------------------------------------------------------
+
+test("o site nunca inventa um telefone de atendimento", () => {
+  // ISSO ERA GRAVE: havia um 0800 cravado em src/config.js como padrao, e ele
+  // aparecia em toda pagina como "Atendimento ... todos os dias" mesmo sem
+  // ninguem configurar nada. Um 0800 real pertence a ALGUMA empresa — anunciar
+  // o numero de terceiro como seu atendimento manda o cliente ligar errado.
+  const paginas = [renderHomePage(), renderGuidesIndexPage(), renderResultsPage({ searched: true })];
+  for (const h of paginas) {
+    assert.doesNotMatch(h, /0800\s*942\s*0842/, "telefone cravado voltou ao HTML");
+  }
+});
+
+test("sem telefone e sem WhatsApp configurados, a home nao promete canal de voz", () => {
+  const h = renderHomePage();
+  if (!h.includes("wa.me")) {
+    // Pode oferecer a Central de ajuda (que existe), nunca um telefone.
+    assert.doesNotMatch(h, /href="tel:\d/, "link tel: sem telefone configurado");
+  }
+});
+
+test("a secao 'como funciona' descreve o que o site faz de verdade", () => {
+  // A versao anterior prometia "Robos de olho 24h", "milhares de rotas" e
+  // "media historica dos ultimos anos". Nao ha cron no projeto, o feed tem 18
+  // ofertas de curadoria manual, e a media de referencia e de 90 dias.
+  const h = renderOffersPage();
+  assert.doesNotMatch(h, /Robôs de olho 24h/i);
+  assert.doesNotMatch(h, /milhares de rotas/i);
+  assert.doesNotMatch(h, /média histórica dos últimos anos/i);
+  assert.match(h, /90 dias/, "a janela real de comparacao precisa aparecer");
+});
+
+test("condicao de pagamento e sempre atribuida ao parceiro, em toda tela", () => {
+  // Quem processa o pagamento e sempre o parceiro — o proprio FAQ do site diz
+  // isso. A home ja tinha sido corrigida numa rodada anterior; a pagina de
+  // oferta, a de resultados e a de roteiro tinham ficado para tras.
+  const telas = {
+    home: renderHomePage(),
+    oferta: renderOfferPage(OFFERS[0]),
+    resultados: renderResultsPage({ searched: true }),
+    roteiro: renderGuidePage(Object.keys(GUIDES)[0]),
+  };
+  for (const [nome, h] of Object.entries(telas)) {
+    const semEspaco = h.replace(/\s+/g, " ");
+    assert.doesNotMatch(
+      semEspaco,
+      /12x sem juros(?!.{0,80}(parceiro|conforme))/,
+      `${nome}: promete 12x sem dizer que a condicao e do parceiro`
+    );
+    assert.doesNotMatch(
+      semEspaco,
+      /todos os preços acima ganham <strong>5% de desconto/,
+      `${nome}: promete desconto de Pix que o Aonde nao controla`
+    );
+  }
+});
+
+test("a parcela por voo e apresentada como conta, nao como oferta do parceiro", () => {
+  // "12x de R$ 98" era preco dividido por 12 — aritmetica nossa — exibida como
+  // se fosse condicao oferecida, inclusive para voo real vindo da Amadeus.
+  const h = renderResultsPage({ searched: true });
+  if (/\/mês/.test(h)) {
+    assert.match(h, /se o parceiro parcelar/, "a parcela precisa vir condicionada");
+  }
+  assert.doesNotMatch(h, /<p class="res-parcela">12x de /, "parcela apresentada como oferta");
 });

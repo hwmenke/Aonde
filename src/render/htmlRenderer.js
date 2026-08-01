@@ -84,10 +84,11 @@ function waHref(text) {
   return `https://wa.me/${num}${text ? `?text=${encodeURIComponent(text)}` : ""}`;
 }
 function telLabel() {
-  return atendimento().telefone || "0800 942 0842";
+  return (atendimento().telefone || "").trim();
 }
 function telHref() {
-  return `tel:${telLabel().replace(/\D/g, "")}`;
+  const t = telLabel();
+  return t ? `tel:${t.replace(/\D/g, "")}` : "";
 }
 // Link de ajuda humana: WhatsApp real quando houver; senao a Central de ajuda.
 function ajudaHref(text) {
@@ -736,7 +737,7 @@ function travelDatesHtml(g) {
         (o.best ? `<span class="dt-flag">melhor preço</span>` : "") +
         `<span class="dt-when">${escapeHtml(o.label)}</span>` +
         `<span class="dt-price">${escapeHtml(o.price)}</span>` +
-        `<span class="dt-sub">${escapeHtml(o.sub)} · 12x sem juros</span>` +
+        `<span class="dt-sub">${escapeHtml(o.sub)}</span>` +
         `<a class="btn ${o.best ? "btn-green" : "btn-dark"} dt-cta" href="${escapeHtml(href)}">Reservar estas datas →</a>` +
         `</div>`
       );
@@ -745,7 +746,7 @@ function travelDatesHtml(g) {
   return (
     `<section class="wrap section">` +
     `<div class="section-head section-head--tight"><h2>Datas para viajar</h2>` +
-    `<span class="dt-note">Escolha uma janela e reserve — 12x sem juros ou 5% no Pix.</span></div>` +
+    `<span class="dt-note">Escolha uma janela e reserve. Parcelamento e desconto no Pix, quando houver, são condição do parceiro.</span></div>` +
     `<div class="dt-grid">${cards}</div>` +
     `</section>`
   );
@@ -899,12 +900,18 @@ function siteHeader() {
     `<div class="site-header-right">` +
     (() => {
       const wa = waHref("Oi! Vim do site do Aonde e preciso de ajuda.");
+      const tel = telLabel();
+      // Sem canal configurado, nao inventamos um: mandamos para a Central de
+      // ajuda, que existe de verdade e nao promete voz nem WhatsApp.
+      if (!wa && !tel) {
+        return `<a class="site-atend" href="/ajuda"><span>Ajuda</span><strong>Central de ajuda</strong></a>`;
+      }
       const href = wa || telHref();
       const tgt = wa ? ` target="_blank" rel="noopener"` : "";
       const label = wa ? "Atendimento · WhatsApp" : "Atendimento";
       return (
         `<a class="site-atend" href="${escapeHtml(href)}"${tgt}>` +
-        `<span>${label}</span><strong>${escapeHtml(telLabel())}</strong></a>`
+        `<span>${label}</span><strong>${escapeHtml(wa ? tel || "WhatsApp" : tel)}</strong></a>`
       );
     })() +
     // Alternador de tema: comeca neutro no servidor (nao sabemos ainda a
@@ -949,9 +956,10 @@ function siteFooter({ places, attribution } = {}) {
     `<div class="foot-col"><span class="foot-title">Atendimento</span>` +
     (() => {
       const wa = waHref("Oi! Vim do site do Aonde e preciso de ajuda.");
-      return wa
-        ? `<a href="${escapeHtml(wa)}" target="_blank" rel="noopener">WhatsApp: ${escapeHtml(telLabel())}</a>`
-        : `<a href="${telHref()}">Atendimento: ${escapeHtml(telLabel())}</a>`;
+      const tel = telLabel();
+      if (wa) return `<a href="${escapeHtml(wa)}" target="_blank" rel="noopener">WhatsApp${tel ? `: ${escapeHtml(tel)}` : ""}</a>`;
+      if (tel) return `<a href="${telHref()}">Atendimento: ${escapeHtml(tel)}</a>`;
+      return `<a href="/ajuda">Central de ajuda</a>`;
     })() +
     `<a href="/ajuda">Central de ajuda</a><a href="/cancelamentos">Trocas e cancelamentos</a></div>` +
     `</div>` +
@@ -1173,7 +1181,7 @@ function heroHtml(slides) {
     `<div class="wrap hero-in">` +
     `<p class="eyebrow eyebrow--lime">Passagens · Hotéis · Experiências</p>` +
     `<h1 class="hero-title">Aonde você quer <em>estar</em> na próxima semana?</h1>` +
-    `<p class="hero-sub">Compare voos, hotéis e experiências pelo Brasil e América do Sul — com parcelamento em até 12x e pagamento por Pix.</p>` +
+    `<p class="hero-sub">Compare voos, hotéis e experiências pelo Brasil e América do Sul. A compra acontece no site do parceiro, com as condições de pagamento dele.</p>` +
     `<div class="hero-tabs">${tabs}` +
     `<button type="button" class="hero-pause" data-hero-pause aria-pressed="false" ` +
     `aria-label="Pausar troca automática de fotos">Pausar</button>` +
@@ -1945,7 +1953,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `<p class="det-buy-preco">${escapeHtml(vm.preco)}</p>` +
     `<p class="det-buy-sub">ida e volta${vm.datas ? ` · ${escapeHtml(vm.datas)}` : ""}</p>` +
     `<a class="btn btn-green det-buy-cta" href="${escapeHtml(ctaHref)}">${ctaLabel}</a>` +
-    `<p class="det-buy-perks">Em até <strong>12x sem juros</strong> no cartão ou <strong>5% off</strong> no Pix.</p>` +
+    `<p class="det-buy-perks">Parcelamento e desconto no Pix variam conforme o parceiro — o valor final aparece no site dele, antes de você pagar.</p>` +
     `<p class="det-buy-fine">${escapeHtml(ctaFine)}</p>` +
     trustMini +
     `</div>` +
@@ -2037,7 +2045,7 @@ function renderGuideVM(g, apiKey) {
   // na escolha do dia e "R$ 399" aqui achava que o site se contradizia.
   const asidePreco = g.preco
     ? `<span class="guia-aside-preco">a partir de <strong>${escapeHtml(g.preco)}</strong> ida e volta, ` +
-      `saindo de ${escapeHtml(rotuloAeroporto("GRU"))} · 12x sem juros</span>`
+      `saindo de ${escapeHtml(rotuloAeroporto("GRU"))}</span>`
     : "";
 
   // O que este preco NAO cobre. Uma leitora planejando lua de mel com orcamento
@@ -2100,7 +2108,7 @@ function renderGuideVM(g, apiKey) {
       : "") +
     `<section class="wrap section">` +
     `<div class="guia-cta"><div><h2>${escapeHtml(g.ctaTitulo)}</h2>` +
-    `<p>Voo + hotel na mesma reserva, em até 12x sem juros ou 5% off no Pix.</p></div>` +
+    `<p>Voo + hotel na mesma reserva. As condições de pagamento são as do parceiro que vende o pacote.</p></div>` +
     `<div class="guia-cta-btns"><a class="btn btn-lime" href="${escapeHtml(guideResultsHref(g.opt))}">${escapeHtml(g.ctaVoos)}</a>` +
     `<a class="btn btn-ghost" href="/guias">Outros roteiros</a></div></div>` +
     `</section>` +
@@ -2355,7 +2363,7 @@ export function renderResultsPage(opts = {}) {
         `</div>` +
         `<div class="res-preco"><p class="res-preco-label">ida e volta, por pessoa</p>` +
         `<p class="res-preco-val">${escapeHtml(v.preco)}</p>` +
-        `<p class="res-parcela">12x de ${escapeHtml(v.parcela)}</p></div>` +
+        `<p class="res-parcela">≈ ${escapeHtml(v.parcela)}/mês se o parceiro parcelar em 12x</p></div>` +
         `<a class="btn res-sel" href="${escapeHtml(selecionarHref)}">Selecionar →</a>` +
         `</article>`
       );
@@ -2396,7 +2404,7 @@ export function renderResultsPage(opts = {}) {
         ? "Os preços acima vieram da busca ao vivo no momento em que esta página carregou e podem mudar a qualquer momento."
         : "Preços acima são exemplos."
     } Ao selecionar, você vai para o site do parceiro ver as tarifas reais e concluir a compra. O Aonde pode receber comissão, sem custo extra para você.</p>` +
-    `<div class="res-pix"><strong>Pix</strong><span>Pagando por Pix, todos os preços acima ganham <strong>5% de desconto</strong>, aplicado na hora de finalizar a compra.</span></div>` +
+    `<div class="res-pix"><strong>Pix</strong><span>Vários parceiros dão desconto no Pix, mas não todos, e o percentual é decidido por eles. O valor com desconto aparece no site do parceiro antes de você confirmar.</span></div>` +
     `<div class="res-alert-banner"><div><strong>Não fechou negócio hoje?</strong> ` +
     `<span>A gente avisa se ${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)} ficar mais barato.</span></div>` +
     `<form class="res-alert-form" data-newsletter action="/api/newsletter/subscribe" method="post">` +
@@ -2488,7 +2496,9 @@ export function renderHelpPage() {
     `<section class="wrap section help-grid">` +
     faqGroupsHtml +
     `<div class="help-group"><h2 class="det-h2">Fale com a gente</h2>` +
-    `<p>Atendimento: <strong>${escapeHtml(telLabel())}</strong>, todos os dias.</p>` +
+    (telLabel()
+      ? `<p>Atendimento: <strong>${escapeHtml(telLabel())}</strong>, todos os dias.</p>`
+      : `<p>O canal de atendimento do Aonde é esta Central de ajuda. Não temos telefone nem WhatsApp por enquanto — preferimos dizer isso a deixar você esperando numa linha que não existe.</p>`) +
     `<p class="help-fine">Atendimento sobre o Aonde (dúvidas, sugestões, problemas com o site). Para alteração/cancelamento de uma reserva já paga, o canal certo é o suporte do parceiro — ver <a href="/cancelamentos">Trocas e cancelamentos</a>.</p>` +
     `</div>` +
     `</section></main>` +

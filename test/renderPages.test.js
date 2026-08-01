@@ -71,7 +71,10 @@ test("renderOfferPage de oferta AO VIVO leva ao interstitial /saida (com trackin
   };
   const html = renderOfferPage(live, {});
   assert.ok(html.includes('href="/saida/gru-rec"'), "CTA passa pela página de saída");
-  assert.ok(html.includes("12x sem juros"), "reforço de parcelamento no buy-box");
+  // O buy-box nao afirma mais "12x sem juros" como se fosse condicao do Aonde.
+  // Quem processa o pagamento e sempre o parceiro — o proprio FAQ diz isso.
+  assert.match(html, /Parcelamento e desconto no Pix variam conforme o parceiro/, "condicao de pagamento atribuida ao parceiro");
+  assert.doesNotMatch(html, /Em até <strong>12x sem juros<\/strong>/, "nao prometer parcelamento que nao controlamos");
   assert.ok(html.includes("Você paga direto no site oficial"), "bloco de confiança perto do CTA");
 });
 
@@ -174,7 +177,12 @@ test("renderResultsPage monta a lista de voos com melhor preco e Pix", () => {
   assert.ok(html.includes("voos de exemplo"), "contador de voos");
   assert.ok(html.includes("MELHOR PREÇO"), "destaque do melhor preço");
   assert.ok(html.includes("Filtrar resultados"), "sidebar de filtros");
-  assert.ok(html.includes("5% de desconto"), "banner de Pix");
+  // O banner nao promete mais "5% de desconto" como fato: quem decide o
+  // desconto do Pix e o parceiro, nao o Aonde. O que precisa continuar la e a
+  // MENCAO ao Pix, com a ressalva de quem manda nela.
+  assert.ok(html.includes("Pix"), "banner de Pix");
+  assert.match(html, /parceiro/, "o banner precisa dizer de quem e a condicao");
+  assert.doesNotMatch(html, /todos os preços acima ganham/, "nao prometer desconto que nao controlamos");
   assert.ok(html.replace(/onerror="[^"]*"/g, "").match(/\bundefined\b/) === null, "sem undefined");
 });
 
