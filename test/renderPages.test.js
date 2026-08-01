@@ -202,7 +202,11 @@ test("renderMapPage sem chave cai para a lista clicavel de destinos", () => {
   const html = renderMapPage({ apiKey: "" });
   assert.ok(isDoc(html), "documento completo");
   assert.ok(!html.includes("maps.googleapis.com"), "nao carrega a Maps API sem chave");
-  assert.ok(html.includes("GOOGLE_MAPS_API_KEY"), "avisa como configurar a chave");
+  // A mensagem de fallback agora fala com o VISITANTE, nao com o programador:
+  // "defina GOOGLE_MAPS_API_KEY (e ative a Maps JavaScript API)" era instrucao
+  // de configuracao interna exibida para quem entrou no site para viajar.
+  assert.doesNotMatch(html, /GOOGLE_MAPS_API_KEY/, "nome de variavel de ambiente na tela do usuario");
+  assert.match(html, /mapa interativo ainda não está disponível/i, "explica a ausencia em portugues comum");
   assert.ok(/href="\/guias\/salvador"[^>]*data-dest=/.test(html), "lista destinos linkando os guias");
 });
 

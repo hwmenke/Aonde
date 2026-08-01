@@ -252,12 +252,36 @@ function placeholderDataUri(label) {
 }
 
 // <img> que cai para o placeholder data-URI se a URL externa falhar.
-function resilientImg(url, alt, label, className) {
+/**
+ * Pede ao Wikimedia Commons uma versao REDIMENSIONADA da foto.
+ *
+ * `Special:FilePath/Arquivo.jpg?width=800` devolve a imagem ja reduzida pelo
+ * proprio Commons. Sem isso o site baixa o arquivo ORIGINAL — que costuma ter
+ * varios megabytes e alguns milhares de pixels de largura — para exibir num
+ * container de 160 a 620px. Em 4G isso e a diferenca entre a foto aparecer e a
+ * pessoa desistir.
+ *
+ * URL que nao seja do Commons passa intacta (nao inventamos parametro que o
+ * outro host talvez nao entenda).
+ */
+function fotoLargura(url, largura) {
+  const u = String(url || "");
+  if (!u || !/commons\.wikimedia\.org\/wiki\/Special:FilePath\//.test(u)) return u;
+  if (/[?&]width=/.test(u)) return u;
+  return `${u}${u.includes("?") ? "&" : "?"}width=${largura}`;
+}
+
+function resilientImg(url, alt, label, className, largura = 900) {
   const dataUri = placeholderDataUri(label);
   const cls = className ? ` class="${escapeHtml(className)}"` : "";
+  const src = fotoLargura(url, largura);
+  // srcset deixa o navegador escolher: em celular baixa a versao pequena.
+  const srcset = src !== url
+    ? ` srcset="${escapeHtml(fotoLargura(url, 480))} 480w, ${escapeHtml(fotoLargura(url, 900))} 900w, ${escapeHtml(fotoLargura(url, 1400))} 1400w" sizes="(max-width:860px) 100vw, 620px"`
+    : "";
   return (
-    `<img${cls} src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" loading="lazy" ` +
-    `onerror="this.onerror=null;this.src='${dataUri}'">`
+    `<img${cls} src="${escapeHtml(src)}" alt="${escapeHtml(alt)}"${srcset} loading="lazy" decoding="async" ` +
+    `onerror="this.onerror=0;this.srcset='';this.src='${dataUri}'">`
   );
 }
 
@@ -1136,7 +1160,17 @@ ${canonicalTag}
 <meta name="twitter:description" content="${d}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<!-- Fonte carregada SEM bloquear a primeira pintura. Como <link rel=stylesheet>
+     normal, o navegador segura a tela ate o CSS do Google chegar: medido, com
+     fonts.googleapis.com lento, 12,8s de tela BRANCA. O truque do media=print
+     faz o navegador baixar sem bloquear e so aplicar quando chega; a pilha de
+     fallback (Georgia / system-ui) aparece na hora. O bloco sem-script logo
+     abaixo cobre quem esta com JavaScript desligado.
+     (Evitar escrever o nome dessa tag aqui dentro: o comentario vai para o
+     HTML e qualquer varredura por tag passa a ver uma abertura falsa.) -->
+<link rel="stylesheet" media="print" onload="this.media='all';this.onload=0"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap"></noscript>
 ${styleTag()}
 ${jsonLdTags(jsonld)}
 </head>
@@ -2696,7 +2730,7 @@ export function renderMapPage({ apiKey = "" } = {}) {
       `<section class="wrap map-grid map-grid--nokey">` +
       `<div class="map-canvas map-canvas--placeholder">` +
       `<div class="media-placeholder">${placeholderSvgMarkup("Mapa dos destinos")}</div>` +
-      `<p class="map-canvas-msg">Mapa interativo do Google — defina <code>GOOGLE_MAPS_API_KEY</code> (e ative a <em>Maps JavaScript API</em>) para navegar o mundo aqui. Enquanto isso, os destinos abaixo já abrem os roteiros.</p>` +
+      `<p class="map-canvas-msg">O mapa interativo ainda não está disponível aqui. Os destinos abaixo abrem o roteiro completo de cada lugar — e cada um deles tem link para ver a localização no Google Maps.</p>` +
       `</div>` +
       `<aside class="map-list">${listHtml}</aside>` +
       `</section>`;
@@ -2803,6 +2837,18 @@ function enhancementScript() {
     if(temaMq&&temaMq.addEventListener){
       temaMq.addEventListener('change',function(){ if(!temaSalvo())temaAplica(temaEfetivo()); });
     }
+  }
+  // Menu do celular: marca quando chegou ao fim da rolagem, para a mascara de
+  // "tem mais coisa para o lado" sumir em vez de desbotar o ultimo item.
+  var nav=document.querySelector('.site-nav');
+  if(nav){
+    var marcaFim=function(){
+      var fim=nav.scrollLeft+nav.clientWidth>=nav.scrollWidth-2;
+      if(fim)nav.setAttribute('data-fim','1');else nav.removeAttribute('data-fim');
+    };
+    nav.addEventListener('scroll',marcaFim,{passive:true});
+    window.addEventListener('resize',marcaFim);
+    marcaFim();
   }
   // Filtro de roteiros do /guias. Compara o que foi digitado (sem acento)
   // com o palheiro que o servidor ja montou em data-rot-busca. Esconde
@@ -3216,9 +3262,9 @@ function pageStyles() {
   /* Aviso "como funciona por aqui": tom informativo (verde da marca, nao
      laranja/vermelho de alerta) com um icone circular no lugar de comecar a
      frase com uma negativa — a mesma informacao, com menos susto. */
-  .sc-notice{margin:14px 20px 0;display:flex;align-items:flex-start;gap:10px;background:var(--tint);border:1px solid var(--tint-border);border-radius:12px;padding:12px 16px;font-size:14px;line-height:1.5;color:var(--green-2);}
-  .sc-notice::before{content:"i";flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;line-height:1;margin-top:1px;}
-  .sc-notice-tag{display:block;font-weight:700;}
+  .sc-notice{margin:14px 20px 0;background:var(--tint);border:1px solid var(--tint-border);border-radius:12px;padding:12px 16px 12px 44px;position:relative;font-size:14px;line-height:1.5;color:var(--green-2);}
+  .sc-notice::before{content:"i";position:absolute;left:16px;top:13px;width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;line-height:1;}
+  .sc-notice-tag{font-weight:700;}
   .sc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:12px;padding:20px;align-items:end;}
   .sc-field{display:flex;flex-direction:column;gap:6px;}
   .sc-field span{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);}
@@ -3722,6 +3768,20 @@ function pageStyles() {
   /* Reflow a 320px CSS px (WCAG 1.4.10). Medido: /, /ofertas e as paginas de
      roteiro rolavam na horizontal porque o bloco de newsletter reservava
      40px de padding de cada lado. */
+  /* Alvo de toque de 44x44 CSS px no celular (WCAG 2.5.8 / diretriz de mobile).
+     Medido: links do menu e do rodape tinham 22px de altura — metade do
+     minimo. Usa padding, nao height, para o texto continuar centrado. */
+  @media (max-width:860px){
+    .site-nav a,.foot-col a,.foot-legal a,.help-group a{min-height:44px;display:flex;align-items:center;}
+    /* Abas do carrossel e "alterar busca" sao CONTROLES, nao links dentro de
+       frase — a isencao de alvo inline da WCAG 2.5.8 nao vale para eles. */
+    .hero-tab{min-height:44px;padding-top:8px;padding-bottom:8px;}
+    .res-alterar{min-height:44px;}
+    .tema-toggle{min-height:44px;min-width:44px;justify-content:center;}
+    .site-atend{min-height:44px;}
+    .res-sort,.orig-pill,.chip{min-height:44px;display:inline-flex;align-items:center;}
+    .rot-cta,.of-cta,.dia-rest-link{min-height:44px;display:inline-flex;align-items:center;}
+  }
   @media (max-width:420px){
     .news-card{padding:24px 16px;gap:20px;}
     .news-strip{padding:20px 16px;gap:16px;}
@@ -3745,7 +3805,18 @@ function pageStyles() {
        colava a marca na borda esquerda e o "Meus alertas" na direita — duas
        personas diferentes reclamaram disso na auditoria. */
     .site-header-in{height:auto;flex-wrap:wrap;padding:10px 20px;gap:10px 16px;}
-    .site-nav{order:3;width:100%;gap:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;font-size:14px;}
+    /* O menu rola na horizontal no celular, mas nao dava NENHUMA pista disso:
+       uma pessoa na auditoria viu "Hotéis" cortado no meio da palavra e achou
+       que o site estava quebrado. A mascara desbota a borda direita enquanto
+       houver conteudo fora da tela, e some sozinha ao chegar no fim. */
+    .site-nav{order:3;width:100%;gap:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;font-size:14px;
+      scrollbar-width:none;
+      -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent 100%);
+      mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent 100%);}
+    .site-nav::-webkit-scrollbar{display:none;}
+    /* Ao chegar no fim da rolagem a mascara sai, senao o ultimo item fica
+       desbotado para sempre e parece desabilitado. */
+    .site-nav[data-fim="1"]{-webkit-mask-image:none;mask-image:none;}
     .site-nav a{white-space:nowrap;}
     /* O telefone NAO some mais no celular: a auditoria pegou um usuario de 68
        anos que rolou a home inteira procurando e "quase desistiu achando que

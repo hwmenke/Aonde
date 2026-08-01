@@ -12,6 +12,8 @@ import {
   renderGuidesIndexPage,
   renderOfferPage,
   renderOffersPage,
+  renderMapPage,
+  pageStylesCss,
 } from "../src/render/htmlRenderer.js";
 import { OFFERS, GUIDES, formatRelativePublicado } from "../src/render/aondeContent.js";
 import { resolveAeroporto } from "../src/render/aeroportos.js";
@@ -232,4 +234,62 @@ test("a parcela por voo e apresentada como conta, nao como oferta do parceiro", 
     assert.match(h, /se o parceiro parcelar/, "a parcela precisa vir condicionada");
   }
   assert.doesNotMatch(h, /<p class="res-parcela">12x de /, "parcela apresentada como oferta");
+});
+
+// ---------------------------------------------------------------------------
+// Layout que quebra o texto — achado por inspecao visual, nao por teste
+// ---------------------------------------------------------------------------
+
+test("paragrafo com texto corrido nunca usa display:flex", () => {
+  // BUG REAL, na primeira dobra da home: `.sc-notice` era um <p> com
+  // display:flex. Cada trecho de texto solto e cada <strong> viravam ITEM
+  // FLEX, e a frase se quebrava em colunas verticais ilegiveis — medido no
+  // navegador: 4 pedacos lado a lado, 446px de altura no celular. Nenhum
+  // teste pegava porque o HTML estava correto; so o CSS estava errado.
+  const css = pageStylesCss();
+  const regra = /\.sc-notice\{([^}]*)\}/.exec(css);
+  assert.ok(regra, "regra .sc-notice sumiu");
+  assert.doesNotMatch(regra[1], /display:\s*flex/, ".sc-notice voltou a ser flex — o texto quebra");
+});
+
+test("a pagina de mapa sem chave fala com o visitante, nao com o programador", () => {
+  // A mensagem de fallback mandava "defina GOOGLE_MAPS_API_KEY (e ative a
+  // Maps JavaScript API)" — instrucao de configuracao interna exibida para
+  // quem entrou para viajar.
+  const h = renderMapPage();
+  if (!h.includes("maps.googleapis.com/maps/api/js")) {
+    assert.doesNotMatch(h, /GOOGLE_MAPS_API_KEY/, "nome de variavel de ambiente na tela do usuario");
+    assert.doesNotMatch(h, /Maps JavaScript API/, "instrucao de console do Google na tela do usuario");
+  }
+});
+
+test("a fonte externa nunca bloqueia a primeira pintura", () => {
+  // MEDIDO: com fonts.googleapis.com lento, o <link rel=stylesheet> comum
+  // segurava a tela BRANCA por 12,8s. Com media=print + onload o texto
+  // aparece em ~160ms na pilha de fallback.
+  const h = renderHomePage();
+  // O <link> dentro de <noscript> so vale quando nao ha JS — e ai nao existe
+  // como carregar de forma assincrona mesmo. Ele nao conta como bloqueante.
+  const semNoscript = h.replace(/<noscript>[\s\S]*?<\/noscript>/g, "");
+  const links = [...semNoscript.matchAll(/<link[^>]*fonts\.googleapis\.com[^>]*rel="stylesheet"[^>]*>|<link[^>]*rel="stylesheet"[^>]*fonts\.googleapis\.com[^>]*>/g)].map((m) => m[0]);
+  assert.ok(links.length > 0, "sem link de fonte");
+  const bloqueantes = links.filter(
+    (l) => /rel="stylesheet"/.test(l) && !/media="print"/.test(l) && !/onload=/.test(l)
+  );
+  assert.deepEqual(bloqueantes, [], "link de fonte bloqueando a renderizacao");
+  assert.match(h, /<noscript>[^<]*<link[^>]*fonts\.googleapis/, "sem fallback para quem esta sem JS");
+});
+
+test("as fotos do Commons sao pedidas redimensionadas", () => {
+  // Sem ?width=, o site baixa o arquivo ORIGINAL (varios MB, milhares de px)
+  // para exibir num container de 160-620px. Em 4G isso decide se a foto
+  // aparece ou se a pessoa desiste.
+  const h = renderOffersPage();
+  const imgs = [...h.matchAll(/<img[^>]*commons\.wikimedia\.org[^>]*>/g)].map((m) => m[0]);
+  assert.ok(imgs.length > 0, "nenhuma foto do Commons na pagina");
+  for (const img of imgs) {
+    const src = (/src="([^"]+)"/.exec(img) || [])[1] || "";
+    assert.match(src, /[?&]width=\d+/, `foto sem largura pedida: ${src.slice(0, 80)}`);
+    assert.match(img, /srcset="/, "sem srcset: o celular baixa a versao grande");
+  }
 });

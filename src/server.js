@@ -36,6 +36,7 @@
 //     "javascript:") sao rejeitados com 409.
 
 import http from "node:http";
+import { gzipSync, brotliCompressSync } from "node:zlib";
 import path from "node:path";
 import { appendFileSync } from "node:fs";
 
@@ -130,25 +131,52 @@ function externalizeStyles(html) {
   return html.replace(STYLE_TAG_RE, `<link rel="stylesheet" href="${styleAssetPath()}">`);
 }
 
+/**
+ * Compressao de resposta. HTML e CSS deste site sao texto puro e comprimem
+ * MUITO bem; sem isto cada visita em 4G baixa varias vezes mais bytes do que
+ * precisa. Escolhe brotli quando o navegador aceita (melhor taxa), senao gzip,
+ * senao manda cru.
+ *
+ * Sincrono de proposito: as respostas aqui sao pequenas (dezenas de KB) e o
+ * caminho assincrono complicaria o Content-Length, que varios testes conferem.
+ */
+function comprimir(res, corpo) {
+  const aceita = String((res && res.aceitaEncoding) || "");
+  const buf = Buffer.isBuffer(corpo) ? corpo : Buffer.from(corpo, "utf-8");
+  // Abaixo de ~1 KB o cabecalho de compressao custa mais do que economiza.
+  if (buf.length < 1024) return { buf, encoding: null };
+  try {
+    if (/\bbr\b/.test(aceita)) return { buf: brotliCompressSync(buf), encoding: "br" };
+    if (/\bgzip\b/.test(aceita)) return { buf: gzipSync(buf), encoding: "gzip" };
+  } catch {
+    // Falha de compressao nunca pode derrubar a resposta: manda cru.
+  }
+  return { buf, encoding: null };
+}
+
 function sendHtml(res, status, rawHtml) {
   const html = externalizeStyles(rawHtml);
+  const { buf, encoding } = comprimir(res, html);
   res.writeHead(status, {
     "Content-Type": "text/html; charset=utf-8",
-    "Content-Length": Buffer.byteLength(html),
+    "Content-Length": buf.length,
+    ...(encoding ? { "Content-Encoding": encoding, Vary: "Accept-Encoding" } : {}),
     ...securityHeaders(),
     ...corsHeaders(),
   });
-  res.end(html);
+  res.end(buf);
 }
 
 function sendText(res, status, text, contentType) {
+  const { buf, encoding } = comprimir(res, text);
   res.writeHead(status, {
     "Content-Type": contentType || "text/plain; charset=utf-8",
-    "Content-Length": Buffer.byteLength(text),
+    "Content-Length": buf.length,
+    ...(encoding ? { "Content-Encoding": encoding, Vary: "Accept-Encoding" } : {}),
     ...securityHeaders(),
     ...corsHeaders(),
   });
-  res.end(text);
+  res.end(buf);
 }
 
 function sendJson(res, status, payload, extraHeaders) {
@@ -727,6 +755,9 @@ export function createServer() {
   }
 
   return http.createServer(async (req, res) => {
+    // Anotado aqui para que sendHtml/sendText possam comprimir sem que os 27
+    // pontos de chamada precisem carregar `req` adiante.
+    res.aceitaEncoding = String((req.headers && req.headers["accept-encoding"]) || "");
     try {
       const url = new URL(req.url, "http://localhost");
       const pathname = url.pathname.replace(/\/+$/, "") || "/";
