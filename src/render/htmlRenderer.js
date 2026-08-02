@@ -41,6 +41,7 @@ import {
 import { escapeHtml, formatBRL, semAcento } from "./texto.js";
 import { getRouteSeries } from "../store/priceHistory.js";
 import { renderRouteSparkline } from "./sparkline.js";
+import { preparativosDoGuia, FONTES } from "./preparativos.js";
 import { createHash } from "node:crypto";
 
 import { getConfig } from "../config.js";
@@ -725,6 +726,60 @@ function guideBaseArea(g) {
   const m = (g.meta || []).find((x) => /base/i.test(x.k));
   return m ? m.v : "";
 }
+/**
+ * "Antes de viajar": documento, moeda, tomada, saude e seguro.
+ *
+ * Duas rodadas de avaliacao com pessoas simuladas apontaram a mesma falta, de
+ * forma independente — quem vai para fora pela primeira vez nao achava nada
+ * disso no site. Nao e enfeite: e a informacao que decide se a pessoa embarca.
+ *
+ * Mostra a DATA em que foi conferido e o link da fonte oficial, porque regra
+ * de fronteira muda e o site nao tem como garantir que esta atual. Some
+ * inteiro quando nao ha nada especifico a dizer (ver preparativosDoGuia).
+ */
+function preparativosHtml(g) {
+  const p = preparativosDoGuia(g);
+  if (!p) return "";
+  const linha = (rotulo, valor, nota) =>
+    valor
+      ? `<div class="prep-item"><span class="prep-rotulo">${escapeHtml(rotulo)}</span>` +
+        `<p class="prep-valor">${escapeHtml(valor)}</p>` +
+        (nota ? `<p class="prep-nota">${escapeHtml(nota)}</p>` : "") +
+        `</div>`
+      : "";
+  const dataLegivel = (() => {
+    const d = new Date(`${p.conferidoEm}T12:00:00Z`);
+    return Number.isNaN(d.getTime())
+      ? p.conferidoEm
+      : d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  })();
+  return (
+    `<section class="wrap section prep" id="antes-de-viajar">` +
+    `<h2 class="det-h2">Antes de viajar</h2>` +
+    `<p class="prep-sub">${
+      p.internacional
+        ? `O que um brasileiro precisa para entrar ${escapeHtml(p.pais === "Brasil" ? "aqui" : `na ${p.pais}`.replace("na Uruguai", "no Uruguai").replace("na Peru", "no Peru").replace("na Chile", "no Chile"))}.`
+        : "O que vale saber antes de fechar a viagem."
+    }</p>` +
+    `<div class="prep-grid">` +
+    linha("Documento", p.documento, p.documentoAtencao) +
+    linha("Moeda", p.moeda, p.moedaNota) +
+    linha("Tomada", p.tomada, p.voltagem ? `Voltagem: ${p.voltagem}.` : "") +
+    linha("Vacina", p.vacina, p.saudeAtencao) +
+    (!p.vacina && p.saudeAtencao ? linha("Saúde", p.saudeAtencao, "") : "") +
+    linha("Seguro viagem", p.seguro, "") +
+    linha("Taxas do destino", p.taxa, "") +
+    `</div>` +
+    `<p class="prep-fonte">Informação escrita em ${escapeHtml(dataLegivel)}. ` +
+    `Regra de fronteira e de vacina muda — confirme no que manda de verdade: ` +
+    `<a href="${escapeHtml(FONTES.documento.url)}" target="_blank" rel="noopener">${escapeHtml(FONTES.documento.nome)}</a>, ` +
+    `<a href="${escapeHtml(FONTES.saude.url)}" target="_blank" rel="noopener">${escapeHtml(FONTES.saude.nome)}</a> e ` +
+    `<a href="${escapeHtml(FONTES.consular.url)}" target="_blank" rel="noopener">${escapeHtml(FONTES.consular.nome)}</a>. ` +
+    `O que está aqui vale para cidadão brasileiro; estrangeiro residente no Brasil segue outra regra.</p>` +
+    `</section>`
+  );
+}
+
 function lodgingHtml(g) {
   const cidade = g.breadcrumb || g.titulo || "seu destino";
   const base = guideBaseArea(g);
@@ -2132,6 +2187,7 @@ function renderGuideVM(g, apiKey) {
     `</section>` +
     escopoPreco +
     (g.id ? lodgingHtml(g) : "") +
+    preparativosHtml(g) +
     optimizerHtml(g.opt) +
     travelDatesHtml(g) +
     (g.id
@@ -3523,6 +3579,14 @@ function pageStyles() {
   .det-hist-title{margin:0 0 10px;font-size:14px;font-weight:700;color:var(--text);}
   .det-hist svg{display:block;width:100%;height:auto;max-width:100%;}
   .det-hist-fine{margin:10px 0 0;font-size:12px;color:var(--muted);line-height:1.45;}
+  .prep{scroll-margin-top:90px;}
+  .prep-sub{margin:0 0 18px;font-size:16px;color:var(--muted);max-width:70ch;}
+  .prep-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:16px;}
+  .prep-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;}
+  .prep-rotulo{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green-2);margin-bottom:8px;}
+  .prep-valor{margin:0;font-size:15px;line-height:1.55;color:var(--text);}
+  .prep-nota{margin:10px 0 0;font-size:13.5px;line-height:1.5;color:var(--muted);border-left:3px solid var(--tint-border);padding-left:10px;}
+  .prep-fonte{margin:16px 0 0;font-size:13px;line-height:1.6;color:var(--muted);max-width:80ch;}
   .nf-saidas{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0;}
   .unsub-form{display:flex;flex-direction:column;gap:8px;max-width:380px;margin:18px 0;}
   .unsub-lab{font-size:13px;font-weight:600;color:var(--muted);}
