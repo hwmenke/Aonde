@@ -89,6 +89,11 @@ export function getConfig() {
     // relativo nao serve: sitemap.xml, robots.txt, <link rel="canonical"> e as
     // metatags de compartilhamento (og:url/og:image). Sempre sem barra no fim.
     siteUrl: (process.env.AONDE_SITE_URL || "https://aonde.com.br").replace(/\/+$/, ""),
+    // Confiar no cabecalho X-Forwarded-For SO quando o servidor estiver mesmo
+    // atras de um proxy que o reescreve. Ligado por engano (ou por padrao),
+    // qualquer um forja um IP diferente por requisicao e o limite de taxa das
+    // rotas de escrita deixa de existir — medido: 30 POSTs, 30 aceitos.
+    trustProxy: /^(1|true|sim|yes)$/i.test(String(process.env.AONDE_TRUST_PROXY || "")),
     // Google Maps Platform — usada pelo gerador de roteiros (Places API New).
     // Ver src/guides/ e docs/PESQUISA-GOOGLE.md.
     googleMaps: {
@@ -100,7 +105,13 @@ export function getConfig() {
     // NUNCA rotular o 0800 como WhatsApp — 0800 e linha fixa e nao recebe.
     atendimento: {
       whatsapp: (process.env.AONDE_WHATSAPP || "").replace(/\D/g, ""),
-      telefone: process.env.AONDE_TELEFONE || "0800 942 0842",
+      // SEM PADRAO DE PROPOSITO. Havia um 0800 cravado aqui que aparecia em
+      // toda pagina como "Atendimento ... todos os dias" mesmo sem ninguem
+      // configurar nada. Pior que a promessa vazia de WhatsApp (ja corrigida):
+      // um 0800 real pertence a ALGUMA empresa, e anunciar o numero de um
+      // terceiro como seu atendimento manda o cliente ligar para a linha
+      // errada. Sem AONDE_TELEFONE, o site simplesmente nao oferece telefone.
+      telefone: process.env.AONDE_TELEFONE || "",
     },
     // Amadeus Self-Service — Flight Price Analysis API (preco tipico de rota).
     // Ver src/partners/amadeus.js e docs/PESQUISA-PARCEIROS.md (secao Amadeus).

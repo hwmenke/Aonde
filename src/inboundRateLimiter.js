@@ -39,6 +39,8 @@
 // requisicao (falha aberta) — nunca deve ser a causa de o processo cair ou de
 // trafego legitimo ser bloqueado por um bug.
 
+import { getConfig } from "./config.js";
+
 const DEFAULT_WINDOW_MS = 60_000;
 const DEFAULT_MAX = 20;
 
@@ -61,7 +63,11 @@ function isDisabled() {
  */
 export function clientIp(req) {
   try {
-    const fwd = req && req.headers && req.headers["x-forwarded-for"];
+    // X-Forwarded-For e escrito pelo CLIENTE quando nao ha proxy na frente.
+    // Confiar nele sempre tornava o limite de taxa inutil: bastava mandar um
+    // IP diferente por requisicao. Agora so vale quando AONDE_TRUST_PROXY diz
+    // explicitamente que existe um proxy reescrevendo o cabecalho.
+    const fwd = getConfig().trustProxy && req && req.headers && req.headers["x-forwarded-for"];
     if (typeof fwd === "string" && fwd.trim() !== "") {
       const first = fwd.split(",")[0].trim();
       if (first) return first;

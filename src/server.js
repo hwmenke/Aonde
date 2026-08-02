@@ -36,6 +36,7 @@
 //     "javascript:") sao rejeitados com 409.
 
 import http from "node:http";
+import { gzipSync, brotliCompressSync } from "node:zlib";
 import path from "node:path";
 import { appendFileSync } from "node:fs";
 
@@ -55,6 +56,9 @@ import {
   renderCancelPage,
   renderAlertsPage,
   renderNewsletterStatusPage,
+  renderUnsubscribePage,
+  renderNotFoundPage,
+  renderServerErrorPage,
   renderTodayPage,
   styleAssetPath,
   pageStylesCss,
@@ -62,6 +66,7 @@ import {
 } from "./render/htmlRenderer.js";
 import { renderExitFlightPage, buildAviasalesSearchUrl } from "./render/exitFlight.js";
 import { OFFERS as CONTENT_OFFERS, GUIDES, RESULTS_ROUTE } from "./render/aondeContent.js";
+import { resolveAeroporto } from "./render/aeroportos.js";
 import { buscarVoosAoVivo } from "./flights/buscarVoos.js";
 import { pacoteDoDia } from "./daily/dailyPick.js";
 import { listRoutes } from "./store/priceHistory.js";
@@ -86,15 +91,33 @@ function corsHeaders() {
   };
 }
 
-// Headers de seguranca aplicados a TODA resposta. O CSP e conservador de
-// proposito: nao usa `default-src` (nao quebra fontes/Maps/imagens externas),
-// so bloqueia plugins, sequestro de <base> e enquadramento (clickjacking).
+// Headers de seguranca aplicados a TODA resposta, inclusive 404 e 500.
+// A CSP declara default-src e libera explicitamente so o que o site usa
+// (fontes do Google, Maps, imagens https). 'unsafe-inline' segue necessario
+// porque ha <script>/<style> embutidos — trocar por nonce e o proximo passo.
 function securityHeaders() {
   return {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "X-Frame-Options": "SAMEORIGIN",
-    "Content-Security-Policy": "object-src 'none'; base-uri 'self'; frame-ancestors 'self'",
+    // script-src/style-src explicitos: sem eles nao havia restricao NENHUMA
+    // sobre execucao de script — mais fraco que declarar 'unsafe-inline'. Hoje
+    // nao ha XSS conhecido (foi atacado com payload real e seguraram), mas isto
+    // e defesa em profundidade: se um escape falhar amanha, a CSP limita o
+    // estrago. 'unsafe-inline' e necessario porque o site serve <script> e
+    // <style> embutidos; o passo seguinte e trocar por nonce por resposta.
+    "Content-Security-Policy": [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com data:",
+      "img-src 'self' data: https:",
+      "connect-src 'self' https://maps.googleapis.com",
+      "frame-src 'none'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "frame-ancestors 'self'",
+    ].join("; "),
   };
 }
 
@@ -111,25 +134,62 @@ function externalizeStyles(html) {
   return html.replace(STYLE_TAG_RE, `<link rel="stylesheet" href="${styleAssetPath()}">`);
 }
 
+/**
+ * Verdadeiro quando quem pediu foi um NAVEGADOR navegando (aceita text/html),
+ * e o caminho nao e de API. Serve para decidir entre pagina e JSON nos erros.
+ */
+function querHtml(req, pathname) {
+  if (typeof pathname === "string" && pathname.startsWith("/api/")) return false;
+  const aceita = String((req && req.headers && req.headers.accept) || "");
+  return aceita.includes("text/html");
+}
+
+/**
+ * Compressao de resposta. HTML e CSS deste site sao texto puro e comprimem
+ * MUITO bem; sem isto cada visita em 4G baixa varias vezes mais bytes do que
+ * precisa. Escolhe brotli quando o navegador aceita (melhor taxa), senao gzip,
+ * senao manda cru.
+ *
+ * Sincrono de proposito: as respostas aqui sao pequenas (dezenas de KB) e o
+ * caminho assincrono complicaria o Content-Length, que varios testes conferem.
+ */
+function comprimir(res, corpo) {
+  const aceita = String((res && res.aceitaEncoding) || "");
+  const buf = Buffer.isBuffer(corpo) ? corpo : Buffer.from(corpo, "utf-8");
+  // Abaixo de ~1 KB o cabecalho de compressao custa mais do que economiza.
+  if (buf.length < 1024) return { buf, encoding: null };
+  try {
+    if (/\bbr\b/.test(aceita)) return { buf: brotliCompressSync(buf), encoding: "br" };
+    if (/\bgzip\b/.test(aceita)) return { buf: gzipSync(buf), encoding: "gzip" };
+  } catch {
+    // Falha de compressao nunca pode derrubar a resposta: manda cru.
+  }
+  return { buf, encoding: null };
+}
+
 function sendHtml(res, status, rawHtml) {
   const html = externalizeStyles(rawHtml);
+  const { buf, encoding } = comprimir(res, html);
   res.writeHead(status, {
     "Content-Type": "text/html; charset=utf-8",
-    "Content-Length": Buffer.byteLength(html),
+    "Content-Length": buf.length,
+    ...(encoding ? { "Content-Encoding": encoding, Vary: "Accept-Encoding" } : {}),
     ...securityHeaders(),
     ...corsHeaders(),
   });
-  res.end(html);
+  res.end(buf);
 }
 
 function sendText(res, status, text, contentType) {
+  const { buf, encoding } = comprimir(res, text);
   res.writeHead(status, {
     "Content-Type": contentType || "text/plain; charset=utf-8",
-    "Content-Length": Buffer.byteLength(text),
+    "Content-Length": buf.length,
+    ...(encoding ? { "Content-Encoding": encoding, Vary: "Accept-Encoding" } : {}),
     ...securityHeaders(),
     ...corsHeaders(),
   });
-  res.end(text);
+  res.end(buf);
 }
 
 function sendJson(res, status, payload, extraHeaders) {
@@ -183,6 +243,19 @@ function readJsonBody(req) {
       if (aborted) return;
       const raw = Buffer.concat(chunks).toString("utf-8").trim();
       if (raw === "") return resolve({ ok: true, body: {} });
+
+      // Um <form method="post"> sem JavaScript manda
+      // application/x-www-form-urlencoded, nao JSON. Antes so aceitavamos JSON,
+      // entao quem estava sem JS (ou com ele quebrado) recebia
+      // 400 {"error":...} cru na tela, sem HTML e sem caminho de volta — nos
+      // tres formularios do site: newsletter, alerta de preco e descadastro.
+      const tipo = String((req.headers && req.headers["content-type"]) || "");
+      if (tipo.includes("application/x-www-form-urlencoded")) {
+        const body = {};
+        for (const [k, v] of new URLSearchParams(raw)) body[k] = v;
+        return resolve({ ok: true, body, form: true });
+      }
+
       try {
         resolve({ ok: true, body: JSON.parse(raw) });
       } catch {
@@ -267,14 +340,19 @@ function handleClick(req, res, id) {
 
 async function handleNewsletterSubscribe(req, res) {
   const parsed = await readJsonBody(req);
+  // Submit de <form> nativo (sem JS) merece HTML, nao JSON cru na tela. O JS
+  // da pagina manda JSON e continua recebendo JSON, como antes.
+  const veioDeForm = parsed.form === true;
   if (!parsed.ok) {
-    sendJson(res, 400, { error: parsed.error });
+    if (veioDeForm) sendHtml(res, 400, renderNewsletterStatusPage({ ok: false, error: parsed.error }));
+    else sendJson(res, 400, { error: parsed.error });
     return;
   }
   const { email, whatsapp, origem, destino, precoAlvoCentavos } = parsed.body || {};
   const result = subscribeNewsletter({ email, whatsapp, origem, destino, precoAlvoCentavos });
   if (!result.ok) {
-    sendJson(res, 400, { error: result.error });
+    if (veioDeForm) sendHtml(res, 400, renderNewsletterStatusPage({ ok: false, error: result.error }));
+    else sendJson(res, 400, { error: result.error });
     return;
   }
 
@@ -295,6 +373,12 @@ async function handleNewsletterSubscribe(req, res) {
   // diferenciado (nao reenviamos opt-in para quem ja confirmou — ver
   // subscriberStore.subscribe()); so a resposta publica foi uniformizada. O
   // token JAMAIS aparece na resposta publica.
+  if (veioDeForm) {
+    // Mesma mensagem uniforme do JSON (nao revela se o e-mail ja existia),
+    // so que numa pagina de verdade, com caminho de volta para o site.
+    sendHtml(res, 200, renderNewsletterStatusPage({ ok: true, pendente: true }));
+    return;
+  }
   sendJson(res, 200, { status: "ok" });
 }
 
@@ -345,14 +429,20 @@ async function handleNewsletterUnsubscribe(req, res) {
     sendJson(res, 400, { error: parsed.error });
     return;
   }
+  const veioDeForm = parsed.form === true;
   const { email } = parsed.body || {};
   const result = unsubscribeNewsletter(email);
   if (!result.ok) {
     // Unico caso de 400: input invalido (e-mail malformado).
-    sendJson(res, 400, { error: result.error });
+    if (veioDeForm) sendHtml(res, 400, renderNewsletterStatusPage({ ok: false, error: result.error }));
+    else sendJson(res, 400, { error: result.error });
     return;
   }
   // Idempotente e sem vazar existencia: sempre a mesma resposta.
+  if (veioDeForm) {
+    sendHtml(res, 200, renderNewsletterStatusPage({ ok: true, descadastrado: true }));
+    return;
+  }
   sendJson(res, 200, { ok: true, message: "Se o e-mail estava inscrito, foi descadastrado." });
 }
 
@@ -543,10 +633,22 @@ async function handleResultsHtml(res, url) {
     bebes: paxCount(url, "bebes", 0, 4, 0),
   };
   const temPax = ["adultos", "criancas", "bebes"].some((k) => url.searchParams.get(k) !== null);
+  // Aceita codigo IATA OU nome de cidade. Quando nao reconhece, guarda o que
+  // a pessoa digitou para AVISAR na pagina, em vez de trocar em silencio pelo
+  // padrao — que era o comportamento antigo: "Porto Alegre" -> "Sao Paulo"
+  // virava GRU->SAO, e "xyz" era aceito como aeroporto.
+  const origemPedida = String(oQS || "").trim();
+  const destinoPedido = String(dQS || "").trim();
+  const origemIata = resolveAeroporto(origemPedida);
+  const destinoIata = resolveAeroporto(destinoPedido);
+  const naoEntendi = [
+    origemPedida && !origemIata ? origemPedida : "",
+    destinoPedido && !destinoIata ? destinoPedido : "",
+  ].filter(Boolean);
   const rota = searched
     ? {
-        origem: extractIata(oQS) || RESULTS_ROUTE.origem,
-        destino: extractIata(dQS) || RESULTS_ROUTE.destino,
+        origem: origemIata || RESULTS_ROUTE.origem,
+        destino: destinoIata || RESULTS_ROUTE.destino,
         resumo: [periodo, temPax ? paxResumo(pax) : ""].filter(Boolean).join(" · ") || RESULTS_ROUTE.resumo,
       }
     : undefined;
@@ -574,7 +676,7 @@ async function handleResultsHtml(res, url) {
     }
   }
 
-  sendHtml(res, 200, renderResultsPage({ rota, searched, pax: temPax ? pax : null, voos, voosReais }));
+  sendHtml(res, 200, renderResultsPage({ rota, searched, pax: temPax ? pax : null, voos, voosReais, naoEntendi }));
 }
 
 // Interstitial de saida: registra o clique e resolve o link do parceiro. Um
@@ -666,6 +768,9 @@ export function createServer() {
   }
 
   return http.createServer(async (req, res) => {
+    // Anotado aqui para que sendHtml/sendText possam comprimir sem que os 27
+    // pontos de chamada precisem carregar `req` adiante.
+    res.aceitaEncoding = String((req.headers && req.headers["accept-encoding"]) || "");
     try {
       const url = new URL(req.url, "http://localhost");
       const pathname = url.pathname.replace(/\/+$/, "") || "/";
@@ -783,8 +888,16 @@ export function createServer() {
       }
 
       if (pathname === "/api/newsletter/unsubscribe") {
+        // O link do e-mail e um GET. Antes devolvia 405 com JSON cru, embora o
+        // proprio e-mail prometesse cancelar a inscricao em um clique. Agora
+        // GET abre a pagina de confirmacao (que NAO muda estado: antivirus e
+        // provedores pre-abrem links de e-mail) e o botao faz o POST.
+        if (method === "GET") {
+          sendHtml(res, 200, renderUnsubscribePage({ email: url.searchParams.get("email") || "" }));
+          return;
+        }
         if (method !== "POST") {
-          sendJson(res, 405, { error: "Metodo nao permitido; use POST." });
+          sendJson(res, 405, { error: "Metodo nao permitido; use GET ou POST." });
           return;
         }
         if (enforceInboundRateLimit(req, res, "newsletter-unsubscribe")) return;
@@ -825,11 +938,19 @@ export function createServer() {
         return;
       }
 
-      sendJson(res, 404, { error: `Rota nao encontrada: ${method} ${pathname}` });
+      // Navegador que pediu HTML recebe pagina; cliente de API recebe JSON.
+      // Antes era JSON para todo mundo: quem digitava a URL errada ou seguia um
+      // link velho via {"error":"Rota nao encontrada"} na tela, sem volta.
+      if (querHtml(req, pathname)) sendHtml(res, 404, renderNotFoundPage({ caminho: pathname }));
+      else sendJson(res, 404, { error: `Rota nao encontrada: ${method} ${pathname}` });
     } catch (err) {
       // Nunca derruba o processo por um request malformado.
       try {
-        sendJson(res, 500, { error: (err && err.message) || String(err) });
+        // O diagnostico vai para o LOG, nao para a tela: a mensagem interna nao
+        // ajuda quem esta lendo e ainda expoe detalhe de implementacao.
+        console.error("[aonde-affiliates] Falha ao responder:", err);
+        if (querHtml(req, pathname)) sendHtml(res, 500, renderServerErrorPage());
+        else sendJson(res, 500, { error: "Erro interno." });
       } catch {
         // Se ate o envio de erro falhar, encerra a resposta sem estourar.
         try {

@@ -60,11 +60,18 @@ test("o rotulo 'publicado' muda quando o instante publicadoEm muda (prova de que
   try {
     // Se fosse uma string fixa, isso nao teria efeito nenhum sobre `publicado`.
     offer.publicadoEm = new Date(Date.now() - 10 * 86400000).toISOString(); // 10 dias atras
-    assert.equal(offer.publicado, "há mais de uma semana");
-    assert.notEqual(offer.publicado, rotuloOriginal);
+    const rotuloVelho = offer.publicado;
+    assert.equal(rotuloVelho, "há mais de uma semana");
 
     offer.publicadoEm = new Date(Date.now() - 3 * 60000).toISOString(); // 3 min atras
-    assert.equal(offer.publicado, "há 3 minutos");
+    const rotuloNovo = offer.publicado;
+    assert.equal(rotuloNovo, "há 3 minutos");
+
+    // A prova de que e calculado na leitura: os dois instantes dao rotulos
+    // diferentes. Nao comparamos com o rotulo original da oferta porque ele
+    // envelhece sozinho — quando a oferta passou de 7 dias, os dois viraram
+    // "ha mais de uma semana" e este teste quebrou sem ninguem mexer no codigo.
+    assert.notEqual(rotuloVelho, rotuloNovo);
   } finally {
     // Nao deixa estado mutado vazar para outros testes do mesmo processo.
     offer.publicadoEm = publicadoEmOriginal;

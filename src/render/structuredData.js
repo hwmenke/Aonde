@@ -13,7 +13,13 @@
 //     <script> independente (varios blocos JSON-LD por pagina, cada um
 //     autocontido).
 
-export const SITE_URL = "https://aonde.com.br";
+// Le a mesma fonte que alimenta canonical/og:url. Estava cravado: com
+// AONDE_SITE_URL=staging, o canonical seguia o ambiente mas TouristTrip.url,
+// Organization e BreadcrumbList continuavam apontando para producao — o dado
+// estruturado do staging anunciava as URLs do site de verdade.
+import { getConfig } from "../config.js";
+
+export const SITE_URL = getConfig().siteUrl;
 
 // Absolutiza um caminho relativo ("/guias/salvador") usando SITE_URL. URLs
 // absolutas (http/https) passam intactas. Vazio/invalido => "".
@@ -224,8 +230,18 @@ export function buildOfferProduct(vm) {
   product.description = desc;
   if (vm.thumbUrl) product.image = vm.thumbUrl;
 
+  // O preco so entra no dado estruturado quando o site tambem o apresenta
+  // como preco de verdade. Duas situacoes em que NAO entra:
+  //   1) erro de tarifa — a propria pagina avisa que a cia pode cancelar;
+  //   2) oferta sem link de afiliado — o CTA cai na busca de exemplo, entao
+  //      nao ha preco garantido nenhum por tras.
+  // Antes, o JSON-LD afirmava availability:InStock com preco firme nos dois
+  // casos, contradizendo o texto visivel da mesma pagina. Isso e desonesto
+  // com o usuario que ve o resultado na busca e ainda arrisca penalizacao por
+  // dado estruturado enganoso.
   const price = parseBRLToNumber(vm.preco);
-  if (price !== null) {
+  const precoGarantido = price !== null && !vm.erro && !!vm.affiliateUrl;
+  if (precoGarantido) {
     product.offers = {
       "@type": "Offer",
       price,

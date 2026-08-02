@@ -114,15 +114,30 @@ test("re-subscribe de e-mail pendente regenera o token", async (t) => {
   assert.equal(listSubscribers().length, 1);
 });
 
-test("unsubscribe e idempotente e preserva o registro (auditoria)", async (t) => {
+test("unsubscribe apaga a PII mas mantem o registro (LGPD + auditoria)", async (t) => {
   await withTempDataDir(t);
   subscribeAndConfirm("f@example.com");
 
   const r1 = unsubscribe("f@example.com");
   assert.equal(r1.ok, true);
-  const sub = getSubscriberByEmail("f@example.com");
-  assert.ok(sub.unsubscribed_at); // registro mantido
+
+  // O registro sobrevive, para auditoria e para honrar a supressao...
+  const todos = listSubscribers();
+  assert.equal(todos.length, 1, "o registro nao deve sumir");
+  const sub = todos[0];
+  assert.ok(sub.unsubscribed_at);
   assert.equal(sub.double_optin_confirmed, true);
+
+  // ...mas o dado pessoal NAO. Antes, e-mail e WhatsApp ficavam em texto puro
+  // no arquivo para sempre, sem caminho de apagamento sob pedido do titular.
+  assert.equal(sub.email, "", "o e-mail precisa ser apagado no descadastro");
+  assert.equal(sub.whatsapp, "", "o WhatsApp precisa ser apagado no descadastro");
+  assert.ok(sub.pii_purged_at, "precisa registrar QUANDO a PII foi apagada");
+  assert.ok(sub.email_hash, "o hash fica, para honrar supressao sem guardar o endereco");
+  assert.doesNotMatch(JSON.stringify(sub), /f@example\.com/, "nenhum resquicio do endereco");
+
+  // E nao da mais para achar a pessoa pelo e-mail — que e o ponto.
+  assert.equal(getSubscriberByEmail("f@example.com"), null);
 
   // Chamar de novo nao gera erro (idempotente).
   assert.equal(unsubscribe("f@example.com").ok, true);

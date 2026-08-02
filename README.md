@@ -33,7 +33,7 @@ pontos, os dois inegociáveis:
 git clone https://github.com/hwmenke/aonde.git
 cd aonde
 cp .env.example .env   # opcional — o site funciona sem nenhuma credencial
-node --test             # 533 testes, sem rede real
+node --test             # 583 testes, sem rede real
 node scripts/serve.js   # sobe o servidor (padrão: http://localhost:3333)
 ```
 
@@ -110,15 +110,16 @@ aprovação e autenticação — está documentada em
 
 ```
 src/
-  render/      páginas HTML (htmlRenderer.js), conteúdo editorial, fotos
+  render/      páginas HTML (htmlRenderer.js), CSS (estilos.js), conteúdo,
+               preparativos de viagem (documento/vacina/moeda por destino)
   daily/       robô da escolha do dia
   guides/      geração de roteiro ao vivo via Google Places
-  newsletter/  double opt-in e alertas de preço (LGPD)
+  newsletter/  double opt-in, alertas (LGPD), envio de e-mail e worker da fila
   partners/    integração com cada parceiro de afiliados
   store/       persistência local (histórico de preço, ofertas, cliques)
   server.js    servidor HTTP (node:http, zero framework)
-scripts/       CLIs: render-samples, daily-pick, roteiro, serve
-test/          node:test — 533 casos
+scripts/       CLIs: render-samples, daily-pick, enviar-alertas, roteiro, serve
+test/          node:test — 583 casos
 samples/       páginas de amostra pré-renderizadas (abra direto no navegador)
 docs/          pesquisa de parceiros, Google Places, handoff do protótipo
 ```
@@ -129,7 +130,7 @@ docs/          pesquisa de parceiros, Google Places, handoff do protótipo
 node --test
 ```
 
-533 testes, sem chamada de rede real (tudo mockado via `setFetchImpl` em
+583 testes, sem chamada de rede real (tudo mockado via `setFetchImpl` em
 `src/http.js` ou servidor local em porta efêmera).
 
 ## Configuração

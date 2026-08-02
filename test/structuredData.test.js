@@ -122,6 +122,7 @@ test("buildOfferProduct converte o preco em BRL formatado para numero + Offer va
     preco: "R$ 1.847",
     thumbUrl: "https://example.com/lis.jpg",
     href: "/ofertas/gru-lis",
+    affiliateUrl: "https://parceiro.exemplo/lis",
   });
   assert.equal(product["@type"], "Product");
   assert.match(product.name, /Lisboa/);
@@ -134,7 +135,12 @@ test("buildOfferProduct converte o preco em BRL formatado para numero + Offer va
 });
 
 test("buildOfferProduct lida com preco com centavos (virgula pt-BR)", () => {
-  const product = buildOfferProduct({ cidade: "Recife", preco: "R$ 1.847,50", href: "/ofertas/x" });
+  const product = buildOfferProduct({
+    cidade: "Recife",
+    preco: "R$ 1.847,50",
+    href: "/ofertas/x",
+    affiliateUrl: "https://parceiro.exemplo/rec",
+  });
   assert.equal(product.offers.price, 1847.5);
 });
 
@@ -186,7 +192,7 @@ test("renderGuidePage (roteiro editorial) inclui TouristTrip + BreadcrumbList pa
   assert.equal(bc.itemListElement.at(-1).name, "Salvador");
 });
 
-test("renderOfferPage inclui Product/Offer + BreadcrumbList parseaveis", () => {
+test("renderOfferPage inclui Product + BreadcrumbList parseaveis", () => {
   const offer = CONTENT_OFFERS.find((o) => o.id === "gru-lis");
   const html = renderOfferPage(offer, {});
   assert.ok(html.includes('type="application/ld+json"'));
@@ -194,10 +200,34 @@ test("renderOfferPage inclui Product/Offer + BreadcrumbList parseaveis", () => {
   const product = objs.find((o) => o["@type"] === "Product");
   const bc = objs.find((o) => o["@type"] === "BreadcrumbList");
   assert.ok(product, "deve conter um bloco Product");
-  assert.equal(product.offers["@type"], "Offer");
-  assert.equal(product.offers.priceCurrency, "BRL");
-  assert.ok(product.offers.price > 0);
   assert.ok(bc, "deve conter um bloco BreadcrumbList");
+});
+
+test("JSON-LD nao anuncia preco garantido quando a pagina nao garante preco", () => {
+  // O bloco Product so leva `offers` quando ha preco de verdade por tras:
+  // sem erro de tarifa E com link de afiliado. Antes, o JSON-LD dizia
+  // availability:InStock com preco firme ate na oferta marcada "Erro de
+  // tarifa, pode ser cancelado pela cia" — o oposto do que a pagina dizia
+  // ao usuario na mesma tela.
+  const semLink = buildOfferProduct({ cidade: "Lisboa", preco: "R$ 1.847", href: "/ofertas/a" });
+  assert.equal(semLink.offers, undefined, "sem link de afiliado nao ha preco garantido");
+
+  const erroTarifa = buildOfferProduct({
+    cidade: "Recife",
+    preco: "R$ 587",
+    href: "/ofertas/b",
+    affiliateUrl: "https://parceiro.exemplo/rec",
+    erro: true,
+  });
+  assert.equal(erroTarifa.offers, undefined, "erro de tarifa nao pode virar InStock");
+
+  const garantido = buildOfferProduct({
+    cidade: "Salvador",
+    preco: "R$ 612",
+    href: "/ofertas/c",
+    affiliateUrl: "https://parceiro.exemplo/ssa",
+  });
+  assert.equal(garantido.offers.availability, "https://schema.org/InStock");
 });
 
 // ---------------------------------------------------------------------------
