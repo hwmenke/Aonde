@@ -120,6 +120,39 @@ function withMarker(url) {
   if (!m) return url;
   return url + (url.includes("?") ? "&" : "?") + "marker=" + encodeURIComponent(m);
 }
+
+// Principais origens brasileiras para o seletor de origem alteravel.
+// Cobre as maiores cidades e capitais de onde a maioria dos brasileiros voam.
+const BRAZILIAN_ORIGINS = [
+  { iata: "GRU", nome: "São Paulo (GRU)" },
+  { iata: "GIG", nome: "Rio de Janeiro (GIG)" },
+  { iata: "CGH", nome: "São Paulo Congonhas (CGH)" },
+  { iata: "VCP", nome: "Campinas (VCP)" },
+  { iata: "CNF", nome: "Belo Horizonte (CNF)" },
+  { iata: "BSB", nome: "Brasília (BSB)" },
+  { iata: "REC", nome: "Recife (REC)" },
+  { iata: "SSA", nome: "Salvador (SSA)" },
+  { iata: "FOR", nome: "Fortaleza (FOR)" },
+  { iata: "POA", nome: "Porto Alegre (POA)" },
+  { iata: "CWB", nome: "Curitiba (CWB)" },
+];
+
+// Seletor de origem para ofertas com aviasalesUrl (permite que pessoas de outros
+// estados reservem a mesma rota, trocando origem na URL do Aviasales).
+function originSelectorHtml(offerId, origemPadrao, aviasalesUrl) {
+  if (!aviasalesUrl) return "";
+  const options = BRAZILIAN_ORIGINS.map((o) => {
+    const selected = o.iata === origemPadrao ? " selected" : "";
+    return `<option value="${escapeHtml(o.iata)}"${selected}>${escapeHtml(o.nome)}</option>`;
+  }).join("");
+  return (
+    `<div class="origin-selector">` +
+    `<label for="origem-${escapeHtml(offerId)}">Saindo de</label>` +
+    `<select id="origem-${escapeHtml(offerId)}" data-origin-selector data-offer-id="${escapeHtml(offerId)}">${options}</select>` +
+    `<p class="origin-selector-note">Escolha sua cidade para ver voos dessa origem.</p>` +
+    `</div>`
+  );
+}
 // Rota do interstitial de saida para a busca generica de voos (sem oferta
 // especifica por tras): a MESMA pagina de aviso que /saida/:id ja usa para
 // ofertas com link de afiliado — "voce esta indo para X, quem processa a
@@ -1983,6 +2016,12 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `</a>` +
     `<p class="det-share-note">Envie para amigos que procuram passagem para ${destinoLabel}.</p>` +
     `</div>`;
+  
+  // Seletor de origem: ofertas com aviasalesUrl permitem trocar origem (outras
+  // cidades brasileiras reservam a mesma rota, trocando IATA na URL do parceiro).
+  const originSelector = offer.aviasalesUrl
+    ? originSelectorHtml(vm.id, vm.origem, offer.aviasalesUrl)
+    : "";
 
   // HISTORICO DE PRECO desta rota. O modulo decide sozinho se ha amostra
   // suficiente (minimo 5 observacoes em 90 dias): abaixo disso ele NAO desenha
@@ -2062,7 +2101,11 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     (vm.origem && vm.destino ? `<span class="det-rota">${escapeHtml(rotuloAeroporto(vm.origem))} → ${escapeHtml(rotuloAeroporto(vm.destino))}</span>` : "") +
     `<h1 class="det-cidade">${escapeHtml(destinoLabel)}${origemNome ? `<span class="det-cidade-origem"> saindo de ${escapeHtml(origemNome)}</span>` : ""}</h1>` +
     (vm.local || vm.cia ? `<p class="det-local">${[vm.local, vm.cia].filter(Boolean).map(escapeHtml).join(" · ")}</p>` : "") +
-    `<div class="det-preco-row"><span class="det-preco">${escapeHtml(vm.preco)}</span>${media}</div>` +
+    (() => {
+      const isGruPrice = offer.aviasalesUrl && vm.origem === "GRU";
+      const dataAttr = isGruPrice ? ' data-gru-price' : '';
+      return `<div class="det-preco-row"${dataAttr}><span class="det-preco">${escapeHtml(vm.preco)}</span>${media}</div>`;
+    })() +
     economia +
     fareErrorNote +
     texto +
@@ -2073,7 +2116,11 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `<aside class="det-aside">` +
     `<div class="det-buy">` +
     `<span class="det-buy-label">a partir de</span>` +
-    `<p class="det-buy-preco">${escapeHtml(vm.preco)}</p>` +
+    (() => {
+      const isGruPrice = offer.aviasalesUrl && vm.origem === "GRU";
+      const dataAttr = isGruPrice ? ' data-gru-price' : '';
+      return `<p class="det-buy-preco"${dataAttr}>${escapeHtml(vm.preco)}</p>`;
+    })() +
     `<p class="det-buy-sub">ida e volta${vm.datas ? ` · ${escapeHtml(vm.datas)}` : ""}</p>` +
     `<a class="btn btn-green det-buy-cta" href="${escapeHtml(ctaHref)}">${ctaLabel}</a>` +
     `<p class="det-buy-perks">Parcelamento e desconto no Pix variam conforme o parceiro — o valor final aparece no site dele, antes de você pagar.</p>` +
@@ -2083,6 +2130,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     histBloco +
     alertForm +
     waShare +
+    originSelector +
     `</aside>` +
     `</div>` +
     `</section>` +
@@ -2110,7 +2158,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     title: tituloOferta,
     description: metaDescricao(vm.texto) || undefined,
     body,
-    script: offerMap.script,
+    script: [offerMap.script, enhancementScript()].filter(Boolean).join(";"),
     canonical: vm.href || (vm.id ? `/ofertas/${vm.id}` : "/ofertas"),
     image: vm.thumbUrl || "",
     jsonld: offerJsonld,
@@ -2323,6 +2371,15 @@ export function renderTodayPage(pacote) {
             `</div></li>`
         )
         .join("");
+      // Seletor de origem para ofertas com aviasalesUrl (permite que pessoas de
+      // outros estados reservem a mesma rota).
+      const offerFull = it.oferta && it.oferta.__source ? it.oferta.__source : null;
+      const originSelector = offerFull && offerFull.aviasalesUrl && offerFull.id
+        ? originSelectorHtml(offerFull.id, o.origem, offerFull.aviasalesUrl)
+        : "";
+      // Marca preco especifico de GRU para poder esconder quando origem mudar.
+      const isGruPrice = offerFull && offerFull.aviasalesUrl && o.origem === "GRU";
+      const precoDataAttr = isGruPrice ? ' data-gru-price' : '';
       const hojeBase = (() => {
         try {
           return siteBaseUrl();
@@ -2345,8 +2402,9 @@ export function renderTodayPage(pacote) {
         `<p class="of-rota">${escapeHtml(o.origemCidade)} → ${escapeHtml(o.cidade)}</p>` +
         `<h3 class="hoje-titulo">${escapeHtml(r.titulo)}</h3>` +
         (r.resumo ? `<p class="hoje-resumo">${escapeHtml(r.resumo)}</p>` : "") +
-        `<div class="hoje-preco-row"><span class="of-preco">${escapeHtml(o.preco)}</span>` +
+        `<div class="hoje-preco-row"${precoDataAttr}><span class="of-preco">${escapeHtml(o.preco)}</span>` +
         `<span class="of-iv">ida e volta, por pessoa · ${escapeHtml(o.datas)}</span></div>` +
+        originSelector +
         `<ul class="hoje-bullets">${bullets}</ul>` +
         (r.melhorMes ? `<p class="hoje-mes">Melhor mês para essa rota, pelo nosso histórico: <strong>${escapeHtml(r.melhorMes)}</strong></p>` : "") +
         `<div class="hoje-ctas">` +
@@ -3178,5 +3236,28 @@ function enhancementScript() {
     }
     aplicaFiltros();
   }
+  // Seletor de origem alteravel: quando a pessoa troca a origem, reconstroi
+  // o link /saida com ?origem= novo (para ofertas com aviasalesUrl).
+  document.querySelectorAll('[data-origin-selector]').forEach(function(select){
+    var offerId=select.getAttribute('data-offer-id');
+    select.addEventListener('change',function(){
+      var novaOrigem=select.value;
+      var saidaLinks=document.querySelectorAll('a[href^="/saida/'+offerId+'"]');
+      saidaLinks.forEach(function(link){
+        var base=link.href.split('?')[0];
+        var url=new URL(link.href);
+        url.searchParams.set('origem',novaOrigem);
+        link.href=url.toString();
+      });
+      // Se a oferta mostra preco especifico de GRU e a origem nao e mais GRU,
+      // esconde o preco (honestidade: o valor mostrado era para GRU, nao para
+      // a nova origem escolhida).
+      var precoEls=document.querySelectorAll('[data-gru-price]');
+      precoEls.forEach(function(el){
+        if(novaOrigem!=='GRU'){el.hidden=true;}
+        else{el.hidden=false;}
+      });
+    });
+  });
 })();`;
 }

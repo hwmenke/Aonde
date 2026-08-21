@@ -717,6 +717,9 @@ async function handleResultsHtml(res, url) {
 // Quando a oferta tem aviasalesUrl (campo novo), constroi o link tp.media NA
 // HORA usando TRAVELPAYOUTS_MARKER do env — nao armazena marker no codigo.
 // Preserva UTMs da querystring e os usa como sub_id do Travelpayouts.
+// ORIGEM ALTERAVEL: quando ?origem= muda de GRU para outro IATA (ex.: REC),
+// reconstroi o aviasalesUrl com a nova origem, permitindo que pessoas de outros
+// estados reservem a mesma rota (BUE 12-19 set).
 function handleExitHtml(req, res, id, url) {
   const live = getOffer(id);
   const offer = live || CONTENT_OFFERS.find((o) => o.id === id);
@@ -730,9 +733,24 @@ function handleExitHtml(req, res, id, url) {
   const utmMedium = url.searchParams.get("utm_medium") || "";
   const utmCampaign = url.searchParams.get("utm_campaign") || "";
   
+  // Origem alteravel: permite que quem nao e de GRU reserve a mesma rota.
+  const origemAlternativa = url.searchParams.get("origem") || "";
+  
   // Constroi tp.media URL a partir de aviasalesUrl + marker do env.
   let affiliateUrl = live ? live.affiliate_url : offer.affiliateUrl || offer.affiliate_url;
-  const aviasalesUrl = offer.aviasalesUrl;
+  let aviasalesUrl = offer.aviasalesUrl;
+  
+  // Se origem foi alterada E a oferta tem aviasalesUrl, reconstroi a URL.
+  if (origemAlternativa && aviasalesUrl && /^[A-Z]{3}$/.test(origemAlternativa.toUpperCase())) {
+    const novaOrigem = origemAlternativa.toUpperCase();
+    const origemOriginal = (offer.origem || "GRU").toUpperCase();
+    // Troca a origem na URL do Aviasales: GRU1209BUE19091 -> REC1209BUE19091
+    aviasalesUrl = aviasalesUrl.replace(
+      new RegExp(`/${origemOriginal}(\\d{4})`, "g"),
+      `/${novaOrigem}$1`
+    );
+  }
+  
   if (aviasalesUrl) {
     const marker = (getConfig().travelpayouts && getConfig().travelpayouts.marker) || "";
     if (!marker) {
@@ -743,8 +761,9 @@ function handleExitHtml(req, res, id, url) {
       sendHtml(res, 200, renderOfferPage(offer, {}));
       return;
     }
-    // sub_id para Travelpayouts: {utm_source}_{offer_id}, e.g. "wa_gru-eze"
-    const subId = utmSource ? `${utmSource}_${id}` : id;
+    // sub_id para Travelpayouts: {utm_source}_{offer_id}_{origem}, e.g. "wa_gru-eze_rec"
+    const origemSuffix = origemAlternativa ? `_${origemAlternativa.toLowerCase()}` : "";
+    const subId = utmSource ? `${utmSource}_${id}${origemSuffix}` : `${id}${origemSuffix}`;
     // Monta tp.media: https://tp.media/r?marker={marker}.{subId}&p=4114&u={aviasalesUrl}
     const markerWithSubId = `${marker}.${subId}`;
     const params = new URLSearchParams({

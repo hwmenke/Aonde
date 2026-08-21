@@ -219,6 +219,7 @@ export function pacoteDoDia(data = new Date(), opts = {}) {
         datas: offer.datas,
         cia: offer.cia,
         href: `/ofertas/${offer.id}`,
+        __source: offer, // para o renderer acessar aviasalesUrl e outros campos
       },
       roteiro: roteiroEmBullets(guide),
     })),
