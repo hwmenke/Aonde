@@ -187,6 +187,12 @@ export const OFFERS = [
     texto: "Saindo de Campinas (VCP), Buenos Aires por menos de mil reais ida e volta. Ótimo para um fim de semana esticado de tango, parrilla e compras, com o câmbio jogando a favor.",
     dicas: ["Voo direto de Campinas, sem passar por Guarulhos", "Tarifa promocional GOL: bagagem de mão inclusa", "Setembro tem clima ameno e cidade em ritmo normal"],
     flex: [{ d: "3–10 set", p: "R$ 989" }, { d: "10–17 set", p: "R$ 1.048" }, { d: "17–24 set", p: "R$ 1.096" }] },
+  { id: "gru-eze", origem: "GRU", destino: "EZE", cidade: "Buenos Aires", local: "Argentina", preco: "R$ 1.570", media: "R$ 1.950", economia: "R$ 380", cia: "SWISS", datas: "12–19 set", tipo: "Internacional", publicadoEm: "2026-08-21T00:00:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "19% abaixo da média",
+    thumbUrl: wiki("Obelisco de Buenos Aires.jpg"), credit: "Obelisco de Buenos Aires — Wikimedia Commons, Roberto Fiadone, CC BY-SA 4.0", creditHref: "https://commons.wikimedia.org/wiki/Category:Obelisco_de_Buenos_Aires",
+    texto: "São Paulo–Buenos Aires por R$ 1.570 ida e volta em setembro, voo direto pela SWISS. Preço visto no Google Flights em 21 de agosto de 2026 — o mesmo voo aparece a USD $298 no Aviasales.",
+    dicas: ["Voo direto SWISS, sem escalas: 12 set 07:45 GRU→10:50 EZE, volta 19 set 13:30 EZE→16:10 GRU", "Bagagem de mão inclusa; despachada é paga à parte", "Setembro tem clima ameno em Buenos Aires, fora do pico turístico"],
+    flex: [{ d: "12–19 set", p: "R$ 1.570" }, { d: "15–22 set", p: "R$ 1.648" }, { d: "19–26 set", p: "R$ 1.720" }],
+    aviasalesUrl: "https://www.aviasales.com/search/GRU1209BUE19091" },
   { id: "cnf-fln", origem: "CNF", destino: "FLN", cidade: "Florianópolis", local: "Santa Catarina", preco: "R$ 312", media: "R$ 690", economia: "R$ 378", cia: "GOL", datas: "14–21 out", tipo: "Nacional", publicadoEm: "2026-07-25T09:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "55% abaixo da média",
     thumbUrl: wiki("Barra da Lagoa, Florianópolis - SC (2).JPG"), credit: "Florianópolis — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Lagoa_da_Conceição",
     texto: "Belo Horizonte–Florianópolis por R$ 312 ida e volta em outubro, antes da temporada de verão explodir os preços. Praia, lagoa e ostras a preço de passagem de ônibus.",
@@ -287,6 +293,7 @@ export const OFFER_COORDS = {
   "gru-lis": { lat: 38.7223, lng: -9.1393 }, // Lisboa
   "gru-rec": { lat: -8.0476, lng: -34.877 }, // Recife
   "vcp-bue": { lat: -34.6037, lng: -58.3816 }, // Buenos Aires
+  "gru-eze": { lat: -34.6037, lng: -58.3816 }, // Buenos Aires
   "cnf-fln": { lat: -27.5954, lng: -48.548 }, // Florianópolis
   "gig-mia": { lat: 25.7617, lng: -80.1918 }, // Miami
   "gru-scl": { lat: -33.4489, lng: -70.6693 }, // Santiago
