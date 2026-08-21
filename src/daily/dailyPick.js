@@ -224,23 +224,31 @@ export function pacoteDoDia(data = new Date(), opts = {}) {
   const escolhas = escolhaDoDia(data, opts);
   return {
     dia: chaveDoDia(data),
-    itens: escolhas.map(({ offer, guide }) => ({
-      oferta: {
-        id: offer.id,
-        origem: offer.origem,
-        destino: offer.destino,
-        origemCidade: cidadeDoIata(offer.origem) || offer.origem,
-        cidade: offer.cidade,
-        preco: offer.preco,
-        media: offer.media,
-        badge: offer.badge,
-        datas: offer.datas,
-        cia: offer.cia,
-        href: `/ofertas/${offer.id}`,
-        __source: offer, // para o renderer acessar aviasalesUrl e outros campos
-      },
-      roteiro: roteiroEmBullets(guide),
-    })),
+    itens: escolhas.map(({ offer, guide }) => {
+      // Oferta RESERVAVEL (tem affiliateUrl OU aviasalesUrl): o botao primario
+      // vai direto para /saida/{id} em vez de passar por /ofertas/{id}. Isso
+      // encurta o funil de conversao de /hoje (onde o WhatsApp aterra) em um
+      // clique. aviasalesUrl e envolvido em tp.media dentro de /saida/{id}.
+      const bookable = !!(offer.affiliateUrl || offer.affiliate_url || offer.aviasalesUrl);
+      const href = bookable && offer.id ? `/saida/${offer.id}` : `/ofertas/${offer.id}`;
+      return {
+        oferta: {
+          id: offer.id,
+          origem: offer.origem,
+          destino: offer.destino,
+          origemCidade: cidadeDoIata(offer.origem) || offer.origem,
+          cidade: offer.cidade,
+          preco: offer.preco,
+          media: offer.media,
+          badge: offer.badge,
+          datas: offer.datas,
+          cia: offer.cia,
+          href,
+          __source: offer, // para o renderer acessar aviasalesUrl e outros campos
+        },
+        roteiro: roteiroEmBullets(guide),
+      };
+    }),
   };
 }
 

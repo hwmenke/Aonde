@@ -384,6 +384,15 @@ function normalizeLiveOffer(offer) {
       ? `${offer.desconto_pct}% abaixo da média`
       : "";
   const attr = offerAttrCredit(offer.thumb_attribution);
+  const affiliateUrl = offer.affiliate_url || "";
+  // Oferta RESERVAVEL (tem link de afiliado): o card aponta para /saida/{id}
+  // em vez de /ofertas/{id}, encurtando o funil (sobretudo em /hoje, destino
+  // do trafego de WhatsApp).
+  const href = offer.id
+    ? affiliateUrl
+      ? `/saida/${encodeURIComponent(offer.id)}`
+      : `/ofertas/${encodeURIComponent(offer.id)}`
+    : "";
   return {
     id: offer.id || "",
     origem: offer.origem || "",
@@ -406,14 +415,27 @@ function normalizeLiveOffer(offer) {
     texto: offer.texto || "",
     dicas: Array.isArray(offer.dicas) ? offer.dicas : [],
     flex: Array.isArray(offer.flex) ? offer.flex : [],
-    affiliateUrl: offer.affiliate_url || "",
-    href: offer.id ? `/ofertas/${encodeURIComponent(offer.id)}` : "",
+    affiliateUrl,
+    href,
   };
 }
 
 // Oferta editorial (aondeContent) — precos ja em string.
 function normalizeContentOffer(o) {
   if (!o || typeof o !== "object") return null;
+  // affiliateUrl pode vir pre-montado (ofertas antigas) OU via aviasalesUrl
+  // (ofertas novas que montam tp.media na hora em /saida/{id}). O CTA usa
+  // isto para decidir entre /saida/:id (quando ha URL de parceiro) e
+  // /resultados (busca interna quando nao ha).
+  const affiliateUrl = o.affiliateUrl || o.affiliate_url || (o.aviasalesUrl ? "pending" : "");
+  // Oferta RESERVAVEL (tem link de afiliado OU aviasalesUrl): o card aponta
+  // para /saida/{id} em vez de /ofertas/{id}, encurtando o funil (sobretudo
+  // em /hoje, destino do trafego de WhatsApp).
+  const href = o.id
+    ? affiliateUrl
+      ? `/saida/${encodeURIComponent(o.id)}`
+      : `/ofertas/${encodeURIComponent(o.id)}`
+    : "";
   return {
     id: o.id || "",
     origem: o.origem || "",
@@ -436,12 +458,8 @@ function normalizeContentOffer(o) {
     texto: o.texto || "",
     dicas: Array.isArray(o.dicas) ? o.dicas : [],
     flex: Array.isArray(o.flex) ? o.flex : [],
-    // affiliateUrl pode vir pre-montado (ofertas antigas) OU via aviasalesUrl
-    // (ofertas novas que montam tp.media na hora em /saida/{id}). O CTA usa
-    // isto para decidir entre /saida/:id (quando ha URL de parceiro) e
-    // /resultados (busca interna quando nao ha).
-    affiliateUrl: o.affiliateUrl || o.affiliate_url || (o.aviasalesUrl ? "pending" : ""),
-    href: o.id ? `/ofertas/${encodeURIComponent(o.id)}` : "",
+    affiliateUrl,
+    href,
   };
 }
 
@@ -1956,9 +1974,11 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
       ? `/resultados?origem=${encodeURIComponent(vm.origem)}&destino=${encodeURIComponent(vm.destino)}`
       : "/resultados";
   const ctaHref = vm.affiliateUrl ? `/saida/${encodeURIComponent(vm.id)}` : rotaQS;
-  const ciaLabel = vm.cia ? `na ${escapeHtml(vm.cia)}` : "no parceiro";
+  // Honestidade: dizer "Ver oferta na SWISS" quando o link vai pro Aviasales
+  // (agregador) e nao pra SWISS e enganoso. A cia pode ficar na linha do voo
+  // ("SWISS, 12-24 out"), mas o CTA nomeia o destino real: Aviasales.
   const ctaLabel = vm.affiliateUrl
-    ? `Ver oferta ${ciaLabel} →`
+    ? `Reservar no Aviasales →`
     : `Ver voos ${escapeHtml(vm.origem || "")} → ${escapeHtml(vm.destino || destinoLabel)} →`;
   // Subtexto HONESTO conforme o destino real do CTA (parceiro externo vs busca
   // interna de voos). Nunca prometer "site do parceiro" quando vai para /resultados.
@@ -2641,7 +2661,11 @@ export function renderExitPage(offer, { affiliateUrl, notaExtra = "" } = {}) {
   if (!vm || !affiliateUrl) return renderOffersPage([]);
 
   const destinoLabel = vm.cidade || vm.destino || "seu destino";
-  const parceiro = vm.cia || "o parceiro";
+  // Honestidade: a pessoa vai para o Aviasales (parceiro/agregador), nao para
+  // a cia aerea direto. O nome da cia pode continuar na linha do voo ("Azul,
+  // 3–10 set"), mas o CTA e o titulo da interstitial devem dizer para ONDE a
+  // pessoa realmente vai.
+  const parceiro = "Aviasales";
 
   const body =
     `<main id="conteudo" tabindex="-1"><section class="wrap exit">` +
