@@ -24,7 +24,7 @@
 //   - sem urgencia falsa ("ultimas horas", "so hoje", "corra") — o tom e o do
 //     site: direto, e diz o que nao sabe.
 
-import { escapeHtml, formatBRL } from "../render/htmlRenderer.js";
+import { escapeHtml, formatBRL } from "../render/texto.js";
 import { describeAlertTarget } from "./subscriberStore.js";
 
 const COR_TEXTO = "#1f2937";
@@ -87,12 +87,12 @@ function linhaDescadastroHtml(unsubscribeUrl) {
   const href = escapeHtml(safeUrl(unsubscribeUrl));
   return (
     `<p style="margin:16px 0 0 0;">Nao quer mais receber estes e-mails? ` +
-    `<a href="${href}" style="color:${COR_LINK};">Cancelar inscricao</a> — um clique, sem perguntas.</p>`
+    `<a href="${href}" style="color:${COR_LINK};">Cancelar inscricao</a> — abre a pagina de confirmacao, sem perguntas.</p>`
   );
 }
 
 function linhaDescadastroTexto(unsubscribeUrl) {
-  return `Cancelar inscricao (um clique, sem perguntas): ${safeUrl(unsubscribeUrl)}`;
+  return `Cancelar inscricao (confirma numa pagina, sem perguntas): ${safeUrl(unsubscribeUrl)}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -144,7 +144,7 @@ export function buildConfirmationEmail({
     "",
     "O que voce vai receber depois de confirmado:",
     "- E-mails so quando encontrarmos um preco que bate com o que voce pediu. Sem frequencia fixa, sem spam.",
-    "- Voce pode cancelar quando quiser, em um clique.",
+    "- Voce pode cancelar quando quiser, em dois cliques e sem perguntas.",
     "",
     `Nao foi voce quem pediu isso? Ignore este e-mail: sem confirmacao, nada acontece. Se preferir garantir que nunca mais chega nada, cancele agora: ${unsubHref}`,
     "",
@@ -280,7 +280,7 @@ export function buildPriceAlertEmail({
 /**
  * E-mail enviado logo depois que o double opt-in e confirmado. Define
  * expectativa honesta (frequencia, o que o Aonde faz e nao faz) e reforca o
- * cancelamento em um clique.
+ * cancelamento sem perguntas (o link abre uma pagina de confirmacao).
  *
  * @param {{
  *   email: string,
@@ -318,7 +318,7 @@ export function buildWelcomeEmail({
     "- O preco final e sempre confirmado no site do parceiro, na hora da compra — o Aonde nao processa pagamento nem emite passagem.",
     "- Se algo der errado na compra (cancelamento, reembolso, alteracao), isso e negociado direto com o parceiro que vendeu a passagem, nao com o Aonde. E assim em qualquer comparador de precos — preferimos dizer isso agora a deixar voce descobrir depois.",
     "",
-    "Cancelar quando quiser, em um clique:",
+    "Cancelar quando quiser, sem perguntas:",
     linhaDescadastroTexto(unsubscribeUrl),
     "",
     "--",

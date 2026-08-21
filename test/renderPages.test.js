@@ -71,7 +71,10 @@ test("renderOfferPage de oferta AO VIVO leva ao interstitial /saida (com trackin
   };
   const html = renderOfferPage(live, {});
   assert.ok(html.includes('href="/saida/gru-rec"'), "CTA passa pela página de saída");
-  assert.ok(html.includes("12x sem juros"), "reforço de parcelamento no buy-box");
+  // O buy-box nao afirma mais "12x sem juros" como se fosse condicao do Aonde.
+  // Quem processa o pagamento e sempre o parceiro — o proprio FAQ diz isso.
+  assert.match(html, /Parcelamento e desconto no Pix variam conforme o parceiro/, "condicao de pagamento atribuida ao parceiro");
+  assert.doesNotMatch(html, /Em até <strong>12x sem juros<\/strong>/, "nao prometer parcelamento que nao controlamos");
   assert.ok(html.includes("Você paga direto no site oficial"), "bloco de confiança perto do CTA");
 });
 
@@ -174,7 +177,12 @@ test("renderResultsPage monta a lista de voos com melhor preco e Pix", () => {
   assert.ok(html.includes("voos de exemplo"), "contador de voos");
   assert.ok(html.includes("MELHOR PREÇO"), "destaque do melhor preço");
   assert.ok(html.includes("Filtrar resultados"), "sidebar de filtros");
-  assert.ok(html.includes("5% de desconto"), "banner de Pix");
+  // O banner nao promete mais "5% de desconto" como fato: quem decide o
+  // desconto do Pix e o parceiro, nao o Aonde. O que precisa continuar la e a
+  // MENCAO ao Pix, com a ressalva de quem manda nela.
+  assert.ok(html.includes("Pix"), "banner de Pix");
+  assert.match(html, /parceiro/, "o banner precisa dizer de quem e a condicao");
+  assert.doesNotMatch(html, /todos os preços acima ganham/, "nao prometer desconto que nao controlamos");
   assert.ok(html.replace(/onerror="[^"]*"/g, "").match(/\bundefined\b/) === null, "sem undefined");
 });
 
@@ -194,7 +202,11 @@ test("renderMapPage sem chave cai para a lista clicavel de destinos", () => {
   const html = renderMapPage({ apiKey: "" });
   assert.ok(isDoc(html), "documento completo");
   assert.ok(!html.includes("maps.googleapis.com"), "nao carrega a Maps API sem chave");
-  assert.ok(html.includes("GOOGLE_MAPS_API_KEY"), "avisa como configurar a chave");
+  // A mensagem de fallback agora fala com o VISITANTE, nao com o programador:
+  // "defina GOOGLE_MAPS_API_KEY (e ative a Maps JavaScript API)" era instrucao
+  // de configuracao interna exibida para quem entrou no site para viajar.
+  assert.doesNotMatch(html, /GOOGLE_MAPS_API_KEY/, "nome de variavel de ambiente na tela do usuario");
+  assert.match(html, /mapa interativo ainda não está disponível/i, "explica a ausencia em portugues comum");
   assert.ok(/href="\/guias\/salvador"[^>]*data-dest=/.test(html), "lista destinos linkando os guias");
 });
 

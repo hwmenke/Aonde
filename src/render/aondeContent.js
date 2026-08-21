@@ -101,10 +101,28 @@ export const CONFIANCA = [
   { valor: "0 taxa", desc: "você paga o preço do parceiro — o Aonde nunca cobra a mais" },
 ];
 
+// Estes tres passos descrevem o que o site FAZ, nao o que soaria bem.
+// A versao anterior dizia "Robos de olho 24h", "milhares de rotas" e "media
+// historica dos ultimos anos". Nada disso existia: nao ha cron no projeto, o
+// feed tem 18 ofertas de curadoria manual, e a media de referencia e de 90
+// dias (ver src/store/priceHistory.js). Tambem prometia "regras de bagagem
+// checadas" quando a maioria das ofertas nao menciona bagagem.
 export const COMO_FUNCIONA = [
-  { n: "1", titulo: "Robôs de olho 24h", desc: "Monitoramos milhares de rotas o dia inteiro e comparamos cada tarifa com a média histórica dos últimos anos." },
-  { n: "2", titulo: "Curadoria humana", desc: "Só publicamos o que um humano conferiu: preço real, datas que existem e regras de bagagem checadas." },
-  { n: "3", titulo: "Você compra direto", desc: "O botão leva ao site da companhia ou de um parceiro confiável. A reserva é feita lá, com a segurança deles." },
+  {
+    n: "1",
+    titulo: "Garimpo de tarifa",
+    desc: "Acompanhamos as rotas que mais saem do Brasil e comparamos cada tarifa com o que ela costuma custar nos últimos 90 dias.",
+  },
+  {
+    n: "2",
+    titulo: "Conferido por uma pessoa",
+    desc: "Nada entra no feed sem alguém abrir a oferta e checar preço, datas e o que está incluído. Quando a bagagem não está clara, a gente diz que não está.",
+  },
+  {
+    n: "3",
+    titulo: "Você compra direto",
+    desc: "O botão leva ao site da companhia ou de um parceiro. A reserva, o pagamento e o suporte acontecem lá — o Aonde não processa pagamento.",
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -137,13 +155,17 @@ export function formatRelativePublicado(isoInstant, now = new Date()) {
 
   if (diffMs < MINUTO_MS) return "agora mesmo";
 
-  const diffMin = Math.round(diffMs / MINUTO_MS);
+  // floor, nao round: arredondar para cima INVENTA tempo que nao passou. Uma
+  // oferta de 6,6 dias virava "ha mais de uma semana" (round(6.6)=7), o que e
+  // simplesmente falso. Com floor o rotulo e sempre "ja se passaram pelo menos
+  // isto", que e verdade em qualquer ponto do intervalo.
+  const diffMin = Math.floor(diffMs / MINUTO_MS);
   if (diffMin < 60) return `há ${diffMin} minuto${diffMin === 1 ? "" : "s"}`;
 
-  const diffH = Math.round(diffMs / HORA_MS);
+  const diffH = Math.floor(diffMs / HORA_MS);
   if (diffH < 24) return `há ${diffH} hora${diffH === 1 ? "" : "s"}`;
 
-  const diffDias = Math.round(diffMs / DIA_MS);
+  const diffDias = Math.floor(diffMs / DIA_MS);
   if (diffDias < 7) return `há ${diffDias} dia${diffDias === 1 ? "" : "s"}`;
 
   return "há mais de uma semana";
@@ -152,8 +174,8 @@ export function formatRelativePublicado(isoInstant, now = new Date()) {
 export const OFFERS = [
   { id: "gru-lis", origem: "GRU", destino: "LIS", cidade: "Lisboa", local: "Portugal", preco: "R$ 1.847", media: "R$ 3.540", economia: "R$ 1.693", cia: "TAP", datas: "12–24 out", tipo: "Internacional", publicadoEm: "2026-07-25T10:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "48% abaixo da média",
     thumbUrl: wiki("Belem Tower, Lisbon (8038548360).jpg"), credit: "Torre de Belém — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Lisbon",
-    texto: "Tarifa cheia São Paulo–Lisboa raramente cai abaixo de R$ 2.500 na alta. Achamos assentos em outubro por menos de R$ 1.900 ida e volta, com uma escala curta em algumas datas. Somos o melhor preço para Portugal no ano.",
-    dicas: ["Inclui 1 bagagem de mão; despachada é paga à parte na TAP", "Datas de terça e quarta são as mais baratas do período", "Preço encontrado às 9h de hoje — tarifas assim somem em horas"],
+    texto: "Tarifa cheia São Paulo–Lisboa raramente cai abaixo de R$ 2.500 na alta. Achamos assentos em outubro por menos de R$ 1.900 ida e volta, com uma escala curta em algumas datas.",
+    dicas: ["Inclui 1 bagagem de mão; despachada é paga à parte na TAP", "Datas de terça e quarta são as mais baratas do período"],
     flex: [{ d: "12–24 out", p: "R$ 1.847" }, { d: "15–27 out", p: "R$ 1.912" }, { d: "19–31 out", p: "R$ 2.045" }] },
   { id: "gru-rec", origem: "GRU", destino: "REC", cidade: "Recife", local: "Pernambuco", preco: "R$ 587", media: "R$ 1.180", economia: "R$ 593", cia: "Azul", datas: "9–16 set", tipo: "Nacional", publicadoEm: "2026-07-25T12:29:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: true, badge: "Erro de tarifa",
     thumbUrl: wiki("Marco Zero Recife.jpg"), credit: "Marco Zero, Recife — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Marco_Zero_(Recife)",
@@ -340,7 +362,7 @@ const BASE_GUIDES = {
     opt: {
       destName: "Recife (REC)", months: [1480, 1360, 1020, 986, 1010, 1120, 1390, 1180, 1040, 1090, 1210, 1560],
       window: { label: "14 – 21 abr 2026", price: "R$ 986", save: "33%", note: "terça a terça, voo direto — a combinação mais barata do trimestre" },
-      sources: [{ name: "Aonde", price: "R$ 986", note: "12x sem juros · 5% no Pix", best: true }, { name: "Google Flights", price: "R$ 1.058", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 1.041" }, { name: "Skyscanner", price: "R$ 1.072" }],
+      sources: [{ name: "Aonde", price: "R$ 986", note: "tarifa encontrada pela nossa curadoria", best: true }, { name: "Google Flights", price: "R$ 1.058", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 1.041" }, { name: "Skyscanner", price: "R$ 1.072" }],
     },
     dias: [
       { n: 1, titulo: "Recife Antigo", desc: "Chegada, hotel no bairro do Recife e tarde inteira no centro histórico, tudo a pé.",
@@ -377,7 +399,7 @@ const BASE_GUIDES = {
     opt: {
       destName: "Salvador (SSA)", months: [1320, 1180, 874, 910, 940, 1040, 1330, 1120, 980, 1010, 1150, 1480],
       window: { label: "3 – 10 mar 2026", price: "R$ 874", save: "34%", note: "fim do verão baiano, mar ainda quente e cidade mais vazia" },
-      sources: [{ name: "Aonde", price: "R$ 874", note: "12x sem juros · 5% no Pix", best: true }, { name: "Google Flights", price: "R$ 946", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 928" }, { name: "Skyscanner", price: "R$ 961" }],
+      sources: [{ name: "Aonde", price: "R$ 874", note: "tarifa encontrada pela nossa curadoria", best: true }, { name: "Google Flights", price: "R$ 946", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 928" }, { name: "Skyscanner", price: "R$ 961" }],
     },
     dias: [
       { n: 1, titulo: "Pelourinho e Centro Histórico", desc: "O coração de Salvador em um dia: chegue às 9h, quando os largos ainda estão vazios, e vá descendo.",
@@ -410,7 +432,7 @@ const BASE_GUIDES = {
     opt: {
       destName: "Fernando de Noronha (FEN)", months: [2200, 2100, 1780, 1690, 1720, 1880, 2050, 1780, 1680, 1740, 1980, 2260],
       window: { label: "3 – 7 set 2026", price: "R$ 1.680", save: "26%", note: "início da melhor temporada de mergulho, antes do pico de dezembro" },
-      sources: [{ name: "Aonde", price: "R$ 1.680", note: "12x sem juros · 5% no Pix", best: true }, { name: "Google Flights", price: "R$ 1.795", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 1.762" }, { name: "Skyscanner", price: "R$ 1.810" }],
+      sources: [{ name: "Aonde", price: "R$ 1.680", note: "tarifa encontrada pela nossa curadoria", best: true }, { name: "Google Flights", price: "R$ 1.795", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 1.762" }, { name: "Skyscanner", price: "R$ 1.810" }],
     },
     dias: [
       { n: 1, titulo: "Mar de Dentro", desc: "Chegada, taxa ambiental e ingresso do parque resolvidos, e as primeiras praias, todas pertinho da Vila.",
@@ -444,7 +466,7 @@ const BASE_GUIDES = {
     opt: {
       destName: "Rio de Janeiro (GIG)", months: [980, 880, 700, 640, 690, 760, 900, 780, 690, 720, 810, 1060],
       window: { label: "14 – 18 mai 2026", price: "R$ 640", save: "28%", note: "quinta a segunda, fora de temporada e de feriado" },
-      sources: [{ name: "Aonde", price: "R$ 640", note: "12x sem juros · 5% no Pix", best: true }, { name: "Google Flights", price: "R$ 712", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 698" }, { name: "Skyscanner", price: "R$ 725" }],
+      sources: [{ name: "Aonde", price: "R$ 640", note: "tarifa encontrada pela nossa curadoria", best: true }, { name: "Google Flights", price: "R$ 712", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 698" }, { name: "Skyscanner", price: "R$ 725" }],
     },
     dias: [
       { n: 1, titulo: "Zona Sul e as praias", desc: "Aterrisse, largue a mala e vá direto para a areia. Termine no Arpoador para o pôr do sol aplaudido.",
@@ -477,7 +499,7 @@ const BASE_GUIDES = {
     opt: {
       destName: "Bariloche (BRC)", months: [2980, 2760, 2190, 2090, 2150, 2620, 3480, 3060, 2340, 2280, 2520, 3120],
       window: { label: "2 – 9 set 2026", price: "R$ 2.340", save: "24%", note: "fim da temporada de neve: pistas abertas e preço já em queda" },
-      sources: [{ name: "Aonde", price: "R$ 2.340", note: "12x sem juros · 5% no Pix", best: true }, { name: "Google Flights", price: "R$ 2.512", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 2.468" }, { name: "Skyscanner", price: "R$ 2.529" }],
+      sources: [{ name: "Aonde", price: "R$ 2.340", note: "tarifa encontrada pela nossa curadoria", best: true }, { name: "Google Flights", price: "R$ 2.512", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 2.468" }, { name: "Skyscanner", price: "R$ 2.529" }],
     },
     dias: [
       { n: 1, titulo: "Chegada e Centro Cívico", desc: "Instale-se, alugue as roupas de neve ainda hoje (fila menor) e caminhe pelo centro de pedra e madeira.",
@@ -511,7 +533,7 @@ const BASE_GUIDES = {
     opt: {
       destName: "Porto Alegre (POA)", months: [1180, 980, 760, 720, 700, 980, 1320, 1160, 820, 1240, 1360, 1280],
       window: { label: "6 – 10 mai 2026", price: "R$ 700", save: "32%", note: "outono na serra, antes do pico do inverno e do Natal Luz" },
-      sources: [{ name: "Aonde", price: "R$ 700", note: "12x sem juros · 5% no Pix", best: true }, { name: "Google Flights", price: "R$ 772", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 758" }, { name: "Skyscanner", price: "R$ 781" }],
+      sources: [{ name: "Aonde", price: "R$ 700", note: "tarifa encontrada pela nossa curadoria", best: true }, { name: "Google Flights", price: "R$ 772", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 758" }, { name: "Skyscanner", price: "R$ 781" }],
     },
     dias: [
       { n: 1, titulo: "Centro de Gramado", desc: "Chegue, pegue o carro em POA e passe a tarde no coração fofo da cidade, a pé.",
@@ -545,7 +567,7 @@ const BASE_GUIDES = {
     opt: {
       destName: "Salvador (SSA)", months: [1120, 1040, 980, 940, 960, 1010, 1180, 1090, 980, 1000, 1160, 1280],
       window: { label: "20 – 24 abr 2026", price: "R$ 940", save: "25%", note: "começo da estação seca: cachoeiras cheias e trilhas firmes" },
-      sources: [{ name: "Aonde", price: "R$ 940", note: "12x sem juros · 5% no Pix", best: true }, { name: "Google Flights", price: "R$ 1.012", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 998" }, { name: "Skyscanner", price: "R$ 1.026" }],
+      sources: [{ name: "Aonde", price: "R$ 940", note: "tarifa encontrada pela nossa curadoria", best: true }, { name: "Google Flights", price: "R$ 1.012", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 998" }, { name: "Skyscanner", price: "R$ 1.026" }],
     },
     dias: [
       { n: 1, titulo: "Lençóis, a base", desc: "Chegada à vila garimpeira mais charmosa da Chapada e um banho de rio para aquecer as pernas.",
@@ -579,7 +601,7 @@ const BASE_GUIDES = {
     opt: {
       destName: "Foz do Iguaçu (IGU)", months: [980, 900, 760, 720, 740, 700, 880, 760, 720, 760, 860, 1040],
       window: { label: "9 – 12 jun 2026", price: "R$ 700", save: "27%", note: "terça a sexta, longe de feriado — as Cataratas mais vazias" },
-      sources: [{ name: "Aonde", price: "R$ 700", note: "12x sem juros · 5% no Pix", best: true }, { name: "Google Flights", price: "R$ 768", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 752" }, { name: "Skyscanner", price: "R$ 779" }],
+      sources: [{ name: "Aonde", price: "R$ 700", note: "tarifa encontrada pela nossa curadoria", best: true }, { name: "Google Flights", price: "R$ 768", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 752" }, { name: "Skyscanner", price: "R$ 779" }],
     },
     dias: [
       { n: 1, titulo: "Cataratas — lado brasileiro", desc: "A trilha panorâmica que abre a vista completa e termina encharcado na Garganta do Diabo.",
@@ -610,7 +632,7 @@ const BASE_GUIDES = {
     opt: {
       destName: "Fortaleza (FOR)", months: [1180, 1120, 980, 1020, 1060, 1140, 1360, 1240, 1060, 1120, 1280, 1320],
       window: { label: "10 – 14 mar 2026", price: "R$ 980", save: "26%", note: "fim do verão, praia cheia de sol e preços já mais baixos" },
-      sources: [{ name: "Aonde", price: "R$ 980", note: "12x sem juros · 5% no Pix", best: true }, { name: "Google Flights", price: "R$ 1.052", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 1.038" }, { name: "Skyscanner", price: "R$ 1.066" }],
+      sources: [{ name: "Aonde", price: "R$ 980", note: "tarifa encontrada pela nossa curadoria", best: true }, { name: "Google Flights", price: "R$ 1.052", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 1.038" }, { name: "Skyscanner", price: "R$ 1.066" }],
     },
     dias: [
       { n: 1, titulo: "A vila e a Duna do Pôr do Sol", desc: "Transfer 4x4 desde Fortaleza (4h) e a subida obrigatória à duna para o primeiro pôr do sol.",
@@ -644,7 +666,7 @@ const BASE_GUIDES = {
     opt: {
       destName: "Buenos Aires (EZE)", months: [1720, 1640, 1420, 1380, 1460, 1620, 1840, 1700, 1480, 1520, 1660, 1880],
       window: { label: "13 – 17 abr 2026", price: "R$ 1.380", save: "27%", note: "outono portenho, clima ameno e cidade em ritmo normal" },
-      sources: [{ name: "Aonde", price: "R$ 1.380", note: "12x sem juros · 5% no Pix", best: true }, { name: "Google Flights", price: "R$ 1.472", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 1.451" }, { name: "Skyscanner", price: "R$ 1.489" }],
+      sources: [{ name: "Aonde", price: "R$ 1.380", note: "tarifa encontrada pela nossa curadoria", best: true }, { name: "Google Flights", price: "R$ 1.472", note: "melhor tarifa encontrada" }, { name: "Kayak", price: "R$ 1.451" }, { name: "Skyscanner", price: "R$ 1.489" }],
     },
     dias: [
       { n: 1, titulo: "Centro histórico", desc: "Comece pelo coração cívico da cidade, entre praças, a Casa Rosada e o café mais famoso do país.",

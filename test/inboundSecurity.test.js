@@ -105,10 +105,13 @@ test("rate limit: classes de rota diferentes tem contadores independentes", asyn
   assert.notEqual(alerts.status, 429);
 });
 
-test("rate limit: IPs diferentes (via x-forwarded-for) tem contadores independentes", async (t) => {
+test("rate limit: com AONDE_TRUST_PROXY, IPs diferentes (via x-forwarded-for) tem contadores independentes", async (t) => {
+  // So vale ATRAS DE PROXY. Sem AONDE_TRUST_PROXY o cabecalho e ignorado — ver
+  // o teste seguinte, que existe porque isso era explorável.
   const { baseUrl } = await withServer(t, {
     AONDE_INBOUND_RATE_LIMIT_MAX: "1",
     AONDE_INBOUND_RATE_LIMIT_WINDOW_MS: "60000",
+    AONDE_TRUST_PROXY: "1",
   });
 
   const ip1a = await postJson(baseUrl, "/api/newsletter/unsubscribe", { email: "x@example.com" }, { "x-forwarded-for": "10.0.0.1" });
@@ -118,6 +121,32 @@ test("rate limit: IPs diferentes (via x-forwarded-for) tem contadores independen
 
   const ip2 = await postJson(baseUrl, "/api/newsletter/unsubscribe", { email: "z@example.com" }, { "x-forwarded-for": "10.0.0.2" });
   assert.notEqual(ip2.status, 429, "IP diferente tem seu proprio contador");
+});
+
+test("rate limit: sem AONDE_TRUST_PROXY, x-forwarded-for forjado NAO cria contador novo", async (t) => {
+  // ISSO ERA EXPLORAVEL DE VERDADE. Medido antes da correcao: 30 POSTs com um
+  // IP forjado diferente em cada um -> 30 aceitos, 0 bloqueados. O cabecalho e
+  // escrito pelo proprio cliente quando nao ha proxy na frente, entao confiar
+  // nele sempre tornava o limite das rotas de escrita puramente decorativo.
+  const { baseUrl } = await withServer(t, {
+    AONDE_INBOUND_RATE_LIMIT_MAX: "2",
+    AONDE_INBOUND_RATE_LIMIT_WINDOW_MS: "60000",
+  });
+
+  let bloqueados = 0;
+  for (let i = 0; i < 8; i++) {
+    const r = await postJson(
+      baseUrl,
+      "/api/newsletter/unsubscribe",
+      { email: `f${i}@example.com` },
+      { "x-forwarded-for": `203.0.113.${i}` }
+    );
+    if (r.status === 429) bloqueados++;
+  }
+  assert.ok(
+    bloqueados > 0,
+    "forjar x-forwarded-for nao pode render contador novo quando nao ha proxy confiavel"
+  );
 });
 
 test("rate limit: GET de leitura nunca e limitado", async (t) => {

@@ -236,15 +236,22 @@ test("alerta de preco: sem media historica, admite que nao tem comparacao", () =
   assert.match(textoPlano, /nao temos historico/i);
 });
 
-test("boas-vindas: explica frequencia e cancelamento em um clique", () => {
+test("boas-vindas: explica frequencia e como cancelar, sem prometer mais do que o site faz", () => {
   const { textoPlano, html } = buildWelcomeEmail({
     email: CAMPOS_BASE.email,
     origem: "GRU",
     unsubscribeUrl: CAMPOS_BASE.unsubscribeUrl,
   });
-  assert.match(textoPlano, /um clique/i);
+  // O texto dizia "um clique". Na pratica o link do e-mail abre uma pagina de
+  // confirmacao e o cancelamento so acontece no botao — de proposito, porque
+  // antivirus e provedores PRE-ABREM links de e-mail, e um GET que mudasse
+  // estado descadastraria quem nunca clicou. Entao a promessa foi ajustada ao
+  // que o codigo faz, em vez do contrario.
+  assert.match(textoPlano, /cancelar/i);
+  assert.match(textoPlano, /sem perguntas/i);
+  assert.doesNotMatch(textoPlano, /em um clique/i, "nao prometer um clique: sao dois");
   assert.match(textoPlano, /frequencia fixa|sem frequencia/i);
-  assert.match(html, /um clique/i);
+  assert.match(html, /[Cc]ancelar inscricao/);
 });
 
 test("boas-vindas: reforca que o Aonde nao processa pagamento nem emite passagem", () => {

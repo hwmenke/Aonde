@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>(function(){try{var t=localStorage.getItem('aonde-tema');if(t==='escuro'||t==='claro'){document.documentElement.setAttribute('data-tema',t);}}catch(e){}})();</script>
 <title>Central de ajuda · Aonde</title>
-<meta name="description" content="Aonde — achados de passagem abaixo da média, roteiros de 5 dias dia a dia e alertas de preço grátis. Compare voos, hotéis e experiências pelo Brasil e América do Sul.">
+<meta name="description" content="Como o Aonde funciona, quem cobra pela passagem, o que acontece se o preço mudar e como falar com a gente.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2030%2040%22%3E%3Cpath%20d%3D%22M15%200C6.7%200%200%206.7%200%2015c0%2010.8%2015%2025%2015%2025s15-14.2%2015-25C30%206.7%2023.3%200%2015%200z%22%20fill%3D%22%234d7c0f%22%2F%3E%3Ccircle%20cx%3D%2215%22%20cy%3D%2215%22%20r%3D%226%22%20fill%3D%22%23f7f7f5%22%2F%3E%3Ccircle%20cx%3D%2215%22%20cy%3D%2215%22%20r%3D%223%22%20fill%3D%22%2384cc16%22%2F%3E%3C%2Fsvg%3E">
 <link rel="canonical" href="https://aonde.com.br/ajuda">
 <meta property="og:url" content="https://aonde.com.br/ajuda">
@@ -13,16 +13,26 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Aonde">
 <meta property="og:title" content="Central de ajuda · Aonde">
-<meta property="og:description" content="Aonde — achados de passagem abaixo da média, roteiros de 5 dias dia a dia e alertas de preço grátis. Compare voos, hotéis e experiências pelo Brasil e América do Sul.">
+<meta property="og:description" content="Como o Aonde funciona, quem cobra pela passagem, o que acontece se o preço mudar e como falar com a gente.">
 <meta property="og:image" content="https://commons.wikimedia.org/wiki/Special:FilePath/Ba%C3%ADa%20do%20Sancho%2C%20Fernando%20de%20Noronha.jpg">
 <meta property="og:locale" content="pt_BR">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://commons.wikimedia.org/wiki/Special:FilePath/Ba%C3%ADa%20do%20Sancho%2C%20Fernando%20de%20Noronha.jpg">
 <meta name="twitter:title" content="Central de ajuda · Aonde">
-<meta name="twitter:description" content="Aonde — achados de passagem abaixo da média, roteiros de 5 dias dia a dia e alertas de preço grátis. Compare voos, hotéis e experiências pelo Brasil e América do Sul.">
+<meta name="twitter:description" content="Como o Aonde funciona, quem cobra pela passagem, o que acontece se o preço mudar e como falar com a gente.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<!-- Fonte carregada SEM bloquear a primeira pintura. Como <link rel=stylesheet>
+     normal, o navegador segura a tela ate o CSS do Google chegar: medido, com
+     fonts.googleapis.com lento, 12,8s de tela BRANCA. O truque do media=print
+     faz o navegador baixar sem bloquear e so aplicar quando chega; a pilha de
+     fallback (Georgia / system-ui) aparece na hora. O bloco sem-script logo
+     abaixo cobre quem esta com JavaScript desligado.
+     (Evitar escrever o nome dessa tag aqui dentro: o comentario vai para o
+     HTML e qualquer varredura por tag passa a ver uma abertura falsa.) -->
+<link rel="stylesheet" media="print" onload="this.media='all';this.onload=0"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap"></noscript>
 <style>
   :root{
     /* Cinzas escurecidos de proposito: dao folga de contraste para o cenario
@@ -221,6 +231,12 @@
   .nav-pill{background:var(--lime);color:#18181b;font-size:10px;font-weight:700;letter-spacing:.04em;padding:2px 6px;border-radius:var(--pill);}
   .nav-ext{font-size:12px;opacity:.6;}
   .site-header-right{display:flex;align-items:center;gap:20px;}
+  .tema-toggle{display:inline-flex;align-items:center;gap:7px;appearance:none;cursor:pointer;
+    border:1px solid var(--border-2);background:var(--surface);color:var(--text);
+    font-family:var(--sans);font-size:13px;font-weight:600;padding:8px 14px;border-radius:var(--pill);
+    transition:background .15s,border-color .15s;}
+  .tema-toggle:hover{border-color:var(--green);background:var(--tint);}
+  .tema-toggle-ico{font-size:14px;line-height:1;}
   .site-atend{display:flex;flex-direction:column;align-items:flex-end;line-height:1.25;}
   .site-atend span{font-size:11px;color:var(--muted-2);letter-spacing:.04em;text-transform:uppercase;}
   .site-atend strong{font-size:14px;font-weight:600;}
@@ -254,10 +270,10 @@
   /* Aviso "como funciona por aqui": tom informativo (verde da marca, nao
      laranja/vermelho de alerta) com um icone circular no lugar de comecar a
      frase com uma negativa — a mesma informacao, com menos susto. */
-  .sc-notice{margin:14px 20px 0;display:flex;align-items:flex-start;gap:10px;background:var(--tint);border:1px solid var(--tint-border);border-radius:12px;padding:12px 16px;font-size:14px;line-height:1.5;color:var(--green-2);}
-  .sc-notice::before{content:"i";flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;line-height:1;margin-top:1px;}
-  .sc-notice-tag{display:block;font-weight:700;}
-  .sc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:20px;align-items:end;}
+  .sc-notice{margin:14px 20px 0;background:var(--tint);border:1px solid var(--tint-border);border-radius:12px;padding:12px 16px 12px 44px;position:relative;font-size:14px;line-height:1.5;color:var(--green-2);}
+  .sc-notice::before{content:"i";position:absolute;left:16px;top:13px;width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;line-height:1;}
+  .sc-notice-tag{font-weight:700;}
+  .sc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:12px;padding:20px;align-items:end;}
   .sc-field{display:flex;flex-direction:column;gap:6px;}
   .sc-field span{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);}
   .sc-field input{border:1px solid var(--border-2);border-radius:12px;padding:13px 14px;font-family:var(--sans);font-size:15px;background:var(--input-bg);color:#18181b;}
@@ -271,7 +287,7 @@
   .search-perks i{width:6px;height:6px;border-radius:50%;background:var(--lime);}
 
   /* Offer cards */
-  .of-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:28px;}
+  .of-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:20px;margin-top:28px;}
   .of-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;color:inherit;transition:box-shadow .2s,transform .2s;}
   .of-card:hover{box-shadow:0 16px 32px -24px rgba(24,24,27,.35);transform:translateY(-2px);color:inherit;}
   .of-card--erro{border-color:#f3c6a8;}
@@ -345,7 +361,7 @@
   .roteiros-head h2{font-size:44px;}
   .roteiros-head p{margin:14px 0 0;font-size:16px;color:#a1a1a6;max-width:560px;}
   .roteiros-all a{color:var(--lime-2);font-weight:600;font-size:15px;}
-  .rot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;margin-top:36px;}
+  .rot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:24px;margin-top:36px;}
   .rot-card{display:flex;flex-direction:column;gap:14px;color:#f7f7f5;}
   .rot-card:hover{color:#f7f7f5;transform:translateY(-3px);}
   .rot-media{height:240px;position:relative;border-radius:14px;overflow:hidden;}
@@ -358,7 +374,7 @@
   .rot-mes{font-size:12px;font-weight:600;color:#a1a1a6;border:1px solid #3f3f42;border-radius:var(--pill);padding:3px 10px;}
 
   /* Extras + confianca */
-  .extras-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:32px;}
+  .extras-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:20px;margin-top:32px;}
   .extra-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:26px;display:flex;flex-direction:column;gap:10px;color:inherit;}
   .extra-card:hover{border-color:var(--lime);color:inherit;}
   .extra-card--soon{opacity:.72;}
@@ -367,7 +383,7 @@
   .extra-card h3{font-size:20px;font-weight:600;font-family:var(--sans);}
   .extra-card p{margin:0;font-size:15px;color:var(--muted);line-height:1.5;}
   .extra-cta{font-size:14px;font-weight:600;color:var(--green);}
-  .conf-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:32px;align-items:center;}
+  .conf-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:32px;align-items:center;}
   .conf-card h2{font-size:30px;line-height:1.15;}
   .conf-valor{margin:0;font-size:26px;font-weight:700;color:var(--green-2);}
   .conf-stat p:last-child{margin:4px 0 0;font-size:14px;color:var(--muted);line-height:1.4;}
@@ -380,7 +396,7 @@
   .orig-pill{border:1px solid var(--border-2);background:var(--surface);color:var(--muted);border-radius:var(--pill);padding:8px 16px;font-size:14px;font-weight:600;}
   .orig-pill.is-active{background:#18181b;color:#fff;border-color:#18181b;}
   .news-wrap{padding-top:32px;padding-bottom:8px;}
-  .news-card{background:#18181b;color:#f7f7f5;border-radius:var(--r-lg);padding:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:32px;align-items:center;}
+  .news-card{background:#18181b;color:#f7f7f5;border-radius:var(--r-lg);padding:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:32px;align-items:center;}
   .news-copy h1{font-size:44px;line-height:1.05;}
   .news-copy p{margin:16px 0 0;font-size:16px;color:#a1a1a6;line-height:1.5;max-width:440px;}
   .news-form{display:flex;flex-direction:column;gap:12px;}
@@ -392,7 +408,7 @@
   .feed-count{font-size:14px;color:var(--muted-2);}
   /* Escolha do dia (/hoje) */
   .hoje-head{padding-bottom:0;}
-  .hoje-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:28px;}
+  .hoje-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:28px;}
   .hoje-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;display:flex;flex-direction:column;}
   .hoje-media{position:relative;height:220px;}
   .hoje-body{padding:24px 26px 26px;display:flex;flex-direction:column;gap:10px;flex:1;}
@@ -412,7 +428,7 @@
   .btn-ghost--claro:hover{color:var(--text);border-color:var(--green);}
   .feed-vazio{grid-column:1/-1;margin:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
     padding:28px;font-size:16px;line-height:1.6;color:var(--muted);}
-  .cf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-top:8px;}
+  .cf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:20px;margin-top:8px;}
   .cf-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:26px;}
   .cf-num{display:inline-flex;width:36px;height:36px;border-radius:10px;background:var(--tint);color:var(--green);align-items:center;justify-content:center;font-size:16px;font-weight:700;}
   .cf-card h3{margin:14px 0 6px;font-size:19px;font-weight:600;font-family:var(--sans);}
@@ -421,7 +437,7 @@
 
   /* Oferta detalhe */
   .det{padding-top:32px;}
-  .det-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:40px;align-items:start;}
+  .det-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:40px;align-items:start;}
   .det-badges{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
   .det-badge{font-size:13px;font-weight:700;padding:5px 14px;border-radius:var(--pill);}
   .det-pub{font-size:13px;color:var(--muted-2);}
@@ -455,11 +471,24 @@
   .det-hist-title{margin:0 0 10px;font-size:14px;font-weight:700;color:var(--text);}
   .det-hist svg{display:block;width:100%;height:auto;max-width:100%;}
   .det-hist-fine{margin:10px 0 0;font-size:12px;color:var(--muted);line-height:1.45;}
+  .prep{scroll-margin-top:90px;}
+  .prep-sub{margin:0 0 18px;font-size:16px;color:var(--muted);max-width:70ch;}
+  .prep-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:16px;}
+  .prep-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;}
+  .prep-rotulo{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green-2);margin-bottom:8px;}
+  .prep-valor{margin:0;font-size:15px;line-height:1.55;color:var(--text);}
+  .prep-nota{margin:10px 0 0;font-size:13.5px;line-height:1.5;color:var(--muted);border-left:3px solid var(--tint-border);padding-left:10px;}
+  .prep-fonte{margin:16px 0 0;font-size:13px;line-height:1.6;color:var(--muted);max-width:80ch;}
+  .nf-saidas{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0;}
+  .unsub-form{display:flex;flex-direction:column;gap:8px;max-width:380px;margin:18px 0;}
+  .unsub-lab{font-size:13px;font-weight:600;color:var(--muted);}
+  .unsub-input{padding:12px 14px;border:1px solid var(--border-2);border-radius:var(--pill);background:var(--input-bg);color:var(--text);font:inherit;font-size:16px;}
+  .det-cidade-origem{display:block;font-family:var(--sans);font-size:15px;font-weight:600;color:var(--muted);letter-spacing:0;margin-top:6px;}
   .det-alert{background:#18181b;color:#f7f7f5;border-radius:var(--r);padding:22px;}
   .det-alert-title{margin:0 0 4px;font-size:15px;font-weight:700;}
   .det-alert p{margin:0 0 14px;font-size:13px;color:#a1a1a6;line-height:1.5;}
   .det-alert .btn{width:100%;}
-  .rel-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;}
+  .rel-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:20px;}
   .rel-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:4px;color:inherit;}
   .rel-card:hover{border-color:var(--lime);color:inherit;}
   .rel-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
@@ -487,7 +516,7 @@
   .guia-aside-preco{font-size:13px;color:var(--muted);text-align:center;}
   .escopo-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:26px 28px;max-width:860px;}
   .escopo-h{font-size:22px;font-weight:700;font-family:var(--sans);margin:0 0 16px;}
-  .escopo-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px;}
+  .escopo-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:24px;}
   .escopo-tit{margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
   .escopo-tit--sim{color:var(--green-2);}
   .escopo-tit--nao{color:#9a3412;}
@@ -534,7 +563,7 @@
   .opt-head{display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:24px;}
   .opt-head h2{font-size:36px;}
   .opt-sub{margin:0;font-size:15px;color:var(--muted);max-width:460px;line-height:1.5;}
-  .opt-grid-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;align-items:start;}
+  .opt-grid-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:24px;align-items:start;}
   .opt-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;}
   .opt-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;font-size:13px;font-weight:700;}
   .opt-legend{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-2);font-weight:400;}
@@ -567,7 +596,7 @@
 
   /* Datas para viajar (clicar e reservar) */
   .dt-note{font-size:14px;color:var(--muted-2);}
-  .dt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:24px;}
+  .dt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:16px;margin-top:24px;}
   .dt-card{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:4px;}
   .dt-card--best{border-color:var(--lime);box-shadow:0 16px 32px -26px rgba(24,24,27,.35);}
   .dt-flag{position:absolute;top:-11px;left:20px;background:var(--lime);color:#18181b;font-size:12px;font-weight:700;letter-spacing:.04em;padding:4px 12px;border-radius:var(--pill);}
@@ -599,6 +628,7 @@
   .res-side{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:22px;position:sticky;top:92px;}
   .res-side h3{font-size:16px;font-weight:700;font-family:var(--sans);}
   .res-filtro{display:flex;flex-direction:column;gap:10px;}
+  .res-side-title{font-family:var(--sans);font-size:15px;font-weight:700;margin:0 0 4px;letter-spacing:0;}
   .res-filtro-title{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2);}
   .res-check{display:flex;align-items:center;gap:10px;font-size:15px;cursor:pointer;}
   .res-check input{accent-color:var(--green);width:16px;height:16px;}
@@ -613,7 +643,7 @@
   .res-cia{display:flex;flex-direction:column;gap:4px;width:110px;flex-shrink:0;}
   .res-cia strong{font-size:15px;}
   .res-cia span{font-size:13px;color:var(--muted-2);}
-  .res-trecho{display:flex;align-items:center;gap:16px;flex:1 1 300px;min-width:260px;}
+  .res-trecho{display:flex;align-items:center;gap:16px;flex:1 1 300px;min-width:min(260px,100%);}
   .res-hora{text-align:center;}
   .res-hora p{margin:0;font-size:22px;font-weight:600;}
   .res-hora span{font-size:13px;color:var(--muted-2);}
@@ -694,6 +724,7 @@
   /* Resultados: transparencia + captura */
   .res-fine{margin-top:4px;font-size:12px;color:var(--muted-2);text-align:center;}
   .res-amostra--pax{background:#fff7ed;border-color:#fed7aa;color:#9a3412;}
+  .res-amostra--erro{background:var(--risk-bg);border:1px solid var(--risk-border);border-left-width:4px;color:var(--risk-text);}
   /* Busca ao vivo: borda verde solida e fundo mais forte, para separar na
      hora do aviso de "exemplo". Cor nao e o unico sinal — o texto muda. */
   .res-amostra--vivo{background:var(--tint);border:1px solid var(--green);border-left-width:4px;color:var(--green-2);}
@@ -702,7 +733,7 @@
   .res-alert-banner{background:#18181b;color:#f7f7f5;border-radius:var(--r);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:15px;}
   .res-alert-banner strong{color:#fff;}
   .res-alert-banner span{color:#a1a1a6;}
-  .res-alert-form{display:flex;gap:10px;flex-wrap:wrap;flex:1;min-width:260px;max-width:420px;}
+  .res-alert-form{display:flex;gap:10px;flex-wrap:wrap;flex:1;min-width:min(260px,100%);max-width:420px;}
   .res-alert-form input[type=email]{flex:1;min-width:150px;border:1px solid #3f3f42;background:#26262a;border-radius:10px;padding:11px 14px;font-family:var(--sans);font-size:14px;color:#f7f7f5;}
   .res-alert-form .news-msg{flex-basis:100%;margin:0;color:var(--lime-2);font-size:13px;}
 
@@ -736,7 +767,7 @@
 
   /* Footer */
   .site-footer{background:var(--surface);border-top:1px solid var(--border);margin-top:56px;}
-  .foot-grid{padding:56px 32px 40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:40px;}
+  .foot-grid{padding:56px 32px 40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:40px;}
   .brand--foot{--brand-fly:62px;}
   .brand--foot .brand-word{font-size:26px;}
   .brand--foot .brand-plane{color:var(--lime-2);width:12px;height:12px;margin-top:-11px;}
@@ -751,6 +782,32 @@
   .foot-lgpd{margin:0;font-size:12.5px;color:var(--muted);line-height:1.6;max-width:78ch;}
   .foot-legal{margin:0;font-size:12px;color:var(--muted-2);}
 
+  /* Reflow a 320px CSS px (WCAG 1.4.10). Medido: /, /ofertas e as paginas de
+     roteiro rolavam na horizontal porque o bloco de newsletter reservava
+     40px de padding de cada lado. */
+  /* Alvo de toque de 44x44 CSS px no celular (WCAG 2.5.8 / diretriz de mobile).
+     Medido: links do menu e do rodape tinham 22px de altura — metade do
+     minimo. Usa padding, nao height, para o texto continuar centrado. */
+  @media (max-width:860px){
+    .site-nav a,.foot-col a,.foot-legal a,.help-group a{min-height:44px;display:flex;align-items:center;}
+    /* Abas do carrossel e "alterar busca" sao CONTROLES, nao links dentro de
+       frase — a isencao de alvo inline da WCAG 2.5.8 nao vale para eles. */
+    .hero-tab{min-height:44px;padding-top:8px;padding-bottom:8px;}
+    .res-alterar{min-height:44px;}
+    .tema-toggle{min-height:44px;min-width:44px;justify-content:center;}
+    .site-atend{min-height:44px;}
+    .res-sort,.orig-pill,.chip{min-height:44px;display:inline-flex;align-items:center;}
+    .rot-cta,.of-cta,.dia-rest-link{min-height:44px;display:inline-flex;align-items:center;}
+  }
+  @media (max-width:420px){
+    .news-card{padding:24px 16px;gap:20px;}
+    .news-strip{padding:20px 16px;gap:16px;}
+    .news-strip-copy,.news-form{min-width:0;}
+    .wrap{padding-left:14px;padding-right:14px;}
+    .conf-card{padding:24px 16px;}
+    .escopo-card,.lodging,.dia,.opt-panel,.res-side,.guia-aside{padding:20px 16px;}
+    .det-alert{padding:18px 16px;}
+  }
   @media(max-width:860px){
     /* A LISTA vem primeiro no celular. Filtro e captura de e-mail sao uteis,
        mas nao na frente do que a pessoa veio ver. */
@@ -765,7 +822,18 @@
        colava a marca na borda esquerda e o "Meus alertas" na direita — duas
        personas diferentes reclamaram disso na auditoria. */
     .site-header-in{height:auto;flex-wrap:wrap;padding:10px 20px;gap:10px 16px;}
-    .site-nav{order:3;width:100%;gap:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;font-size:14px;}
+    /* O menu rola na horizontal no celular, mas nao dava NENHUMA pista disso:
+       uma pessoa na auditoria viu "Hotéis" cortado no meio da palavra e achou
+       que o site estava quebrado. A mascara desbota a borda direita enquanto
+       houver conteudo fora da tela, e some sozinha ao chegar no fim. */
+    .site-nav{order:3;width:100%;gap:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;font-size:14px;
+      scrollbar-width:none;
+      -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent 100%);
+      mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent 100%);}
+    .site-nav::-webkit-scrollbar{display:none;}
+    /* Ao chegar no fim da rolagem a mascara sai, senao o ultimo item fica
+       desbotado para sempre e parece desabilitado. */
+    .site-nav[data-fim="1"]{-webkit-mask-image:none;mask-image:none;}
     .site-nav a{white-space:nowrap;}
     /* O telefone NAO some mais no celular: a auditoria pegou um usuario de 68
        anos que rolou a home inteira procurando e "quase desistiu achando que
@@ -806,8 +874,8 @@
 <body>
 <div class="seasons3d" aria-hidden="true"><div class="s3-season s3-season--inverno" style="animation-delay:0s"><div class="s3-stage"><span class="s3-orb" style="left:8%;top:27%;width:54vw;height:54vw;background:radial-gradient(circle,rgba(129,187,224,.96) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-340px) scale(1.378)"></span><span class="s3-orb" style="left:93%;top:69%;width:46vw;height:46vw;background:radial-gradient(circle,rgba(186,203,224,.92) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-130px) scale(1.144)"></span><span class="s3-orb" style="left:50%;top:-7%;width:64vw;height:64vw;background:radial-gradient(circle,rgba(94,151,190,.70) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-520px) scale(1.578)"></span><span class="s3-sun" style="top:34%;left:64%;width:14vw;height:14vw;background:radial-gradient(circle,rgba(226,232,240,.72) 0%,transparent 70%)"></span></div><span class="s3-horizon" style="background:linear-gradient(to top,rgba(94,151,190,.22),transparent)"></span></div><div class="s3-season s3-season--primavera" style="animation-delay:-54s"><div class="s3-stage"><span class="s3-orb" style="left:8%;top:27%;width:52vw;height:52vw;background:radial-gradient(circle,rgba(244,150,182,.88) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-310px) scale(1.344)"></span><span class="s3-orb" style="left:93%;top:69%;width:46vw;height:46vw;background:radial-gradient(circle,rgba(163,230,53,.86) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-125px) scale(1.139)"></span><span class="s3-orb" style="left:50%;top:-7%;width:62vw;height:62vw;background:radial-gradient(circle,rgba(216,180,254,.46) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-510px) scale(1.567)"></span><span class="s3-sun" style="top:20%;left:72%;width:17vw;height:17vw;background:radial-gradient(circle,rgba(254,215,226,.76) 0%,transparent 70%)"></span></div><span class="s3-horizon" style="background:linear-gradient(to top,rgba(132,204,22,.24),transparent)"></span></div><div class="s3-season s3-season--verao" style="animation-delay:-36s"><div class="s3-stage"><span class="s3-orb" style="left:8%;top:26%;width:52vw;height:52vw;background:radial-gradient(circle,rgba(250,204,21,.92) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-320px) scale(1.356)"></span><span class="s3-orb" style="left:93%;top:70%;width:46vw;height:46vw;background:radial-gradient(circle,rgba(132,204,22,.80) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-120px) scale(1.133)"></span><span class="s3-orb" style="left:50%;top:-6%;width:64vw;height:64vw;background:radial-gradient(circle,rgba(56,189,248,.58) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-520px) scale(1.578)"></span><span class="s3-sun" style="top:14%;left:76%;width:18vw;height:18vw;background:radial-gradient(circle,rgba(253,224,71,.80) 0%,transparent 70%)"></span></div><span class="s3-horizon" style="background:linear-gradient(to top,rgba(163,230,53,.26),transparent)"></span></div><div class="s3-season s3-season--outono" style="animation-delay:-18s"><div class="s3-stage"><span class="s3-orb" style="left:7%;top:28%;width:54vw;height:54vw;background:radial-gradient(circle,rgba(234,138,54,.62) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-300px) scale(1.333)"></span><span class="s3-orb" style="left:94%;top:68%;width:46vw;height:46vw;background:radial-gradient(circle,rgba(202,138,4,.56) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-110px) scale(1.122)"></span><span class="s3-orb" style="left:50%;top:-8%;width:62vw;height:62vw;background:radial-gradient(circle,rgba(146,64,14,.38) 0%,transparent 68%);transform:translate(-50%,-50%) translateZ(-500px) scale(1.556)"></span><span class="s3-sun" style="top:26%;left:70%;width:16vw;height:16vw;background:radial-gradient(circle,rgba(251,191,36,.70) 0%,transparent 70%)"></span></div><span class="s3-horizon" style="background:linear-gradient(to top,rgba(180,83,9,.24),transparent)"></span></div><div class="s3-motes"><span class="s3-mote" style="left:6%;width:4px;height:4px;animation-duration:26s;animation-delay:0s"></span><span class="s3-mote" style="left:16.5%;width:3px;height:3px;animation-duration:33s;animation-delay:-4s"></span><span class="s3-mote" style="left:27%;width:3px;height:3px;animation-duration:40s;animation-delay:-8s"></span><span class="s3-mote" style="left:37.5%;width:4px;height:4px;animation-duration:30s;animation-delay:-12s"></span><span class="s3-mote" style="left:48%;width:3px;height:3px;animation-duration:37s;animation-delay:-16s"></span><span class="s3-mote" style="left:58.5%;width:3px;height:3px;animation-duration:27s;animation-delay:-20s"></span><span class="s3-mote" style="left:69%;width:4px;height:4px;animation-duration:34s;animation-delay:-24s"></span><span class="s3-mote" style="left:79.5%;width:3px;height:3px;animation-duration:41s;animation-delay:-28s"></span><span class="s3-mote" style="left:90%;width:3px;height:3px;animation-duration:31s;animation-delay:-32s"></span></div><div class="s3-veil"></div></div>
 <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
-<header class="site-header"><div class="wrap site-header-in"><a class="brand" href="/"><span class="brand-plane" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M2.2 20.6 22 12 2.2 3.4l0 6.9L15 12 2.2 13.7z"/></svg></span><span class="brand-word">aonde</span><span class="brand-dot"></span></a><nav class="site-nav"><a href="/resultados" title="Buscar um voo específico, por origem e destino">Passagens</a><a href="/hoje">A escolha do dia <span class="nav-pill">NOVO</span></a><a href="/ofertas" title="Ver os achados de passagem já conferidos pela curadoria">Ofertas</a><a href="https://search.hotellook.com/" target="_blank" rel="noopener sponsored" title="Abre o site do parceiro Hotellook em nova aba">Hotéis <span class="nav-ext" aria-hidden="true">↗</span></a><a href="/guias">Guias de destino</a><a href="/mapa">Mapa</a></nav><div class="site-header-right"><a class="site-atend" href="tel:08009420842"><span>Atendimento</span><strong>0800 942 0842</strong></a><button type="button" class="tema-toggle" data-tema-toggle aria-pressed="false" aria-label="Alternar tema claro/escuro"><span class="tema-toggle-ico" aria-hidden="true" data-tema-toggle-ico>🌙</span><span data-tema-toggle-label>Escuro</span></button><a class="btn btn-dark" href="/alertas">Meus alertas</a></div></div></header>
-<main id="conteudo" tabindex="-1"><section class="wrap map-head"><p class="eyebrow eyebrow--green">Suporte</p><h1 class="map-title">Central de ajuda</h1><p class="map-sub">Respostas rápidas sobre como o Aonde funciona. Para uma reserva já feita, veja também <a href="/cancelamentos">Trocas e cancelamentos</a>.</p></section><section class="wrap section help-grid"><div class="help-group"><h2 class="det-h2">Antes de comprar</h2><details class="faq-item"><summary>Os preços do Aonde são garantidos?</summary><p>Não. O Aonde compara e destaca tarifas encontradas nos sites dos parceiros; o preço final é sempre o que o parceiro mostrar no pagamento. Datas concorridas e promoções relâmpago podem esgotar em minutos.</p></details><details class="faq-item"><summary>Por que o preço muda quando chego no parceiro?</summary><p>Quem controla estoque e tarifa é o parceiro, não o Aonde. Assentos promocionais são limitados e o preço pode subir (ou o voo sumir) entre o momento em que publicamos e o da compra.</p></details><details class="faq-item"><summary>O Aonde cobra alguma taxa a mais?</summary><p>Não. Quando você compra por um link do Aonde, o parceiro pode nos pagar uma comissão — isso não muda o preço que você paga.</p></details></div><div class="help-group"><h2 class="det-h2">Depois de comprar</h2><details class="faq-item"><summary>Quem processa minha reserva?</summary><p>A companhia aérea, agência ou plataforma parceira que você acessou pelo nosso link. O Aonde não processa pagamento, não emite bilhete e não guarda seus dados de reserva.</p></details><details class="faq-item"><summary>Não recebi a confirmação. E agora?</summary><p>Confira o spam usando o e-mail que você digitou no site do parceiro. Se não aparecer, fale direto com o suporte deles — eles têm acesso ao seu pagamento e à sua reserva, o Aonde não tem.</p></details><details class="faq-item"><summary>Quero cancelar ou alterar minha reserva.</summary><p>Veja <a href="/cancelamentos">Trocas e cancelamentos</a> — explicamos com quem falar e o que a lei garante.</p></details></div><div class="help-group"><h2 class="det-h2">Alertas de preço</h2><details class="faq-item"><summary>Como recebo alertas de preço?</summary><p>Cadastre seu e-mail em qualquer página de ofertas. Você confirma a inscrição por e-mail (double opt-in) antes de receber qualquer coisa.</p></details><details class="faq-item"><summary>Como cancelo a inscrição?</summary><p>Todo e-mail nosso tem um link de descadastro. Você também pode cancelar em <a href="/alertas">Gerenciar meus alertas</a>.</p></details></div><div class="help-group"><h2 class="det-h2">Fale com a gente</h2><p>Atendimento: <strong>0800 942 0842</strong>, todos os dias.</p><p class="help-fine">Atendimento sobre o Aonde (dúvidas, sugestões, problemas com o site). Para alteração/cancelamento de uma reserva já paga, o canal certo é o suporte do parceiro — ver <a href="/cancelamentos">Trocas e cancelamentos</a>.</p></div></section></main><footer class="site-footer"><div class="wrap foot-grid"><div class="foot-brand"><div class="brand brand--foot"><span class="brand-plane" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M2.2 20.6 22 12 2.2 3.4l0 6.9L15 12 2.2 13.7z"/></svg></span><span class="brand-word">aonde</span><span class="brand-dot"></span></div><p>Viagens pelo Brasil e América do Sul, do jeito que você gosta de viajar.</p></div><div class="foot-col"><span class="foot-title">Reservas</span><a href="/resultados">Passagens aéreas</a><a href="https://search.hotellook.com/" target="_blank" rel="noopener sponsored">Hotéis</a><span class="foot-link--soon" aria-disabled="true" title="Em breve">Aluguel de carros</span><span class="foot-link--soon" aria-disabled="true" title="Em breve">Seguro viagem</span></div><div class="foot-col"><span class="foot-title">Conteúdo</span><a href="/guias">Guias de destino</a><a href="/#estilos">Dicas de viagem</a><a href="/#roteiros">Revista Aonde</a></div><div class="foot-col"><span class="foot-title">Atendimento</span><a href="tel:08009420842">Atendimento: 0800 942 0842</a><a href="/ajuda">Central de ajuda</a><a href="/cancelamentos">Trocas e cancelamentos</a></div></div><div class="foot-bar"><div class="wrap foot-bar-in"><p class="foot-lgpd">Alguns links são de parceiros afiliados: se você comprar por eles, podemos receber uma comissão, <strong>sem custo extra para você</strong>. Isso ajuda a manter o Aonde no ar. Preços e disponibilidade mudam sem aviso — confira sempre no site do parceiro.</p><p class="foot-legal">© 2026 Aonde Viagens Ltda · Reservas operadas em parceria com plataformas certificadas de turismo.</p></div></div></footer>
+<header class="site-header"><div class="wrap site-header-in"><a class="brand" href="/"><span class="brand-plane" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M2.2 20.6 22 12 2.2 3.4l0 6.9L15 12 2.2 13.7z"/></svg></span><span class="brand-word">aonde</span><span class="brand-dot"></span></a><nav class="site-nav"><a href="/resultados" title="Buscar um voo específico, por origem e destino">Passagens</a><a href="/hoje">A escolha do dia <span class="nav-pill">NOVO</span></a><a href="/ofertas" title="Ver os achados de passagem já conferidos pela curadoria">Ofertas</a><a href="https://search.hotellook.com/" target="_blank" rel="noopener sponsored" title="Abre o site do parceiro Hotellook em nova aba">Hotéis <span class="nav-ext" aria-hidden="true">↗</span></a><a href="/guias">Guias de destino</a><a href="/mapa">Mapa</a></nav><div class="site-header-right"><a class="site-atend" href="/ajuda"><span>Ajuda</span><strong>Central de ajuda</strong></a><button type="button" class="tema-toggle" data-tema-toggle aria-pressed="false" aria-label="Alternar tema claro/escuro"><span class="tema-toggle-ico" aria-hidden="true" data-tema-toggle-ico>🌙</span><span data-tema-toggle-label>Escuro</span></button><a class="btn btn-dark" href="/alertas">Meus alertas</a></div></div></header>
+<main id="conteudo" tabindex="-1"><section class="wrap map-head"><p class="eyebrow eyebrow--green">Suporte</p><h1 class="map-title">Central de ajuda</h1><p class="map-sub">Respostas rápidas sobre como o Aonde funciona. Para uma reserva já feita, veja também <a href="/cancelamentos">Trocas e cancelamentos</a>.</p></section><section class="wrap section help-grid"><div class="help-group"><h2 class="det-h2">Antes de comprar</h2><details class="faq-item"><summary>Os preços do Aonde são garantidos?</summary><p>Não. O Aonde compara e destaca tarifas encontradas nos sites dos parceiros; o preço final é sempre o que o parceiro mostrar no pagamento. Datas concorridas e promoções relâmpago podem esgotar em minutos.</p></details><details class="faq-item"><summary>Por que o preço muda quando chego no parceiro?</summary><p>Quem controla estoque e tarifa é o parceiro, não o Aonde. Assentos promocionais são limitados e o preço pode subir (ou o voo sumir) entre o momento em que publicamos e o da compra.</p></details><details class="faq-item"><summary>O Aonde cobra alguma taxa a mais?</summary><p>Não. Quando você compra por um link do Aonde, o parceiro pode nos pagar uma comissão — isso não muda o preço que você paga.</p></details></div><div class="help-group"><h2 class="det-h2">Depois de comprar</h2><details class="faq-item"><summary>Quem processa minha reserva?</summary><p>A companhia aérea, agência ou plataforma parceira que você acessou pelo nosso link. O Aonde não processa pagamento, não emite bilhete e não guarda seus dados de reserva.</p></details><details class="faq-item"><summary>Não recebi a confirmação. E agora?</summary><p>Confira o spam usando o e-mail que você digitou no site do parceiro. Se não aparecer, fale direto com o suporte deles — eles têm acesso ao seu pagamento e à sua reserva, o Aonde não tem.</p></details><details class="faq-item"><summary>Quero cancelar ou alterar minha reserva.</summary><p>Veja <a href="/cancelamentos">Trocas e cancelamentos</a> — explicamos com quem falar e o que a lei garante.</p></details></div><div class="help-group"><h2 class="det-h2">Alertas de preço</h2><details class="faq-item"><summary>Como recebo alertas de preço?</summary><p>Cadastre seu e-mail em qualquer página de ofertas. Você confirma a inscrição por e-mail (double opt-in) antes de receber qualquer coisa.</p></details><details class="faq-item"><summary>Como cancelo a inscrição?</summary><p>Todo e-mail nosso tem um link de descadastro. Você também pode cancelar em <a href="/alertas">Gerenciar meus alertas</a>.</p></details></div><div class="help-group"><h2 class="det-h2">Fale com a gente</h2><p>O canal de atendimento do Aonde é esta Central de ajuda. Não temos telefone nem WhatsApp por enquanto — preferimos dizer isso a deixar você esperando numa linha que não existe.</p><p class="help-fine">Atendimento sobre o Aonde (dúvidas, sugestões, problemas com o site). Para alteração/cancelamento de uma reserva já paga, o canal certo é o suporte do parceiro — ver <a href="/cancelamentos">Trocas e cancelamentos</a>.</p></div></section></main><footer class="site-footer"><div class="wrap foot-grid"><div class="foot-brand"><div class="brand brand--foot"><span class="brand-plane" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M2.2 20.6 22 12 2.2 3.4l0 6.9L15 12 2.2 13.7z"/></svg></span><span class="brand-word">aonde</span><span class="brand-dot"></span></div><p>Viagens pelo Brasil e América do Sul, do jeito que você gosta de viajar.</p></div><div class="foot-col"><span class="foot-title">Reservas</span><a href="/resultados">Passagens aéreas</a><a href="https://search.hotellook.com/" target="_blank" rel="noopener sponsored">Hotéis</a><span class="foot-link--soon" aria-disabled="true" title="Em breve">Aluguel de carros</span><span class="foot-link--soon" aria-disabled="true" title="Em breve">Seguro viagem</span></div><div class="foot-col"><span class="foot-title">Conteúdo</span><a href="/guias">Guias de destino</a><a href="/#estilos">Dicas de viagem</a><a href="/#roteiros">Revista Aonde</a></div><div class="foot-col"><span class="foot-title">Atendimento</span><a href="/ajuda">Central de ajuda</a><a href="/ajuda">Central de ajuda</a><a href="/cancelamentos">Trocas e cancelamentos</a></div></div><div class="foot-bar"><div class="wrap foot-bar-in"><p class="foot-lgpd">Alguns links são de parceiros afiliados: se você comprar por eles, podemos receber uma comissão, <strong>sem custo extra para você</strong>. Isso ajuda a manter o Aonde no ar. Preços e disponibilidade mudam sem aviso — confira sempre no site do parceiro.</p><p class="foot-legal">© 2026 Aonde Viagens Ltda · Reservas operadas em parceria com plataformas certificadas de turismo.</p></div></div></footer>
 
 </body>
 </html>
