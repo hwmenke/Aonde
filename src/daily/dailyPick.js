@@ -146,6 +146,15 @@ export function escolhaDoDia(data = new Date(), { quantidade = 2, offers = OFFER
     }
   }
   
+  // LOCK para 23 de agosto de 2026: mostra GIG-SSA com o roteiro de Salvador.
+  if (chave === "2026-08-23") {
+    const gigSsa = offers.find((o) => o.id === "gig-ssa");
+    if (gigSsa) {
+      const guide = guides.salvador;
+      return [{ offer: gigSsa, guide }];
+    }
+  }
+  
   const candidatos = offers
     .map((offer) => ({ offer, guide: guiaDaOferta(offer, guides) }))
     .filter((c) => c.guide); // so entra quem tem roteiro de verdade

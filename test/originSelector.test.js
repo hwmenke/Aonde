@@ -51,9 +51,8 @@ test("GET /ofertas/gru-eze marca preco como especifico de GRU", async () => {
   assert.strictEqual(res.status, 200, "deve devolver 200 OK");
   const html = await res.text();
   
-  // O preco deve estar marcado com data-gru-price (para poder esconder quando
-  // a origem mudar via JavaScript).
-  assert.ok(html.includes('data-gru-price'), "deve marcar o preco como especifico de GRU");
+  // O preco deve estar marcado com data-origin-price="GRU".
+  assert.ok(html.includes('data-origin-price="GRU"'), "deve marcar o preco como especifico de GRU");
   assert.ok(html.includes('R$ 1.570'), "deve mostrar o preco de GRU");
 });
 
@@ -121,8 +120,8 @@ test("GET /hoje mostra seletor de origem para GRU-EZE em 21 ago 2026", async () 
   assert.ok(html.includes('data-origin-selector'), "deve ter seletor de origem");
   assert.ok(html.includes('Saindo de'), "deve ter rotulo 'Saindo de'");
   
-  // O preco deve estar marcado como especifico de GRU.
-  assert.ok(html.includes('data-gru-price'), "deve marcar o preco como especifico de GRU");
+  // O preco deve estar marcado como especifico da origem.
+  assert.ok(html.includes('data-origin-price'), "deve marcar o preco como especifico da origem");
 });
 
 test("GET /hoje sem seletor de origem para ofertas sem aviasalesUrl", async () => {
@@ -141,16 +140,16 @@ test("GET /hoje sem seletor de origem para ofertas sem aviasalesUrl", async () =
 // HONESTIDADE: preco especifico de GRU nao deve aparecer para outras origens
 // ---------------------------------------------------------------------------
 
-test("JavaScript esconde preco quando origem != GRU", async () => {
+test("JavaScript esconde preco quando origem != original", async () => {
   const res = await fetch(`${baseUrl}/ofertas/gru-eze`);
   assert.strictEqual(res.status, 200, "deve devolver 200 OK");
   const html = await res.text();
   
   // Verifica que o JavaScript tem a logica para esconder o preco.
-  assert.ok(html.includes('data-gru-price'), "deve marcar preco com data-gru-price");
+  assert.ok(html.includes('data-origin-price'), "deve marcar preco com data-origin-price");
   assert.ok(html.includes('data-origin-selector'), "deve ter o handler de mudanca de origem");
   assert.ok(html.includes('el.hidden=true'), "deve ter logica para esconder o preco");
-  assert.ok(html.includes('novaOrigem!=='), "deve checar se origem != GRU");
+  assert.ok(html.includes('novaOrigem!=='), "deve checar se origem mudou");
 });
 
 // ---------------------------------------------------------------------------

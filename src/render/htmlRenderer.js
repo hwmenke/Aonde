@@ -2102,8 +2102,11 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `<h1 class="det-cidade">${escapeHtml(destinoLabel)}${origemNome ? `<span class="det-cidade-origem"> saindo de ${escapeHtml(origemNome)}</span>` : ""}</h1>` +
     (vm.local || vm.cia ? `<p class="det-local">${[vm.local, vm.cia].filter(Boolean).map(escapeHtml).join(" · ")}</p>` : "") +
     (() => {
-      const isGruPrice = offer.aviasalesUrl && vm.origem === "GRU";
-      const dataAttr = isGruPrice ? ' data-gru-price' : '';
+      // Marca preco especifico da origem: GRU-EZE tem preco de GRU, GIG-SSA tem preco de GIG.
+      // Se a oferta tem aviasalesUrl E o preco é para a origem original, marca para esconder
+      // quando a pessoa trocar de cidade no seletor.
+      const isOriginSpecificPrice = offer.aviasalesUrl && vm.origem;
+      const dataAttr = isOriginSpecificPrice ? ` data-origin-price="${escapeHtml(vm.origem)}"` : '';
       return `<div class="det-preco-row"${dataAttr}><span class="det-preco">${escapeHtml(vm.preco)}</span>${media}</div>`;
     })() +
     economia +
@@ -2117,8 +2120,8 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `<div class="det-buy">` +
     `<span class="det-buy-label">a partir de</span>` +
     (() => {
-      const isGruPrice = offer.aviasalesUrl && vm.origem === "GRU";
-      const dataAttr = isGruPrice ? ' data-gru-price' : '';
+      const isOriginSpecificPrice = offer.aviasalesUrl && vm.origem;
+      const dataAttr = isOriginSpecificPrice ? ` data-origin-price="${escapeHtml(vm.origem)}"` : '';
       return `<p class="det-buy-preco"${dataAttr}>${escapeHtml(vm.preco)}</p>`;
     })() +
     `<p class="det-buy-sub">ida e volta${vm.datas ? ` · ${escapeHtml(vm.datas)}` : ""}</p>` +
@@ -2377,9 +2380,9 @@ export function renderTodayPage(pacote) {
       const originSelector = offerFull && offerFull.aviasalesUrl && offerFull.id
         ? originSelectorHtml(offerFull.id, o.origem, offerFull.aviasalesUrl)
         : "";
-      // Marca preco especifico de GRU para poder esconder quando origem mudar.
-      const isGruPrice = offerFull && offerFull.aviasalesUrl && o.origem === "GRU";
-      const precoDataAttr = isGruPrice ? ' data-gru-price' : '';
+      // Marca preco especifico da origem para poder esconder quando origem mudar.
+      const isOriginSpecificPrice = offerFull && offerFull.aviasalesUrl && o.origem;
+      const precoDataAttr = isOriginSpecificPrice ? ` data-origin-price="${escapeHtml(o.origem)}"` : '';
       const hojeBase = (() => {
         try {
           return siteBaseUrl();
@@ -3240,6 +3243,7 @@ function enhancementScript() {
   // o link /saida com ?origem= novo (para ofertas com aviasalesUrl).
   document.querySelectorAll('[data-origin-selector]').forEach(function(select){
     var offerId=select.getAttribute('data-offer-id');
+    var origemOriginal=select.value;
     select.addEventListener('change',function(){
       var novaOrigem=select.value;
       var saidaLinks=document.querySelectorAll('a[href^="/saida/'+offerId+'"]');
@@ -3249,12 +3253,11 @@ function enhancementScript() {
         url.searchParams.set('origem',novaOrigem);
         link.href=url.toString();
       });
-      // Se a oferta mostra preco especifico de GRU e a origem nao e mais GRU,
-      // esconde o preco (honestidade: o valor mostrado era para GRU, nao para
-      // a nova origem escolhida).
-      var precoEls=document.querySelectorAll('[data-gru-price]');
+      // Se a oferta mostra preco especifico da origem original e a origem mudou,
+      // esconde o preco (honestidade: o valor mostrado era para a origem original).
+      var precoEls=document.querySelectorAll('[data-origin-price="'+origemOriginal+'"]');
       precoEls.forEach(function(el){
-        if(novaOrigem!=='GRU'){el.hidden=true;}
+        if(novaOrigem!==origemOriginal){el.hidden=true;}
         else{el.hidden=false;}
       });
     });

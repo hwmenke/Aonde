@@ -188,3 +188,19 @@ test("22 de agosto de 2026 mostra GRU-FLN com roteiro de Florianópolis (LOCK 2)
   assert.equal(pacote.itens[0].oferta.id, "gru-fln");
   assert.equal(pacote.itens[0].roteiro.id, "florianopolis");
 });
+
+test("23 de agosto de 2026 mostra GIG-SSA com roteiro de Salvador (LOCK 3)", () => {
+  // Lock 3: 23 ago 2026 mostra GIG-SSA com o roteiro de Salvador.
+  const escolha = escolhaDoDia("2026-08-23", { quantidade: 1 });
+  assert.equal(escolha.length, 1, "23 ago 2026 deve ter exatamente 1 oferta");
+  assert.equal(escolha[0].offer.id, "gig-ssa", "oferta do dia deve ser GIG-SSA");
+  assert.ok(escolha[0].guide, "GIG-SSA deve ter roteiro associado");
+  assert.equal(escolha[0].guide.id, "salvador", "roteiro deve ser o de Salvador");
+  
+  // Verifica que o pacote do dia também reflete o lock.
+  const pacote = pacoteDoDia("2026-08-23");
+  assert.equal(pacote.dia, "2026-08-23");
+  assert.equal(pacote.itens.length, 1);
+  assert.equal(pacote.itens[0].oferta.id, "gig-ssa");
+  assert.equal(pacote.itens[0].roteiro.id, "salvador");
+});
