@@ -137,6 +137,15 @@ export function escolhaDoDia(data = new Date(), { quantidade = 2, offers = OFFER
     }
   }
   
+  // LOCK para 22 de agosto de 2026: mostra GRU-FLN com o roteiro de Florianópolis.
+  if (chave === "2026-08-22") {
+    const gruFln = offers.find((o) => o.id === "gru-fln");
+    if (gruFln) {
+      const guide = guides.florianopolis;
+      return [{ offer: gruFln, guide }];
+    }
+  }
+  
   const candidatos = offers
     .map((offer) => ({ offer, guide: guiaDaOferta(offer, guides) }))
     .filter((c) => c.guide); // so entra quem tem roteiro de verdade

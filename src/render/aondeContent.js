@@ -193,6 +193,12 @@ export const OFFERS = [
     dicas: ["Voo direto SWISS, sem escalas: 12 set 07:45 GRU→10:50 EZE, volta 19 set 13:30 EZE→16:10 GRU", "Bagagem de mão inclusa; despachada é paga à parte", "Setembro tem clima ameno em Buenos Aires, fora do pico turístico"],
     flex: [{ d: "12–19 set", p: "R$ 1.570" }, { d: "15–22 set", p: "R$ 1.648" }, { d: "19–26 set", p: "R$ 1.720" }],
     aviasalesUrl: "https://www.aviasales.com/search/GRU1209BUE19091" },
+  { id: "gru-fln", origem: "GRU", destino: "FLN", cidade: "Florianópolis", local: "Santa Catarina", preco: "R$ 770", preco_usd: "$149", cia: "LATAM", datas: "27 set–3 out", tipo: "Nacional", publicadoEm: "2026-08-21T00:15:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "Direto · 1h15",
+    thumbUrl: wiki("Barra da Lagoa, Florianópolis - SC (2).JPG"), credit: "Florianópolis — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Lagoa_da_Conceição",
+    texto: "São Paulo–Florianópolis por R$ 770 ida e volta em setembro/outubro, voo direto pela LATAM. Preço visto no Google Flights em 21 de agosto de 2026 (a partir de R$ 768). Aviasales mostra USD $149 para a mesma rota.",
+    dicas: ["Voo direto LATAM, 1h15 de duração", "Alta temporada em Floripa: setembro ainda é ombro de temporada, preços mais baixos que no verão", "Clima em setembro/outubro: 16–23°C, ainda frio para banho de mar (água ~18°C)", "Praias do norte (Jurerê, Canasvieiras) são mais calmas; do leste (Joaquina, Mole) têm ondas"],
+    flex: [{ d: "27 set–3 out", p: "R$ 770" }, { d: "30 set–6 out", p: "R$ 814" }, { d: "4–11 out", p: "R$ 856" }],
+    aviasalesUrl: "https://www.aviasales.com/search/GRU2709FLN03101" },
   { id: "cnf-fln", origem: "CNF", destino: "FLN", cidade: "Florianópolis", local: "Santa Catarina", preco: "R$ 312", media: "R$ 690", economia: "R$ 378", cia: "GOL", datas: "14–21 out", tipo: "Nacional", publicadoEm: "2026-07-25T09:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "55% abaixo da média",
     thumbUrl: wiki("Barra da Lagoa, Florianópolis - SC (2).JPG"), credit: "Florianópolis — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Lagoa_da_Conceição",
     texto: "Belo Horizonte–Florianópolis por R$ 312 ida e volta em outubro, antes da temporada de verão explodir os preços. Praia, lagoa e ostras a preço de passagem de ônibus.",
@@ -294,6 +300,7 @@ export const OFFER_COORDS = {
   "gru-rec": { lat: -8.0476, lng: -34.877 }, // Recife
   "vcp-bue": { lat: -34.6037, lng: -58.3816 }, // Buenos Aires
   "gru-eze": { lat: -34.6037, lng: -58.3816 }, // Buenos Aires
+  "gru-fln": { lat: -27.5935, lng: -48.5582 }, // Florianópolis
   "cnf-fln": { lat: -27.5954, lng: -48.548 }, // Florianópolis
   "gig-mia": { lat: 25.7617, lng: -80.1918 }, // Miami
   "gru-scl": { lat: -33.4489, lng: -70.6693 }, // Santiago

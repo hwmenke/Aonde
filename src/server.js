@@ -892,7 +892,10 @@ export function createServer() {
       }
       // A escolha do dia — o que o robo diario publica (ver src/daily/dailyPick.js).
       if (method === "GET" && pathname === "/hoje") {
-        sendHtml(res, 200, renderTodayPage(pacoteDoDia(new Date())));
+        // Permite forcar uma data especifica via ?dia=AAAA-MM-DD (para testes e preview).
+        const diaParam = url.searchParams.get("dia");
+        const data = diaParam || new Date();
+        sendHtml(res, 200, renderTodayPage(pacoteDoDia(data)));
         return;
       }
       if (method === "GET" && pathname === "/sitemap.xml") {
