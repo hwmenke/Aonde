@@ -155,3 +155,20 @@ test("GET /hoje responde a pagina do dia", async (t) => {
   // Entra no sitemap, senao ninguem acha.
   assert.match(await (await fetch(`${base}/sitemap.xml`)).text(), /\/hoje</);
 });
+
+test("21 de agosto de 2026 mostra GRU-EZE com roteiro de Buenos Aires (LOCK)", () => {
+  // Lock explícito no código para garantir que o achado do dia de 21 ago 2026
+  // seja GRU-EZE com o roteiro de Buenos Aires, não a rotação normal.
+  const escolha = escolhaDoDia("2026-08-21", { quantidade: 1 });
+  assert.equal(escolha.length, 1, "21 ago 2026 deve ter exatamente 1 oferta");
+  assert.equal(escolha[0].offer.id, "gru-eze", "oferta do dia deve ser GRU-EZE");
+  assert.ok(escolha[0].guide, "GRU-EZE deve ter roteiro associado");
+  assert.equal(escolha[0].guide.id, "buenosaires", "roteiro deve ser o de Buenos Aires");
+  
+  // Verifica que o pacote do dia também reflete o lock.
+  const pacote = pacoteDoDia("2026-08-21");
+  assert.equal(pacote.dia, "2026-08-21");
+  assert.equal(pacote.itens.length, 1);
+  assert.equal(pacote.itens[0].oferta.id, "gru-eze");
+  assert.equal(pacote.itens[0].roteiro.id, "buenosaires");
+});
