@@ -94,10 +94,27 @@ test("o pacote do dia traz oferta + roteiro prontos para publicar", () => {
   assert.equal(p.dia, "2026-07-26");
   assert.equal(p.itens.length, 2);
   for (const it of p.itens) {
-    assert.ok(it.oferta.preco && it.oferta.href.startsWith("/ofertas/"));
+    assert.ok(it.oferta.preco);
+    // Oferta RESERVAVEL (com aviasalesUrl) aponta para /saida/{id}; sem, /ofertas/{id}.
+    assert.ok(it.oferta.href.startsWith("/ofertas/") || it.oferta.href.startsWith("/saida/"));
     // Sigla de aeroporto vira nome de cidade tambem aqui.
     assert.ok(it.oferta.origemCidade && it.oferta.origemCidade !== it.oferta.origem);
     assert.ok(it.roteiro.bullets.length > 0);
+  }
+});
+
+test("ofertas RESERVAVEIS (aviasalesUrl) no pacote do dia apontam para /saida/{id}", () => {
+  // gru-eze tem aviasalesUrl, entao deve apontar para /saida/gru-eze para encurtar
+  // o funil de conversao de /hoje (destino do WhatsApp).
+  const p = pacoteDoDia("2026-08-21", { quantidade: 2 });
+  const gruEze = p.itens.find((it) => it.oferta.id === "gru-eze");
+  if (!gruEze) {
+    // se gru-eze nao entrou no pacote desse dia, procura qualquer uma COM aviasalesUrl
+    const bookable = p.itens.find((it) => it.oferta.__source?.aviasalesUrl);
+    assert.ok(bookable, "ao menos uma oferta com aviasalesUrl deve entrar no pacote");
+    assert.ok(bookable.oferta.href.startsWith("/saida/"), "oferta com aviasalesUrl deve apontar para /saida");
+  } else {
+    assert.equal(gruEze.oferta.href, "/saida/gru-eze", "gru-eze (aviasalesUrl) deve apontar para /saida/gru-eze");
   }
 });
 

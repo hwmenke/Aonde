@@ -74,9 +74,9 @@ test("GET /saida/gru-eze COM TRAVELPAYOUTS_MARKER: monta tp.media e mostra inter
   // Deve apontar para o Aviasales search URL correto (round-trip GRU 12 set, BUE 19 set).
   assert.match(html, /aviasales\.com.*GRU1209BUE19091/i, "deve envolver a URL do Aviasales round-trip");
   
-  // Deve mostrar o aviso de saida padrao.
-  assert.match(html, /Você está indo para/i, "deve mostrar aviso de saida");
-  assert.match(html, /SWISS/i, "deve mencionar a companhia no card");
+  // Deve mostrar o aviso de saida padrao com o parceiro real (Aviasales).
+  assert.match(html, /Você está indo para Aviasales/i, "deve dizer que vai para Aviasales");
+  assert.match(html, /Continuar para Aviasales/i, "CTA deve nomear Aviasales, nao a cia");
 });
 
 test("GET /saida/gru-eze: UTM preservado como sub_id do Travelpayouts", async (t) => {
