@@ -1965,7 +1965,14 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `</form>`;
   
   // Botao de compartilhamento WhatsApp: compartilha a oferta com amigos.
-  const canonicalUrl = `${siteBaseUrl()}${vm.href || (vm.id ? `/ofertas/${vm.id}` : "/ofertas")}`;
+  const canonicalBase = (() => {
+    try {
+      return siteBaseUrl();
+    } catch {
+      return "https://aonde.com.br";
+    }
+  })();
+  const canonicalUrl = `${canonicalBase}${vm.href || (vm.id ? `/ofertas/${vm.id}` : "/ofertas")}`;
   const shareUrl = `${canonicalUrl}?utm_source=wa&utm_medium=social&utm_campaign=${encodeURIComponent(vm.id)}`;
   const shareTitle = `${destinoLabel} por ${vm.preco} saindo de ${origemNome || vm.origem}`;
   const waShare =
@@ -2316,7 +2323,14 @@ export function renderTodayPage(pacote) {
             `</div></li>`
         )
         .join("");
-      const shareUrl = `${siteBaseUrl()}/hoje?utm_source=wa&utm_medium=social&utm_campaign=hoje`;
+      const hojeBase = (() => {
+        try {
+          return siteBaseUrl();
+        } catch {
+          return "https://aonde.com.br";
+        }
+      })();
+      const shareUrl = `${hojeBase}/hoje?utm_source=wa&utm_medium=social&utm_campaign=hoje`;
       const shareTitle = `${r.titulo} - ${o.preco} saindo de ${o.origemCidade}`;
       const waShareBtn =
         `<a class="btn btn-ghost btn-ghost--claro" href="${escapeHtml(waShareLink(shareTitle, shareUrl))}" target="_blank" rel="noopener">` +
