@@ -38,7 +38,7 @@
 import http from "node:http";
 import { gzipSync, brotliCompressSync } from "node:zlib";
 import path from "node:path";
-import { appendFileSync } from "node:fs";
+import { appendFileSync, readFileSync, existsSync } from "node:fs";
 
 import { validateConfig } from "./health.js";
 import { getConfig } from "./config.js";
@@ -556,6 +556,39 @@ function handleStyleAsset(res, pathname) {
   res.end(css);
 }
 
+// Serve OG images para social sharing de public/og/. Permite apenas arquivos
+// .jpg/.jpeg/.png com nome seguro (alphanumerico, hifen, underscore). Cache
+// longo porque sao assets de conteudo versionados por nome.
+function handleOgImage(res, pathname) {
+  const filename = path.basename(pathname);
+  // Validacao: so aceita nomes seguros e extensoes de imagem conhecidas.
+  if (!/^[a-zA-Z0-9_-]+\.(jpg|jpeg|png)$/i.test(filename)) {
+    sendText(res, 400, "Nome de arquivo invalido", "text/plain; charset=utf-8");
+    return;
+  }
+  const filePath = path.join(process.cwd(), "public", "og", filename);
+  if (!existsSync(filePath)) {
+    sendText(res, 404, "Imagem nao encontrada", "text/plain; charset=utf-8");
+    return;
+  }
+  try {
+    const buffer = readFileSync(filePath);
+    const ext = path.extname(filename).toLowerCase();
+    const contentType = ext === ".png" ? "image/png" : "image/jpeg";
+    res.writeHead(200, {
+      "Content-Type": contentType,
+      "Content-Length": buffer.length,
+      "Cache-Control": "public, max-age=2592000", // 30 dias
+      ...securityHeaders(),
+      ...corsHeaders(),
+    });
+    res.end(buffer);
+  } catch (err) {
+    console.error(`[aonde-affiliates] Falha ao ler OG image ${filename}:`, err);
+    sendText(res, 500, "Erro ao ler imagem", "text/plain; charset=utf-8");
+  }
+}
+
 function handleRobots(res) {
   const body = `User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: ${siteBaseUrl()}/sitemap.xml\n`;
   sendText(res, 200, body);
@@ -681,14 +714,66 @@ async function handleResultsHtml(res, url) {
 
 // Interstitial de saida: registra o clique e resolve o link do parceiro. Um
 // unico ponto que conserta o tracking e entrega a tela de transicao pos-clique.
-function handleExitHtml(req, res, id) {
+// Quando a oferta tem aviasalesUrl (campo novo), constroi o link tp.media NA
+// HORA usando TRAVELPAYOUTS_MARKER do env — nao armazena marker no codigo.
+// Preserva UTMs da querystring e os usa como sub_id do Travelpayouts.
+// ORIGEM ALTERAVEL: quando ?origem= muda de GRU para outro IATA (ex.: REC),
+// reconstroi o aviasalesUrl com a nova origem, permitindo que pessoas de outros
+// estados reservem a mesma rota (BUE 12-19 set).
+function handleExitHtml(req, res, id, url) {
   const live = getOffer(id);
   const offer = live || CONTENT_OFFERS.find((o) => o.id === id);
   if (!offer) {
     sendHtml(res, 404, renderOffersPage(publishedLiveOffers(), {}));
     return;
   }
-  const affiliateUrl = live ? live.affiliate_url : offer.affiliateUrl || offer.affiliate_url;
+  
+  // Extrai UTMs da querystring para tracking.
+  const utmSource = url.searchParams.get("utm_source") || "";
+  const utmMedium = url.searchParams.get("utm_medium") || "";
+  const utmCampaign = url.searchParams.get("utm_campaign") || "";
+  
+  // Origem alteravel: permite que quem nao e de GRU reserve a mesma rota.
+  const origemAlternativa = url.searchParams.get("origem") || "";
+  
+  // Constroi tp.media URL a partir de aviasalesUrl + marker do env.
+  let affiliateUrl = live ? live.affiliate_url : offer.affiliateUrl || offer.affiliate_url;
+  let aviasalesUrl = offer.aviasalesUrl;
+  
+  // Se origem foi alterada E a oferta tem aviasalesUrl, reconstroi a URL.
+  if (origemAlternativa && aviasalesUrl && /^[A-Z]{3}$/.test(origemAlternativa.toUpperCase())) {
+    const novaOrigem = origemAlternativa.toUpperCase();
+    const origemOriginal = (offer.origem || "GRU").toUpperCase();
+    // Troca a origem na URL do Aviasales: GRU1209BUE19091 -> REC1209BUE19091
+    aviasalesUrl = aviasalesUrl.replace(
+      new RegExp(`/${origemOriginal}(\\d{4})`, "g"),
+      `/${novaOrigem}$1`
+    );
+  }
+  
+  if (aviasalesUrl) {
+    const marker = (getConfig().travelpayouts && getConfig().travelpayouts.marker) || "";
+    if (!marker) {
+      // SEM MARKER: nao ha como rastrear a comissao. Em vez de mostrar um botao
+      // que nao funciona ou enviar a pessoa para HTTP 409, devolvemos 200 com
+      // uma pagina honesta que explica a limitacao (o renderer trata quando
+      // affiliateUrl === null, mostrando o card da oferta sem link de reserva).
+      sendHtml(res, 200, renderOfferPage(offer, {}));
+      return;
+    }
+    // sub_id para Travelpayouts: {utm_source}_{offer_id}_{origem}, e.g. "wa_gru-eze_rec"
+    const origemSuffix = origemAlternativa ? `_${origemAlternativa.toLowerCase()}` : "";
+    const subId = utmSource ? `${utmSource}_${id}${origemSuffix}` : `${id}${origemSuffix}`;
+    // Monta tp.media: https://tp.media/r?marker={marker}.{subId}&p=4114&u={aviasalesUrl}
+    const markerWithSubId = `${marker}.${subId}`;
+    const params = new URLSearchParams({
+      marker: markerWithSubId,
+      p: "4114", // Aviasales program ID
+      u: aviasalesUrl,
+    });
+    affiliateUrl = `https://tp.media/r?${params.toString()}`;
+  }
+  
   // Sem link de afiliado, ou com esquema nao permitido (defesa contra
   // "javascript:" etc.): nao ha para onde mandar com seguranca; devolve o
   // detalhe da oferta.
@@ -794,6 +879,12 @@ export function createServer() {
         return;
       }
 
+      // OG images para social sharing (servidos de public/og/).
+      if (method === "GET" && pathname.startsWith("/og/")) {
+        handleOgImage(res, pathname);
+        return;
+      }
+
       // ---- Paginas HTML (GET) ----
       if (method === "GET" && pathname === "/robots.txt") {
         handleRobots(res);
@@ -801,7 +892,10 @@ export function createServer() {
       }
       // A escolha do dia — o que o robo diario publica (ver src/daily/dailyPick.js).
       if (method === "GET" && pathname === "/hoje") {
-        sendHtml(res, 200, renderTodayPage(pacoteDoDia(new Date())));
+        // Permite forcar uma data especifica via ?dia=AAAA-MM-DD (para testes e preview).
+        const diaParam = url.searchParams.get("dia");
+        const data = diaParam || new Date();
+        sendHtml(res, 200, renderTodayPage(pacoteDoDia(data)));
         return;
       }
       if (method === "GET" && pathname === "/sitemap.xml") {
@@ -848,7 +942,7 @@ export function createServer() {
       }
       const exitMatch = pathname.match(/^\/saida\/([^/]+)$/);
       if (method === "GET" && exitMatch) {
-        handleExitHtml(req, res, decodeURIComponent(exitMatch[1]));
+        handleExitHtml(req, res, decodeURIComponent(exitMatch[1]), url);
         return;
       }
       const offerHtmlMatch = pathname.match(/^\/ofertas\/([^/]+)$/);

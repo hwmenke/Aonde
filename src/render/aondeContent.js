@@ -187,6 +187,24 @@ export const OFFERS = [
     texto: "Saindo de Campinas (VCP), Buenos Aires por menos de mil reais ida e volta. Ótimo para um fim de semana esticado de tango, parrilla e compras, com o câmbio jogando a favor.",
     dicas: ["Voo direto de Campinas, sem passar por Guarulhos", "Tarifa promocional GOL: bagagem de mão inclusa", "Setembro tem clima ameno e cidade em ritmo normal"],
     flex: [{ d: "3–10 set", p: "R$ 989" }, { d: "10–17 set", p: "R$ 1.048" }, { d: "17–24 set", p: "R$ 1.096" }] },
+  { id: "gru-eze", origem: "GRU", destino: "EZE", cidade: "Buenos Aires", local: "Argentina", preco: "R$ 1.570", media: "R$ 1.950", economia: "R$ 380", cia: "SWISS", datas: "12–19 set", tipo: "Internacional", publicadoEm: "2026-08-21T00:00:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "19% abaixo da média",
+    thumbUrl: wiki("Obelisco de Buenos Aires.jpg"), credit: "Obelisco de Buenos Aires — Wikimedia Commons, Roberto Fiadone, CC BY-SA 4.0", creditHref: "https://commons.wikimedia.org/wiki/Category:Obelisco_de_Buenos_Aires",
+    texto: "São Paulo–Buenos Aires por R$ 1.570 ida e volta em setembro, voo direto pela SWISS. Preço visto no Google Flights em 21 de agosto de 2026 — o mesmo voo aparece a USD $298 no Aviasales.",
+    dicas: ["Voo direto SWISS, sem escalas: 12 set 07:45 GRU→10:50 EZE, volta 19 set 13:30 EZE→16:10 GRU", "Bagagem de mão inclusa; despachada é paga à parte", "Setembro tem clima ameno em Buenos Aires, fora do pico turístico"],
+    flex: [{ d: "12–19 set", p: "R$ 1.570" }, { d: "15–22 set", p: "R$ 1.648" }, { d: "19–26 set", p: "R$ 1.720" }],
+    aviasalesUrl: "https://www.aviasales.com/search/GRU1209BUE19091" },
+  { id: "gru-fln", origem: "GRU", destino: "FLN", cidade: "Florianópolis", local: "Santa Catarina", preco: "R$ 770", preco_usd: "$149", cia: "LATAM", datas: "27 set–3 out", tipo: "Nacional", publicadoEm: "2026-08-21T00:15:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "Direto · 1h15",
+    thumbUrl: wiki("Barra da Lagoa, Florianópolis - SC (2).JPG"), credit: "Florianópolis — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Lagoa_da_Conceição",
+    texto: "São Paulo–Florianópolis por R$ 770 ida e volta em setembro/outubro, voo direto pela LATAM. Preço visto no Google Flights em 21 de agosto de 2026 (a partir de R$ 768). Aviasales mostra USD $149 para a mesma rota.",
+    dicas: ["Voo direto LATAM, 1h15 de duração", "Alta temporada em Floripa: setembro ainda é ombro de temporada, preços mais baixos que no verão", "Clima em setembro/outubro: 16–23°C, ainda frio para banho de mar (água ~18°C)", "Praias do norte (Jurerê, Canasvieiras) são mais calmas; do leste (Joaquina, Mole) têm ondas"],
+    flex: [{ d: "27 set–3 out", p: "R$ 770" }, { d: "30 set–6 out", p: "R$ 814" }, { d: "4–11 out", p: "R$ 856" }],
+    aviasalesUrl: "https://www.aviasales.com/search/GRU2709FLN03101" },
+  { id: "gig-ssa", origem: "GIG", destino: "SSA", cidade: "Salvador", local: "Bahia", preco: "R$ 1.320", preco_usd: "$273", cia: "LATAM", datas: "7–14 nov", tipo: "Nacional", publicadoEm: "2026-08-21T00:30:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "Direto · 2h",
+    thumbUrl: wiki("Pelourinho, Salvador, Bahia.jpg"), credit: "Pelourinho — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Pelourinho",
+    texto: "Rio de Janeiro–Salvador por R$ 1.320 ida e volta em novembro, voo direto pela LATAM. Preço visto no Google Flights em 21 de agosto de 2026 (a partir de R$ 1.253). Aviasales mostra USD $273 para o mesmo voo direto.",
+    dicas: ["Voo direto LATAM, 2h de duração", "Novembro tem sol e menos chuva em Salvador", "Pelourinho, praia e acarajé com voo direto do Rio", "Tarifa leve: bagagem de mão inclusa, despachada paga à parte"],
+    flex: [{ d: "7–14 nov", p: "R$ 1.320" }, { d: "10–17 nov", p: "R$ 1.384" }, { d: "14–21 nov", p: "R$ 1.426" }],
+    aviasalesUrl: "https://www.aviasales.com/search/GIG0711SSA14111" },
   { id: "cnf-fln", origem: "CNF", destino: "FLN", cidade: "Florianópolis", local: "Santa Catarina", preco: "R$ 312", media: "R$ 690", economia: "R$ 378", cia: "GOL", datas: "14–21 out", tipo: "Nacional", publicadoEm: "2026-07-25T09:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "55% abaixo da média",
     thumbUrl: wiki("Barra da Lagoa, Florianópolis - SC (2).JPG"), credit: "Florianópolis — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Lagoa_da_Conceição",
     texto: "Belo Horizonte–Florianópolis por R$ 312 ida e volta em outubro, antes da temporada de verão explodir os preços. Praia, lagoa e ostras a preço de passagem de ônibus.",
@@ -207,11 +225,6 @@ export const OFFERS = [
     texto: "São Paulo–Orlando por R$ 2.560 ida e volta em janeiro. O destino dos parques com uma das melhores tarifas do verão, ideal para famílias que planejam com antecedência.",
     dicas: ["Voo direto GRU–MCO pela Azul", "Janeiro ainda pega parte das férias escolares — reserve cedo", "Confira a validade do visto de todos os viajantes"],
     flex: [{ d: "10–24 jan", p: "R$ 2.560" }, { d: "13–27 jan", p: "R$ 2.648" }, { d: "17–31 jan", p: "R$ 2.790" }] },
-  { id: "gig-ssa", origem: "GIG", destino: "SSA", cidade: "Salvador", local: "Bahia", preco: "R$ 449", media: "R$ 780", economia: "R$ 331", cia: "GOL", datas: "7–14 nov", tipo: "Nacional", publicadoEm: "2026-07-25T06:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "42% abaixo da média",
-    thumbUrl: wiki("Pelourinho, Salvador, Bahia.jpg"), credit: "Pelourinho — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Pelourinho",
-    texto: "Rio–Salvador por R$ 449 ida e volta em novembro. Pelourinho, praia e acarajé com uma das melhores tarifas nacionais da semana, fora de feriado.",
-    dicas: ["Voo direto de pouco mais de 2h", "Novembro tem sol e menos chuva em Salvador", "Tarifa leve GOL: só bagagem de mão inclusa"],
-    flex: [{ d: "7–14 nov", p: "R$ 449" }, { d: "10–17 nov", p: "R$ 476" }, { d: "14–21 nov", p: "R$ 498" }] },
   // Saidas do NORDESTE. O feed nascia so com GRU/VCP/GIG/CNF e uma leitora de
   // Recife concluiu "esse site nao e pra mim" — com razao: nem no filtro a
   // cidade dela aparecia. Percentual do badge conferido contra preco/media.
@@ -287,6 +300,9 @@ export const OFFER_COORDS = {
   "gru-lis": { lat: 38.7223, lng: -9.1393 }, // Lisboa
   "gru-rec": { lat: -8.0476, lng: -34.877 }, // Recife
   "vcp-bue": { lat: -34.6037, lng: -58.3816 }, // Buenos Aires
+  "gru-eze": { lat: -34.6037, lng: -58.3816 }, // Buenos Aires
+  "gru-fln": { lat: -27.5935, lng: -48.5582 }, // Florianópolis
+  "gig-ssa": { lat: -12.9714, lng: -38.5014 }, // Salvador
   "cnf-fln": { lat: -27.5954, lng: -48.548 }, // Florianópolis
   "gig-mia": { lat: 25.7617, lng: -80.1918 }, // Miami
   "gru-scl": { lat: -33.4489, lng: -70.6693 }, // Santiago

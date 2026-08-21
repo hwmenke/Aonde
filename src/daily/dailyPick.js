@@ -114,12 +114,47 @@ export function guiaDaOferta(offer, guides = GUIDES) {
  * Escolhe as ofertas do dia. Prefere as que TEM roteiro editorial — sem
  * roteiro nao ha o que mostrar de bacana, que e o ponto da secao.
  *
+ * LOCK DE 21 AGO 2026: GRU-EZE e o achado do dia, com o roteiro de Buenos
+ * Aires. O preco foi visto no Google Flights naquele dia (R$ 1.570) e
+ * confirmado no Aviasales a USD $298 para o mesmo voo SWISS. Esse lock
+ * garante que /hoje mostre exatamente essa oferta naquele dia, em vez de
+ * seguir a rotacao automatica.
+ *
  * @param {Date|string} data
  * @param {object} [opts]
  * @param {number} [opts.quantidade=2]
  * @returns {Array<{offer:object, guide:object|null}>}
  */
 export function escolhaDoDia(data = new Date(), { quantidade = 2, offers = OFFERS, guides = GUIDES } = {}) {
+  const chave = chaveDoDia(data);
+  
+  // LOCK para 21 de agosto de 2026: mostra GRU-EZE com o roteiro de Buenos Aires.
+  if (chave === "2026-08-21") {
+    const gruEze = offers.find((o) => o.id === "gru-eze");
+    if (gruEze) {
+      const guide = guides.buenosaires;
+      return [{ offer: gruEze, guide }];
+    }
+  }
+  
+  // LOCK para 22 de agosto de 2026: mostra GRU-FLN com o roteiro de Florianópolis.
+  if (chave === "2026-08-22") {
+    const gruFln = offers.find((o) => o.id === "gru-fln");
+    if (gruFln) {
+      const guide = guides.florianopolis;
+      return [{ offer: gruFln, guide }];
+    }
+  }
+  
+  // LOCK para 23 de agosto de 2026: mostra GIG-SSA com o roteiro de Salvador.
+  if (chave === "2026-08-23") {
+    const gigSsa = offers.find((o) => o.id === "gig-ssa");
+    if (gigSsa) {
+      const guide = guides.salvador;
+      return [{ offer: gigSsa, guide }];
+    }
+  }
+  
   const candidatos = offers
     .map((offer) => ({ offer, guide: guiaDaOferta(offer, guides) }))
     .filter((c) => c.guide); // so entra quem tem roteiro de verdade
@@ -202,6 +237,7 @@ export function pacoteDoDia(data = new Date(), opts = {}) {
         datas: offer.datas,
         cia: offer.cia,
         href: `/ofertas/${offer.id}`,
+        __source: offer, // para o renderer acessar aviasalesUrl e outros campos
       },
       roteiro: roteiroEmBullets(guide),
     })),

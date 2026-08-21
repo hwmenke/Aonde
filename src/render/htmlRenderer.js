@@ -85,6 +85,15 @@ function waHref(text) {
   if (!num) return "";
   return `https://wa.me/${num}${text ? `?text=${encodeURIComponent(text)}` : ""}`;
 }
+
+// WhatsApp SHARE (diferente de atendimento): compartilha a oferta/pagina com
+// amigos. Nao usa AONDE_WHATSAPP (que e do atendimento), monta wa.me/?text=
+// direto. Adiciona utm_source=wa para tracking.
+function waShareLink(title, url) {
+  const message = `${title}\n${url}`;
+  return `https://wa.me/?text=${encodeURIComponent(message)}`;
+}
+
 function telLabel() {
   return (atendimento().telefone || "").trim();
 }
@@ -110,6 +119,39 @@ function withMarker(url) {
   const m = tpMarker();
   if (!m) return url;
   return url + (url.includes("?") ? "&" : "?") + "marker=" + encodeURIComponent(m);
+}
+
+// Principais origens brasileiras para o seletor de origem alteravel.
+// Cobre as maiores cidades e capitais de onde a maioria dos brasileiros voam.
+const BRAZILIAN_ORIGINS = [
+  { iata: "GRU", nome: "São Paulo (GRU)" },
+  { iata: "GIG", nome: "Rio de Janeiro (GIG)" },
+  { iata: "CGH", nome: "São Paulo Congonhas (CGH)" },
+  { iata: "VCP", nome: "Campinas (VCP)" },
+  { iata: "CNF", nome: "Belo Horizonte (CNF)" },
+  { iata: "BSB", nome: "Brasília (BSB)" },
+  { iata: "REC", nome: "Recife (REC)" },
+  { iata: "SSA", nome: "Salvador (SSA)" },
+  { iata: "FOR", nome: "Fortaleza (FOR)" },
+  { iata: "POA", nome: "Porto Alegre (POA)" },
+  { iata: "CWB", nome: "Curitiba (CWB)" },
+];
+
+// Seletor de origem para ofertas com aviasalesUrl (permite que pessoas de outros
+// estados reservem a mesma rota, trocando origem na URL do Aviasales).
+function originSelectorHtml(offerId, origemPadrao, aviasalesUrl) {
+  if (!aviasalesUrl) return "";
+  const options = BRAZILIAN_ORIGINS.map((o) => {
+    const selected = o.iata === origemPadrao ? " selected" : "";
+    return `<option value="${escapeHtml(o.iata)}"${selected}>${escapeHtml(o.nome)}</option>`;
+  }).join("");
+  return (
+    `<div class="origin-selector">` +
+    `<label for="origem-${escapeHtml(offerId)}">Saindo de</label>` +
+    `<select id="origem-${escapeHtml(offerId)}" data-origin-selector data-offer-id="${escapeHtml(offerId)}">${options}</select>` +
+    `<p class="origin-selector-note">Escolha sua cidade para ver voos dessa origem.</p>` +
+    `</div>`
+  );
 }
 // Rota do interstitial de saida para a busca generica de voos (sem oferta
 // especifica por tras): a MESMA pagina de aviso que /saida/:id ja usa para
@@ -394,7 +436,11 @@ function normalizeContentOffer(o) {
     texto: o.texto || "",
     dicas: Array.isArray(o.dicas) ? o.dicas : [],
     flex: Array.isArray(o.flex) ? o.flex : [],
-    affiliateUrl: o.affiliateUrl || o.affiliate_url || "",
+    // affiliateUrl pode vir pre-montado (ofertas antigas) OU via aviasalesUrl
+    // (ofertas novas que montam tp.media na hora em /saida/{id}). O CTA usa
+    // isto para decidir entre /saida/:id (quando ha URL de parceiro) e
+    // /resultados (busca interna quando nao ha).
+    affiliateUrl: o.affiliateUrl || o.affiliate_url || (o.aviasalesUrl ? "pending" : ""),
     href: o.id ? `/ofertas/${encodeURIComponent(o.id)}` : "",
   };
 }
@@ -1950,6 +1996,32 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `<button class="btn btn-lime" type="submit">Ativar alerta grátis</button>` +
     `<p class="news-msg" data-newsletter-msg role="status" aria-live="polite" hidden></p>` +
     `</form>`;
+  
+  // Botao de compartilhamento WhatsApp: compartilha a oferta com amigos.
+  const canonicalBase = (() => {
+    try {
+      return siteBaseUrl();
+    } catch {
+      return "https://aonde.com.br";
+    }
+  })();
+  const canonicalUrl = `${canonicalBase}${vm.href || (vm.id ? `/ofertas/${vm.id}` : "/ofertas")}`;
+  const shareUrl = `${canonicalUrl}?utm_source=wa&utm_medium=social&utm_campaign=${encodeURIComponent(vm.id)}`;
+  const shareTitle = `${destinoLabel} por ${vm.preco} saindo de ${origemNome || vm.origem}`;
+  const waShare =
+    `<div class="det-share">` +
+    `<p class="det-share-title">Compartilhar oferta</p>` +
+    `<a class="det-share-btn" href="${escapeHtml(waShareLink(shareTitle, shareUrl))}" target="_blank" rel="noopener">` +
+    `<span aria-hidden="true">💬</span> WhatsApp` +
+    `</a>` +
+    `<p class="det-share-note">Envie para amigos que procuram passagem para ${destinoLabel}.</p>` +
+    `</div>`;
+  
+  // Seletor de origem: ofertas com aviasalesUrl permitem trocar origem (outras
+  // cidades brasileiras reservam a mesma rota, trocando IATA na URL do parceiro).
+  const originSelector = offer.aviasalesUrl
+    ? originSelectorHtml(vm.id, vm.origem, offer.aviasalesUrl)
+    : "";
 
   // HISTORICO DE PRECO desta rota. O modulo decide sozinho se ha amostra
   // suficiente (minimo 5 observacoes em 90 dias): abaixo disso ele NAO desenha
@@ -2029,7 +2101,14 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     (vm.origem && vm.destino ? `<span class="det-rota">${escapeHtml(rotuloAeroporto(vm.origem))} → ${escapeHtml(rotuloAeroporto(vm.destino))}</span>` : "") +
     `<h1 class="det-cidade">${escapeHtml(destinoLabel)}${origemNome ? `<span class="det-cidade-origem"> saindo de ${escapeHtml(origemNome)}</span>` : ""}</h1>` +
     (vm.local || vm.cia ? `<p class="det-local">${[vm.local, vm.cia].filter(Boolean).map(escapeHtml).join(" · ")}</p>` : "") +
-    `<div class="det-preco-row"><span class="det-preco">${escapeHtml(vm.preco)}</span>${media}</div>` +
+    (() => {
+      // Marca preco especifico da origem: GRU-EZE tem preco de GRU, GIG-SSA tem preco de GIG.
+      // Se a oferta tem aviasalesUrl E o preco é para a origem original, marca para esconder
+      // quando a pessoa trocar de cidade no seletor.
+      const isOriginSpecificPrice = offer.aviasalesUrl && vm.origem;
+      const dataAttr = isOriginSpecificPrice ? ` data-origin-price="${escapeHtml(vm.origem)}"` : '';
+      return `<div class="det-preco-row"${dataAttr}><span class="det-preco">${escapeHtml(vm.preco)}</span>${media}</div>`;
+    })() +
     economia +
     fareErrorNote +
     texto +
@@ -2040,7 +2119,11 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `<aside class="det-aside">` +
     `<div class="det-buy">` +
     `<span class="det-buy-label">a partir de</span>` +
-    `<p class="det-buy-preco">${escapeHtml(vm.preco)}</p>` +
+    (() => {
+      const isOriginSpecificPrice = offer.aviasalesUrl && vm.origem;
+      const dataAttr = isOriginSpecificPrice ? ` data-origin-price="${escapeHtml(vm.origem)}"` : '';
+      return `<p class="det-buy-preco"${dataAttr}>${escapeHtml(vm.preco)}</p>`;
+    })() +
     `<p class="det-buy-sub">ida e volta${vm.datas ? ` · ${escapeHtml(vm.datas)}` : ""}</p>` +
     `<a class="btn btn-green det-buy-cta" href="${escapeHtml(ctaHref)}">${ctaLabel}</a>` +
     `<p class="det-buy-perks">Parcelamento e desconto no Pix variam conforme o parceiro — o valor final aparece no site dele, antes de você pagar.</p>` +
@@ -2049,6 +2132,8 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `</div>` +
     histBloco +
     alertForm +
+    waShare +
+    originSelector +
     `</aside>` +
     `</div>` +
     `</section>` +
@@ -2076,7 +2161,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     title: tituloOferta,
     description: metaDescricao(vm.texto) || undefined,
     body,
-    script: offerMap.script,
+    script: [offerMap.script, enhancementScript()].filter(Boolean).join(";"),
     canonical: vm.href || (vm.id ? `/ofertas/${vm.id}` : "/ofertas"),
     image: vm.thumbUrl || "",
     jsonld: offerJsonld,
@@ -2289,6 +2374,28 @@ export function renderTodayPage(pacote) {
             `</div></li>`
         )
         .join("");
+      // Seletor de origem para ofertas com aviasalesUrl (permite que pessoas de
+      // outros estados reservem a mesma rota).
+      const offerFull = it.oferta && it.oferta.__source ? it.oferta.__source : null;
+      const originSelector = offerFull && offerFull.aviasalesUrl && offerFull.id
+        ? originSelectorHtml(offerFull.id, o.origem, offerFull.aviasalesUrl)
+        : "";
+      // Marca preco especifico da origem para poder esconder quando origem mudar.
+      const isOriginSpecificPrice = offerFull && offerFull.aviasalesUrl && o.origem;
+      const precoDataAttr = isOriginSpecificPrice ? ` data-origin-price="${escapeHtml(o.origem)}"` : '';
+      const hojeBase = (() => {
+        try {
+          return siteBaseUrl();
+        } catch {
+          return "https://aonde.com.br";
+        }
+      })();
+      const shareUrl = `${hojeBase}/hoje?utm_source=wa&utm_medium=social&utm_campaign=hoje`;
+      const shareTitle = `${r.titulo} - ${o.preco} saindo de ${o.origemCidade}`;
+      const waShareBtn =
+        `<a class="btn btn-ghost btn-ghost--claro" href="${escapeHtml(waShareLink(shareTitle, shareUrl))}" target="_blank" rel="noopener">` +
+        `💬 Compartilhar` +
+        `</a>`;
       return (
         `<article class="hoje-card">` +
         `<div class="hoje-media">${foto}${credito}` +
@@ -2298,13 +2405,15 @@ export function renderTodayPage(pacote) {
         `<p class="of-rota">${escapeHtml(o.origemCidade)} → ${escapeHtml(o.cidade)}</p>` +
         `<h3 class="hoje-titulo">${escapeHtml(r.titulo)}</h3>` +
         (r.resumo ? `<p class="hoje-resumo">${escapeHtml(r.resumo)}</p>` : "") +
-        `<div class="hoje-preco-row"><span class="of-preco">${escapeHtml(o.preco)}</span>` +
+        `<div class="hoje-preco-row"${precoDataAttr}><span class="of-preco">${escapeHtml(o.preco)}</span>` +
         `<span class="of-iv">ida e volta, por pessoa · ${escapeHtml(o.datas)}</span></div>` +
+        originSelector +
         `<ul class="hoje-bullets">${bullets}</ul>` +
         (r.melhorMes ? `<p class="hoje-mes">Melhor mês para essa rota, pelo nosso histórico: <strong>${escapeHtml(r.melhorMes)}</strong></p>` : "") +
         `<div class="hoje-ctas">` +
         `<a class="btn btn-green" href="${escapeHtml(o.href)}">Ver a oferta →</a>` +
         (r.href ? `<a class="btn btn-ghost btn-ghost--claro" href="${escapeHtml(r.href)}">Roteiro completo, dia a dia</a>` : "") +
+        waShareBtn +
         `</div>` +
         `</div></article>`
       );
@@ -3130,5 +3239,28 @@ function enhancementScript() {
     }
     aplicaFiltros();
   }
+  // Seletor de origem alteravel: quando a pessoa troca a origem, reconstroi
+  // o link /saida com ?origem= novo (para ofertas com aviasalesUrl).
+  document.querySelectorAll('[data-origin-selector]').forEach(function(select){
+    var offerId=select.getAttribute('data-offer-id');
+    var origemOriginal=select.value;
+    select.addEventListener('change',function(){
+      var novaOrigem=select.value;
+      var saidaLinks=document.querySelectorAll('a[href^="/saida/'+offerId+'"]');
+      saidaLinks.forEach(function(link){
+        var base=link.href.split('?')[0];
+        var url=new URL(link.href);
+        url.searchParams.set('origem',novaOrigem);
+        link.href=url.toString();
+      });
+      // Se a oferta mostra preco especifico da origem original e a origem mudou,
+      // esconde o preco (honestidade: o valor mostrado era para a origem original).
+      var precoEls=document.querySelectorAll('[data-origin-price="'+origemOriginal+'"]');
+      precoEls.forEach(function(el){
+        if(novaOrigem!==origemOriginal){el.hidden=true;}
+        else{el.hidden=false;}
+      });
+    });
+  });
 })();`;
 }
