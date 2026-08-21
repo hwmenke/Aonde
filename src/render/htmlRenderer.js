@@ -85,6 +85,15 @@ function waHref(text) {
   if (!num) return "";
   return `https://wa.me/${num}${text ? `?text=${encodeURIComponent(text)}` : ""}`;
 }
+
+// WhatsApp SHARE (diferente de atendimento): compartilha a oferta/pagina com
+// amigos. Nao usa AONDE_WHATSAPP (que e do atendimento), monta wa.me/?text=
+// direto. Adiciona utm_source=wa para tracking.
+function waShareLink(title, url) {
+  const message = `${title}\n${url}`;
+  return `https://wa.me/?text=${encodeURIComponent(message)}`;
+}
+
 function telLabel() {
   return (atendimento().telefone || "").trim();
 }
@@ -394,7 +403,11 @@ function normalizeContentOffer(o) {
     texto: o.texto || "",
     dicas: Array.isArray(o.dicas) ? o.dicas : [],
     flex: Array.isArray(o.flex) ? o.flex : [],
-    affiliateUrl: o.affiliateUrl || o.affiliate_url || "",
+    // affiliateUrl pode vir pre-montado (ofertas antigas) OU via aviasalesUrl
+    // (ofertas novas que montam tp.media na hora em /saida/{id}). O CTA usa
+    // isto para decidir entre /saida/:id (quando ha URL de parceiro) e
+    // /resultados (busca interna quando nao ha).
+    affiliateUrl: o.affiliateUrl || o.affiliate_url || (o.aviasalesUrl ? "pending" : ""),
     href: o.id ? `/ofertas/${encodeURIComponent(o.id)}` : "",
   };
 }
@@ -1950,6 +1963,19 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `<button class="btn btn-lime" type="submit">Ativar alerta grátis</button>` +
     `<p class="news-msg" data-newsletter-msg role="status" aria-live="polite" hidden></p>` +
     `</form>`;
+  
+  // Botao de compartilhamento WhatsApp: compartilha a oferta com amigos.
+  const canonicalUrl = `${siteBaseUrl()}${vm.href || (vm.id ? `/ofertas/${vm.id}` : "/ofertas")}`;
+  const shareUrl = `${canonicalUrl}?utm_source=wa&utm_medium=social&utm_campaign=${encodeURIComponent(vm.id)}`;
+  const shareTitle = `${destinoLabel} por ${vm.preco} saindo de ${origemNome || vm.origem}`;
+  const waShare =
+    `<div class="det-share">` +
+    `<p class="det-share-title">Compartilhar oferta</p>` +
+    `<a class="det-share-btn" href="${escapeHtml(waShareLink(shareTitle, shareUrl))}" target="_blank" rel="noopener">` +
+    `<span aria-hidden="true">💬</span> WhatsApp` +
+    `</a>` +
+    `<p class="det-share-note">Envie para amigos que procuram passagem para ${destinoLabel}.</p>` +
+    `</div>`;
 
   // HISTORICO DE PRECO desta rota. O modulo decide sozinho se ha amostra
   // suficiente (minimo 5 observacoes em 90 dias): abaixo disso ele NAO desenha
@@ -2049,6 +2075,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `</div>` +
     histBloco +
     alertForm +
+    waShare +
     `</aside>` +
     `</div>` +
     `</section>` +
@@ -2289,6 +2316,12 @@ export function renderTodayPage(pacote) {
             `</div></li>`
         )
         .join("");
+      const shareUrl = `${siteBaseUrl()}/hoje?utm_source=wa&utm_medium=social&utm_campaign=hoje`;
+      const shareTitle = `${r.titulo} - ${o.preco} saindo de ${o.origemCidade}`;
+      const waShareBtn =
+        `<a class="btn btn-ghost btn-ghost--claro" href="${escapeHtml(waShareLink(shareTitle, shareUrl))}" target="_blank" rel="noopener">` +
+        `💬 Compartilhar` +
+        `</a>`;
       return (
         `<article class="hoje-card">` +
         `<div class="hoje-media">${foto}${credito}` +
@@ -2305,6 +2338,7 @@ export function renderTodayPage(pacote) {
         `<div class="hoje-ctas">` +
         `<a class="btn btn-green" href="${escapeHtml(o.href)}">Ver a oferta →</a>` +
         (r.href ? `<a class="btn btn-ghost btn-ghost--claro" href="${escapeHtml(r.href)}">Roteiro completo, dia a dia</a>` : "") +
+        waShareBtn +
         `</div>` +
         `</div></article>`
       );

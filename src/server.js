@@ -716,6 +716,7 @@ async function handleResultsHtml(res, url) {
 // unico ponto que conserta o tracking e entrega a tela de transicao pos-clique.
 // Quando a oferta tem aviasalesUrl (campo novo), constroi o link tp.media NA
 // HORA usando TRAVELPAYOUTS_MARKER do env — nao armazena marker no codigo.
+// Preserva UTMs da querystring e os usa como sub_id do Travelpayouts.
 function handleExitHtml(req, res, id, url) {
   const live = getOffer(id);
   const offer = live || CONTENT_OFFERS.find((o) => o.id === id);
@@ -723,6 +724,11 @@ function handleExitHtml(req, res, id, url) {
     sendHtml(res, 404, renderOffersPage(publishedLiveOffers(), {}));
     return;
   }
+  
+  // Extrai UTMs da querystring para tracking.
+  const utmSource = url.searchParams.get("utm_source") || "";
+  const utmMedium = url.searchParams.get("utm_medium") || "";
+  const utmCampaign = url.searchParams.get("utm_campaign") || "";
   
   // Constroi tp.media URL a partir de aviasalesUrl + marker do env.
   let affiliateUrl = live ? live.affiliate_url : offer.affiliateUrl || offer.affiliate_url;
@@ -737,9 +743,12 @@ function handleExitHtml(req, res, id, url) {
       sendHtml(res, 200, renderOfferPage(offer, {}));
       return;
     }
-    // Monta tp.media: https://tp.media/r?marker={marker}&p=4114&u={aviasalesUrl}
+    // sub_id para Travelpayouts: {utm_source}_{offer_id}, e.g. "wa_gru-eze"
+    const subId = utmSource ? `${utmSource}_${id}` : id;
+    // Monta tp.media: https://tp.media/r?marker={marker}.{subId}&p=4114&u={aviasalesUrl}
+    const markerWithSubId = `${marker}.${subId}`;
     const params = new URLSearchParams({
-      marker,
+      marker: markerWithSubId,
       p: "4114", // Aviasales program ID
       u: aviasalesUrl,
     });
