@@ -2431,7 +2431,13 @@ export function renderTodayPage(pacote) {
         `<ul class="hoje-bullets">${bullets}</ul>` +
         (r.melhorMes ? `<p class="hoje-mes">Melhor mês para essa rota, pelo nosso histórico: <strong>${escapeHtml(r.melhorMes)}</strong></p>` : "") +
         `<div class="hoje-ctas">` +
-        `<a class="btn btn-green" href="${escapeHtml(o.href)}">Ver a oferta →</a>` +
+        (() => {
+          // Ofertas RESERVAVEIS (com aviasalesUrl ou affiliateUrl real) usam copy honesto:
+          // "Reservar no Aviasales →" em vez de "Ver a oferta →", porque vao direto para o parceiro.
+          const isBookable = !!(o.__source && (o.__source.aviasalesUrl || o.__source.affiliate_url || o.__source.affiliateUrl));
+          const ctaText = isBookable ? "Reservar no Aviasales →" : "Ver a oferta →";
+          return `<a class="btn btn-green" href="${escapeHtml(o.href)}">${escapeHtml(ctaText)}</a>`;
+        })() +
         (r.href ? `<a class="btn btn-ghost btn-ghost--claro" href="${escapeHtml(r.href)}">Roteiro completo, dia a dia</a>` : "") +
         waShareBtn +
         `</div>` +
