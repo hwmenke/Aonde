@@ -221,3 +221,20 @@ test("23 de agosto de 2026 mostra GIG-SSA com roteiro de Salvador (LOCK 3)", () 
   assert.equal(pacote.itens[0].oferta.id, "gig-ssa");
   assert.equal(pacote.itens[0].roteiro.id, "salvador");
 });
+
+test("/hoje CTA para oferta RESERVAVEL menciona Aviasales ou reserva (honestidade do parceiro)", () => {
+  // Ofertas com aviasalesUrl (GRU-EZE, GRU-FLN, GIG-SSA) devem mostrar CTA
+  // honesto: "Reservar no Aviasales →" em vez de "Ver a oferta →".
+  const html = renderTodayPage(pacoteDoDia("2026-08-21"));
+  
+  // GRU-EZE tem aviasalesUrl, entao o botao primario deve mencionar "Aviasales" ou "reserva".
+  assert.match(html, /class="btn btn-green"[^>]*>.*?(Aviasales|reserva)/i, 
+    "CTA primario de oferta bookable deve mencionar Aviasales ou reserva");
+  
+  // Deve apontar para /saida/ (ja coberto por teste anterior, mas vale reforcar).
+  assert.match(html, /href="\/saida\/gru-eze"/);
+  
+  // O CTA ainda deve estar presente (nao foi removido).
+  const ctaMatches = html.match(/class="btn btn-green"/g);
+  assert.ok(ctaMatches && ctaMatches.length >= 1, "ao menos um CTA primario deve estar presente");
+});
