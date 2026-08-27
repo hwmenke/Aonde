@@ -157,7 +157,8 @@ export function escolhaDoDia(data = new Date(), { quantidade = 2, offers = OFFER
   
   const candidatos = offers
     .map((offer) => ({ offer, guide: guiaDaOferta(offer, guides) }))
-    .filter((c) => c.guide); // so entra quem tem roteiro de verdade
+    .filter((c) => c.guide) // so entra quem tem roteiro de verdade
+    .filter((c) => c.offer.aviasalesUrl || c.offer.affiliate_url || c.offer.affiliateUrl); // e so entra quem e RESERVAVEL (tem wrap do Aviasales)
 
   if (!candidatos.length) return [];
 
