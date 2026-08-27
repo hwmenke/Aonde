@@ -2410,7 +2410,12 @@ export function renderTodayPage(pacote) {
           return "https://aonde.com.br";
         }
       })();
-      const shareUrl = `${hojeBase}/hoje?utm_source=wa&utm_medium=social&utm_campaign=hoje`;
+      // WhatsApp share: GRU-EZE pode usar /hoje; GRU-FLN e GIG-SSA usam /ofertas/{id}
+      // para que cada um tenha sua propria OG image (nao a de Buenos Aires).
+      const useOfertasUrl = o.id === "gru-fln" || o.id === "gig-ssa";
+      const shareUrl = useOfertasUrl
+        ? `${hojeBase}/ofertas/${o.id}?utm_source=wa&utm_medium=social&utm_campaign=ofertas`
+        : `${hojeBase}/hoje?utm_source=wa&utm_medium=social&utm_campaign=hoje`;
       const shareTitle = `${r.titulo} - ${o.preco} saindo de ${o.origemCidade}`;
       const waShareBtn =
         `<a class="btn btn-ghost btn-ghost--claro" href="${escapeHtml(waShareLink(shareTitle, shareUrl))}" target="_blank" rel="noopener">` +
