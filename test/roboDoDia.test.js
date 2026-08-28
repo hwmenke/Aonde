@@ -44,9 +44,14 @@ test("a rotacao passa por todos os destinos elegiveis (so os RESERVAVEIS)", () =
     const data = new Date(Date.UTC(2026, 7, 1 + d));
     for (const e of escolhaDoDia(data)) vistos.add(e.offer.id);
   }
-  // /hoje fica nos tres locks, mesmo com o resto do catalogo wrapped.
-  const elegiveis = ["gig-ssa", "gru-eze", "gru-fln"];
-  assert.deepEqual([...vistos].sort(), elegiveis, "em um mes so os tres locks entram na vez");
+  // Elegiveis = tem roteiro E tem aviasalesUrl (wrapped Aviasales).
+  const elegiveis = OFFERS
+    .filter((o) => guiaDaOferta(o))
+    .filter((o) => o.aviasalesUrl || o.affiliate_url || o.affiliateUrl)
+    .filter((o) => ["gru-eze", "gru-fln", "gig-ssa"].includes(o.id))
+    .map((o) => o.id);
+  assert.ok(elegiveis.length >= 3, "precisa haver ofertas RESERVAVEIS com roteiro (os tres locks)");
+  assert.deepEqual([...vistos].sort(), elegiveis.sort(), "em um mes todos os locks entram na vez");
 });
 
 test("so entra oferta que TEM roteiro de verdade", () => {
@@ -240,18 +245,21 @@ test("/hoje CTA para oferta RESERVAVEL menciona Aviasales ou reserva (honestidad
 });
 
 test("ofertas NAO-RESERVAVEIS (sem aviasalesUrl) nunca aparecem em /hoje", () => {
-  // Wrap no catalogo nao coloca oferta nova em /hoje. cnf-mao pode ter
-  // aviasalesUrl (datas parseiam) e mesmo assim fica fora da rotacao.
+  // CNF-MAO (Manaus) tem roteiro mas NAO tem aviasalesUrl — nunca deve aparecer
+  // no feed diario. for-ssa TEM wrap mas tambem fica fora: /hoje e so os tres locks.
   const ofertas = OFFERS;
   const cnfMao = ofertas.find(o => o.id === "cnf-mao");
   assert.ok(cnfMao, "cnf-mao deve existir no catalogo");
+  assert.ok(!cnfMao.aviasalesUrl, "cnf-mao NAO deve ter aviasalesUrl");
 
   for (let d = 0; d < 60; d++) {
     const data = new Date(Date.UTC(2026, 7, 1 + d));
     const escolha = escolhaDoDia(data);
     for (const item of escolha) {
       assert.notEqual(item.offer.id, "cnf-mao",
-        `cnf-mao apareceu em /hoje no dia ${chaveDoDia(data)}`);
+        `cnf-mao (unwrapped) apareceu em /hoje no dia ${chaveDoDia(data)}`);
+      assert.notEqual(item.offer.id, "for-ssa",
+        `for-ssa (inventario) apareceu em /hoje no dia ${chaveDoDia(data)}`);
     }
   }
 

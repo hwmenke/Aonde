@@ -13,7 +13,6 @@
 // pelo htmlRenderer.
 
 import { EXTRA_GUIDES } from "./moreGuides.js";
-import { applyEditorialAviasalesWraps } from "../partners/travelpayouts.js";
 
 export const MONTH_NAMES = [
   "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
@@ -250,11 +249,14 @@ export const OFFERS = [
     texto: "Salvador–Belo Horizonte por R$ 341 ida e volta em agosto. Rota curta e barata para quem quer trocar o litoral pela serra mineira.",
     dicas: ["Cerca de 2h de voo direto", "Agosto é seco em Minas, bom para estrada", "Dá para emendar Ouro Preto e Tiradentes de carro"],
     flex: [{ d: "20–27 ago", p: "R$ 341" }, { d: "24–31 ago", p: "R$ 368" }, { d: "27 ago–3 set", p: "R$ 389" }] },
-  { id: "for-ssa", origem: "FOR", destino: "SSA", cidade: "Salvador", local: "Bahia", preco: "R$ 287", media: "R$ 505", economia: "R$ 218", cia: "GOL", datas: "3–10 out", tipo: "Nacional", publicadoEm: "2026-07-24T18:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "43% abaixo da média",
+  { id: "for-ssa", origem: "FOR", destino: "SSA", cidade: "Salvador", local: "Bahia", preco: "USD $242", preco_usd: "$242", cia: "LATAM", datas: "3–10 out", tipo: "Nacional", publicadoEm: "2026-07-24T18:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "Direto · 1h50",
     thumbUrl: wiki("Pelourinho, Salvador, Bahia.jpg"), credit: "Pelourinho — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Pelourinho",
-    texto: "Fortaleza–Salvador por R$ 287 ida e volta em outubro. Uma das passagens mais baratas do feed hoje, ligando duas capitais do Nordeste.",
-    dicas: ["Voo direto de cerca de 1h40", "Outubro pega o fim da baixa temporada", "Bagagem de mão inclusa; despachada à parte"],
-    flex: [{ d: "3–10 out", p: "R$ 287" }, { d: "8–15 out", p: "R$ 305" }, { d: "15–22 out", p: "R$ 331" }] },
+    texto: "Fortaleza–Salvador, 3 a 10 de outubro de 2026. LATAM direto, 1h50 nos dois sentidos. USD $242 no Aviasales em 28 de agosto de 2026.",
+    dicas: ["LATAM direto, 1h50 nos dois sentidos", "3 a 10 de outubro de 2026"],
+    flex: [{ d: "3–10 out", p: "USD $242" }],
+    aviasalesUrl: "https://www.aviasales.com/search/FOR0310SSA10101",
+    fontePreco: "Aviasales",
+    fontePrecoEm: "2026-08-28" },
   // Ofertas para destinos que JA tem roteiro editorial (ver GUIDES), para o
   // "robo do dia" (src/daily/dailyPick.js) ter mais de 6 candidatos e nao
   // repetir o mesmo par a cada 3 dias. Foto reaproveitada do roteiro quando o
@@ -292,11 +294,6 @@ export const OFFERS = [
     dicas: ["Voo até Campo Grande (CGR); o roteiro de Bonito continua de van ou carro", "Passeios de flutuação têm vagas limitadas por dia — reserve antes de comprar a passagem", "Água mais clara na seca (ago–out); leve protetor solar biodegradável, é exigido em vários atrativos"],
     flex: [{ d: "8–15 ago", p: "R$ 680" }, { d: "12–19 ago", p: "R$ 705" }, { d: "15–22 ago", p: "R$ 730" }] },
 ];
-
-// Wrap Aviasales so /saida/{id} converte. So preenche aviasalesUrl quando
-// origem, destino e datas de ida-e-volta parseiam. Os tres locks (gru-eze,
-// gru-fln, gig-ssa) ja tem URL e nao sao tocados. Marker fica no env, em /saida.
-applyEditorialAviasalesWraps(OFFERS);
 
 // Origens do filtro, DERIVADAS das ofertas reais em vez de fixas na mao. Antes
 // a lista era ["Todas","GRU","VCP","GIG","CNF"] e nao acompanhava o feed: uma

@@ -36,8 +36,8 @@ import { cidadeDoIata } from "../render/aeroportos.js";
  */
 const FUSO_PRODUTO = process.env.AONDE_TIMEZONE || "America/Sao_Paulo";
 
-// /hoje mostra so os tres achados conferidos (locks). Wrap no catalogo
-// liga /saida/{id}; nao coloca a oferta na rotacao diaria.
+// /hoje mostra so os tres achados conferidos (gru-eze, gru-fln, gig-ssa).
+// for-ssa e inventario com wrap Aviasales; nao entra na rotacao diaria.
 const HOJE_LOCK_IDS = new Set(["gru-eze", "gru-fln", "gig-ssa"]);
 
 export function chaveDoDia(date = new Date()) {
@@ -163,7 +163,7 @@ export function escolhaDoDia(data = new Date(), { quantidade = 2, offers = OFFER
     .map((offer) => ({ offer, guide: guiaDaOferta(offer, guides) }))
     .filter((c) => c.guide) // so entra quem tem roteiro de verdade
     .filter((c) => c.offer.aviasalesUrl || c.offer.affiliate_url || c.offer.affiliateUrl) // e so entra quem e RESERVAVEL (tem wrap do Aviasales)
-    .filter((c) => HOJE_LOCK_IDS.has(c.offer.id)); // catalogo wrapped nao entra em /hoje
+    .filter((c) => HOJE_LOCK_IDS.has(c.offer.id)); // for-ssa e inventario, nao /hoje
 
   if (!candidatos.length) return [];
 

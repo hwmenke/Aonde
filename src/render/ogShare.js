@@ -24,11 +24,14 @@ function ogFilePath(filename) {
 /**
  * Caminho publico do cartao OG da oferta, se public/og/{ID em maiusculas}.jpg
  * existir. Id "gru-fln" → "/og/GRU-FLN.jpg". Sem arquivo → "".
+ * for-ssa nunca herda GIG-SSA.jpg (cartao do Rio).
  */
 export function ogSharePathForOffer(offerId) {
   const id = String(offerId || "").trim();
   if (!id) return "";
-  return ogFilePath(`${id.toUpperCase()}.jpg`);
+  const path = ogFilePath(`${id.toUpperCase()}.jpg`);
+  if (id.toLowerCase() === "for-ssa" && /GIG-SSA|HOJE/i.test(path)) return "";
+  return path;
 }
 
 /**

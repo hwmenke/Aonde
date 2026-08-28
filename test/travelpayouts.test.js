@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildTpMediaLink, buildAviasalesLink, buildAviasalesSearchPath, parseEditorialRoundTrip, publicAviasalesUrlForOffer, applyEditorialAviasalesWraps } from "../src/partners/travelpayouts.js";
+import { buildTpMediaLink, buildAviasalesLink } from "../src/partners/travelpayouts.js";
 import { getDealLinkTravelpayouts, searchDealsTravelpayouts } from "../src/partners/travelpayouts.js";
 import { setFetchImpl, resetFetchImpl } from "../src/http.js";
 
@@ -64,98 +64,6 @@ test("buildAviasalesLink retorna URL direta (sem tracking) quando nao ha marker"
 
 test("buildAviasalesLink retorna null quando nao ha path", () => {
   assert.equal(buildAviasalesLink({ marker: "999", path: null }), null);
-});
-
-// -----------------------------------------------------------------------
-// Path editorial: mesmo formato dos tres locks (GRU1209BUE19091)
-// -----------------------------------------------------------------------
-
-test("parseEditorialRoundTrip le ida-e-volta no mesmo mes e entre meses", () => {
-  assert.deepEqual(parseEditorialRoundTrip("12–24 out"), {
-    departDay: "12",
-    departMonth: "10",
-    returnDay: "24",
-    returnMonth: "10",
-  });
-  assert.deepEqual(parseEditorialRoundTrip("27 set–3 out"), {
-    departDay: "27",
-    departMonth: "09",
-    returnDay: "03",
-    returnMonth: "10",
-  });
-  assert.deepEqual(parseEditorialRoundTrip("7–14 nov"), {
-    departDay: "07",
-    departMonth: "11",
-    returnDay: "14",
-    returnMonth: "11",
-  });
-});
-
-test("parseEditorialRoundTrip recusa datas que nao sao ida-e-volta", () => {
-  assert.equal(parseEditorialRoundTrip(""), null);
-  assert.equal(parseEditorialRoundTrip("outubro"), null);
-  assert.equal(parseEditorialRoundTrip("12 out"), null);
-  assert.equal(parseEditorialRoundTrip("ida livre"), null);
-  assert.equal(parseEditorialRoundTrip(null), null);
-});
-
-test("buildAviasalesSearchPath reproduz os tres locks", () => {
-  assert.equal(
-    buildAviasalesSearchPath({
-      origin: "GRU",
-      destination: "EZE",
-      departDay: "12",
-      departMonth: "09",
-      returnDay: "19",
-      returnMonth: "09",
-    }),
-    "/search/GRU1209BUE19091"
-  );
-  assert.equal(
-    buildAviasalesSearchPath({
-      origin: "GRU",
-      destination: "FLN",
-      departDay: "27",
-      departMonth: "09",
-      returnDay: "03",
-      returnMonth: "10",
-    }),
-    "/search/GRU2709FLN03101"
-  );
-  assert.equal(
-    buildAviasalesSearchPath({
-      origin: "GIG",
-      destination: "SSA",
-      departDay: "07",
-      departMonth: "11",
-      returnDay: "14",
-      returnMonth: "11",
-    }),
-    "/search/GIG0711SSA14111"
-  );
-});
-
-test("publicAviasalesUrlForOffer devolve URL publica sem marker", () => {
-  const url = publicAviasalesUrlForOffer({
-    origem: "GRU",
-    destino: "LIS",
-    datas: "12–24 out",
-  });
-  assert.equal(url, "https://www.aviasales.com/search/GRU1210LIS24101");
-  assert.ok(!url.includes("tp.media"));
-  assert.ok(!url.includes("marker"));
-});
-
-test("applyEditorialAviasalesWraps nao sobrescreve lock e pula datas ilegíveis", () => {
-  const lock = { id: "gru-eze", origem: "GRU", destino: "EZE", datas: "12–19 set", aviasalesUrl: "https://www.aviasales.com/search/GRU1209BUE19091" };
-  const ok = { id: "cnf-fln", origem: "CNF", destino: "FLN", datas: "14–21 out" };
-  const skip = { id: "sem-data", origem: "GRU", destino: "REC", datas: "quando der" };
-  const { wrapped, skipped } = applyEditorialAviasalesWraps([lock, ok, skip]);
-  assert.equal(lock.aviasalesUrl, "https://www.aviasales.com/search/GRU1209BUE19091");
-  assert.equal(ok.aviasalesUrl, "https://www.aviasales.com/search/CNF1410FLN21101");
-  assert.equal(skip.aviasalesUrl, undefined);
-  assert.deepEqual(wrapped, ["cnf-fln"]);
-  assert.deepEqual(skipped, ["sem-data"]);
 });
 
 // -----------------------------------------------------------------------

@@ -51,6 +51,7 @@ test("ogSharePathForOffer aponta para o jpg maiusculo quando o ficheiro existe",
   assert.equal(ogSharePathForOffer("gru-lis"), "/og/GRU-LIS.jpg");
   assert.equal(ogSharePathForOffer("vcp-bue"), "/og/VCP-BUE.jpg");
   assert.equal(ogSharePathForOffer("gru-rec"), "", "sem cartao, nao inventa caminho");
+  assert.equal(ogSharePathForOffer("for-ssa"), "", "FOR-SSA.jpg ainda nao esta no disco");
   assert.equal(ogSharePathForOffer("../etc/passwd"), "");
   assert.equal(ogSharePathForOffer(""), "");
 });
@@ -79,6 +80,14 @@ test("GET /ofertas/gig-ssa og:image usa /og/GIG-SSA.jpg", async (t) => {
   assert.match(ogImage(html), /\/og\/GIG-SSA\.jpg/);
   assert.match(twitterImage(html), /\/og\/GIG-SSA\.jpg/);
   assert.doesNotMatch(ogImage(html), /commons\.wikimedia\.org/);
+});
+
+test("GET /ofertas/for-ssa og:image nao usa o cartao do Rio", async (t) => {
+  const base = await withServer(t);
+  const html = await (await fetch(`${base}/ofertas/for-ssa`)).text();
+  assert.doesNotMatch(ogImage(html), /GIG-SSA\.jpg/);
+  assert.doesNotMatch(twitterImage(html), /GIG-SSA\.jpg/);
+  assert.doesNotMatch(ogImage(html), /HOJE\.jpg/);
 });
 
 test("GET /hoje og:image e o cartao do primeiro achado, nao HOJE.jpg se o hero nao e Buenos Aires", async (t) => {
@@ -182,6 +191,11 @@ test("oferta reservavel com fonte/data imprime o visto honesto; sem fonte nao in
   assert.match(ssa, /Visto no Google Flights, 21 ago 2026/);
   const eze = renderOfferPage(offerById("gru-eze"), { related: [] });
   assert.match(eze, /Visto no Google Flights, 21 ago 2026/);
+  const forSsa = renderOfferPage(offerById("for-ssa"), { related: [] });
+  assert.match(forSsa, /Visto no Aviasales, 28 ago 2026/);
+  assert.match(forSsa, /USD \$242/);
+  assert.doesNotMatch(forSsa, /R\$\s*287/);
+  assert.doesNotMatch(forSsa, /R\$\s*242/);
 
   const lis = renderOfferPage(offerById("gru-lis"), { related: [] });
   assert.doesNotMatch(lis, /Visto no Google Flights/);

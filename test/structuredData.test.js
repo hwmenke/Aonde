@@ -150,6 +150,21 @@ test("buildOfferProduct sem preco reconhecivel omite offers, mas ainda devolve o
   assert.equal(product.offers, undefined);
 });
 
+test("buildOfferProduct nao trata USD $242 como reais", () => {
+  const product = buildOfferProduct({
+    id: "for-ssa",
+    origem: "FOR",
+    destino: "SSA",
+    cidade: "Salvador",
+    preco: "USD $242",
+    href: "/ofertas/for-ssa",
+    affiliateUrl: "https://www.aviasales.com/search/FOR0310SSA10101",
+  });
+  assert.equal(product.offers.price, 242);
+  assert.equal(product.offers.priceCurrency, "USD");
+  assert.notEqual(product.offers.priceCurrency, "BRL");
+});
+
 test("buildOfferProduct devolve null sem destino", () => {
   assert.equal(buildOfferProduct(null), null);
   assert.equal(buildOfferProduct({ preco: "R$ 10" }), null);
