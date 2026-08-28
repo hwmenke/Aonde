@@ -249,6 +249,8 @@ test("a semana editorial FOR-SSA aparece no guia de Salvador e em /ofertas/for-s
     assert.doesNotMatch(html, /R\$\s*242/);
     assert.doesNotMatch(html, /eu moro|moro em Salvador|quem vive aí/i);
   }
+  assert.match(guia, /Fortaleza \(FOR\) → Salvador \(SSA\)/);
+  assert.match(oferta, /Fortaleza \(FOR\) → Salvador \(SSA\)/);
   assert.match(guia, /USD \$242/);
   assert.match(guia, /Visto no Aviasales, 28 ago 2026/);
   assert.match(guia, /href="\/ofertas\/for-ssa"/);
@@ -258,6 +260,13 @@ test("a semana editorial FOR-SSA aparece no guia de Salvador e em /ofertas/for-s
   assert.match(oferta, /Rua do Meio 178/);
   assert.ok(GUIDES.salvador.semanaForSsa, "semana vive no guia de Salvador existente");
   assert.equal(GUIDES.salvador.semanaForSsa.offerId, "for-ssa");
+});
+
+test("este PR nao adiciona FOR-SSA-story.jpg nem FOR-SSA-ig.jpg", () => {
+  const ogDir = path.join(process.cwd(), "public", "og");
+  for (const name of ["FOR-SSA-story.jpg", "FOR-SSA-ig.jpg", "for-ssa-story.jpg", "for-ssa-ig.jpg"]) {
+    assert.equal(existsSync(path.join(ogDir, name)), false, `${name} nao entra no git`);
+  }
 });
 
 test("GET /hoje nao mostra for-ssa nem a semana editorial da janela", async (t) => {

@@ -249,6 +249,7 @@ test("README documenta stills 9:16 e os creditos, sem usa-los como og:image", as
   assert.match(readme, /Largo do Pelourinho Salvador 2019-9754/);
   assert.match(readme, /FOR-SSA\.jpg/);
   assert.match(readme, /Never GIG-SSA/);
+  assert.match(readme, /Caspar skipped the gist|do not add `FOR-SSA-story\.jpg`/i);
   assert.match(readme, /Not og:image|Never `\*-story\.jpg`|Do not use the 9:16/i);
 });
 

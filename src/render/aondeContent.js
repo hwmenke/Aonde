@@ -458,6 +458,7 @@ const BASE_GUIDES = {
       destino: "SSA",
       escritoEm: "2026-08-28",
       aviso: "Editorial, escrito em 28 de agosto de 2026. Não é um texto de quem mora aí. Cada restaurante abaixo existia nessa data, conferido em fonte pública.",
+      rota: "Fortaleza (FOR) → Salvador (SSA).",
       voo: "LATAM direto. Ida sáb 3, 14h40 FOR → 16h30 SSA. Volta sáb 10, 18h25 SSA → 20h15 FOR.",
       tarifaViva: "USD $242",
       tarifaFonte: "Aviasales",

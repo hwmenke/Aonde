@@ -9,7 +9,7 @@ and 9:16 stills for Instagram / WhatsApp stories.
 - **GRU-EZE.jpg** (1200×630) - Catalog card for GRU-EZE offer page: cities only, NO price
 - **GRU-FLN.jpg** (1200×630) - Catalog card for GRU-FLN offer: São Paulo → Florianópolis
 - **GIG-SSA.jpg** (1200×630) - Catalog card for GIG-SSA offer: Rio de Janeiro → Salvador
-- **FOR-SSA.jpg** (1200×630) - Catalog card for FOR-SSA: Fortaleza → Salvador, 3–10 out, NO price. JPEG bytes did not land in this checkout (attachment was a description). Do not remake. When the file is in this folder, `/ofertas/for-ssa` uses it as og:image. Until then OG falls back to the Salvador dest photo (`thumbUrl`). Never GIG-SSA.jpg (Rio) and never HOJE.jpg.
+- **FOR-SSA.jpg** (1200×630) - Catalog card for FOR-SSA: Fortaleza → Salvador, 3–10 out, NO price. WhatsApp og:image. JPEG bytes did not land in this checkout. Do not remake. When the file is in this folder, `/ofertas/for-ssa` uses `/og/FOR-SSA.jpg`. Until then OG falls back to the Salvador dest photo (`thumbUrl`). Never GIG-SSA.jpg (Rio) and never HOJE.jpg. Caspar skipped the gist: do not add `FOR-SSA-story.jpg` or `FOR-SSA-ig.jpg`.
 - **VCP-BUE.jpg** (1200×630) - Catalog card for VCP-BUE offer: Campinas → Buenos Aires
 - **GRU-LIS.jpg** (1200×630) - Catalog card for GRU-LIS offer: São Paulo → Lisboa
 

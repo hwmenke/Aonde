@@ -2327,6 +2327,7 @@ function editorialWeekHtml(semana, { cidade = "Salvador", ctaHref = "", ctaLabel
   return (
     `<section class="wrap section semana-lock" id="semana-for-ssa">` +
     `<h2 class="guia-h2">${escapeHtml(semana.titulo || "Salvador, 3 a 10 de outubro de 2026")}</h2>` +
+    (semana.rota ? `<p class="semana-lock-meta">${escapeHtml(semana.rota)}</p>` : "") +
     (semana.aviso ? `<p class="semana-lock-aviso">${escapeHtml(semana.aviso)}</p>` : "") +
     (semana.voo ? `<p class="semana-lock-meta">${escapeHtml(semana.voo)}</p>` : "") +
     fare +
