@@ -37,6 +37,7 @@ import {
   FLIGHT_SORTS,
   FLIGHTS,
   FLIGHT_FILTERS,
+  FOR_SSA_SEMANA,
 } from "./aondeContent.js";
 import { escapeHtml, formatBRL, semAcento } from "./texto.js";
 import { getRouteSeries } from "../store/priceHistory.js";
@@ -604,7 +605,6 @@ function guideFromContent(g) {
     // o texto ficava no dado e nunca chegava a tela.
     hospedagem: g.hospedagem || null,
     dias: (Array.isArray(g.dias) ? g.dias : []).map(normalizeGuideDia),
-    semanaForSsa: g.semanaForSsa || null,
     places: false,
   };
 }
@@ -1280,16 +1280,33 @@ function metaDescricao(txt, limite = 155) {
 }
 
 const MESES_CURTOS_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const MESES_LONGOS_PT = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
+
+function parseFontePrecoIso(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || "").trim());
+  if (!m) return null;
+  const dia = Number(m[3]);
+  const mesIdx = Number(m[2]) - 1;
+  if (!Number.isFinite(dia) || dia < 1 || dia > 31) return null;
+  if (mesIdx < 0 || mesIdx > 11) return null;
+  return { ano: m[1], mesIdx, dia };
+}
 
 /** "2026-08-21" → "21 ago 2026". Sem data reconhecivel → "". Nao inventa. */
 function formatFontePrecoData(iso) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || "").trim());
-  if (!m) return "";
-  const mes = MESES_CURTOS_PT[Number(m[2]) - 1];
-  if (!mes) return "";
-  const dia = Number(m[3]);
-  if (!Number.isFinite(dia) || dia < 1 || dia > 31) return "";
-  return `${dia} ${mes} ${m[1]}`;
+  const p = parseFontePrecoIso(iso);
+  if (!p) return "";
+  return `${p.dia} ${MESES_CURTOS_PT[p.mesIdx]} ${p.ano}`;
+}
+
+/** "2026-08-28" → "28 de agosto de 2026". Sem data reconhecivel → "". Nao inventa. */
+function formatFontePrecoDataLonga(iso) {
+  const p = parseFontePrecoIso(iso);
+  if (!p) return "";
+  return `${p.dia} de ${MESES_LONGOS_PT[p.mesIdx]} de ${p.ano}`;
 }
 
 /**
@@ -2233,9 +2250,9 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `</div>` +
     `</section>` +
     (vm.id === "for-ssa"
-      ? editorialWeekHtml(GUIDES.salvador && GUIDES.salvador.semanaForSsa, {
+      ? editorialWeekHtml(offer.semana || FOR_SSA_SEMANA, {
           cidade: destinoLabel,
-          showFare: false,
+          showFare: true,
         })
       : "") +
     offerMap.html +
@@ -2306,20 +2323,26 @@ function diaArticleHtml(d, cidade) {
 
 /**
  * Semana editorial FOR-SSA (3–10 out 2026). Texto conferido em 28 ago 2026.
- * Tarifa do voo e a vista no Aviasales (USD); preco de restaurante e editorial.
- * Nao mistura o R$ 874 de GRU do otimizador nem o R$ 287 velho do catalogo.
+ * Tarifa do voo e a consulta Aviasales daquela data (USD); nao e "ao vivo".
+ * Preco de restaurante e editorial. Nao mistura o R$ 874 de GRU do otimizador
+ * nem o R$ 287 velho do catalogo.
  */
 function editorialWeekHtml(semana, { cidade = "Salvador", ctaHref = "", ctaLabel = "", showFare = true } = {}) {
   if (!semana) return "";
   const dias = (Array.isArray(semana.dias) ? semana.dias : []).map(normalizeGuideDia);
   const artigos = dias.map((d) => diaArticleHtml(d, cidade)).join("");
-  const fonte = fontePrecoLinha(semana.tarifaFonte, semana.tarifaFonteEm);
-  const fare = showFare && semana.tarifaViva
-    ? `<p class="semana-lock-fare">Tarifa ao vivo no Aviasales: <strong>${escapeHtml(semana.tarifaViva)}</strong>` +
-      `${fonte ? ` · ${escapeHtml(fonte)}` : ""}. Não é preço em reais.</p>`
+  const fonteNome = String(semana.tarifaFonte || "").trim();
+  const quandoLonga = formatFontePrecoDataLonga(semana.tarifaFonteEm);
+  let fareFrase = "";
+  if (fonteNome && quandoLonga) fareFrase = `Tarifa vista no ${fonteNome} em ${quandoLonga}`;
+  else if (fonteNome) fareFrase = `Tarifa vista no ${fonteNome}`;
+  else if (quandoLonga) fareFrase = `Tarifa vista em ${quandoLonga}`;
+  const tarifa = semana.tarifa;
+  const fare = showFare && tarifa
+    ? `<p class="semana-lock-fare">${escapeHtml(fareFrase || "Tarifa")}: <strong>${escapeHtml(tarifa)}</strong>. Não é preço em reais.</p>`
     : "";
   const fareNote = showFare
-    ? `<p class="semana-lock-fare-note">O valor do voo é a tarifa vista no Aviasales. Preços de restaurante (Senac, Origem) são editoriais: o que o site da casa cobrava na data citada.</p>`
+    ? `<p class="semana-lock-fare-note">O valor do voo é a tarifa vista no Aviasales${quandoLonga ? ` em ${escapeHtml(quandoLonga)}` : ""}. Preços de restaurante (Senac, Origem) são editoriais: o que o site da casa cobrava na data citada.</p>`
     : "";
   const cta = ctaHref
     ? `<p class="semana-lock-cta"><a class="btn btn-green" href="${escapeHtml(ctaHref)}">${escapeHtml(ctaLabel || "Ver a passagem →")}</a></p>`
@@ -2353,12 +2376,6 @@ function renderGuideVM(g, apiKey) {
 
   const cidade = g.breadcrumb || g.titulo || "";
   const dias = (g.dias || []).map((d) => diaArticleHtml(d, cidade)).join("");
-  const semanaLock = editorialWeekHtml(g.semanaForSsa, {
-    cidade,
-    ctaHref: "/ofertas/for-ssa",
-    ctaLabel: "Ver a passagem Fortaleza → Salvador →",
-    showFare: true,
-  });
 
   // O preco do roteiro e sempre da rota monitorada (GRU -> destino), a mesma do
   // otimizador logo abaixo. Sem dizer a origem, quem via "R$ 312 saindo de BH"
@@ -2412,7 +2429,6 @@ function renderGuideVM(g, apiKey) {
     `</div>` +
     `</section>` +
     map.html +
-    semanaLock +
     `<section class="wrap section">` +
     `<h2 class="guia-h2">O roteiro, dia a dia</h2>` +
     `<div class="dias">${dias}</div>` +

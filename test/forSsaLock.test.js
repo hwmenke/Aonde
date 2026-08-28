@@ -9,7 +9,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { createServer } from "../src/server.js";
-import { OFFERS, GUIDES } from "../src/render/aondeContent.js";
+import { OFFERS, GUIDES, FOR_SSA_SEMANA } from "../src/render/aondeContent.js";
 import { escolhaDoDia, guiaDaOferta, pacoteDoDia } from "../src/daily/dailyPick.js";
 import { renderOfferPage, renderGuidePage, renderTodayPage } from "../src/render/htmlRenderer.js";
 import { ogSharePathForOffer } from "../src/render/ogShare.js";
@@ -232,34 +232,46 @@ const WEEK_RESTAURANTS = [
   "Pereira",
 ];
 
-test("a semana editorial FOR-SSA aparece no guia de Salvador e em /ofertas/for-ssa", () => {
+test("a semana editorial FOR-SSA vive so em /ofertas/for-ssa, nao em /guias/salvador", () => {
   const guia = renderGuidePage("salvador");
   const oferta = renderOfferPage(offerById("for-ssa"), { related: [] });
-  for (const [nome, html] of [
-    ["guia", guia],
-    ["oferta", oferta],
-  ]) {
-    for (const restaurante of WEEK_RESTAURANTS) {
-      assert.ok(html.includes(restaurante), `${nome} deve citar ${restaurante}`);
-    }
-    assert.match(html, /Editorial, escrito em 28 de agosto de 2026/);
-    assert.match(html, /Não é um texto de quem mora aí/);
-    assert.match(html, /id="semana-for-ssa"/);
-    assert.doesNotMatch(html, /R\$\s*287/);
-    assert.doesNotMatch(html, /R\$\s*242/);
-    assert.doesNotMatch(html, /eu moro|moro em Salvador|quem vive aí/i);
+
+  assert.equal(GUIDES.salvador.semanaForSsa, undefined, "semana nao vive no guia");
+  assert.equal(GUIDES.salvador.dias.length, 5, "guia de Salvador continua com 5 dias");
+  assert.ok(GUIDES.salvador.dias.some((d) => d.restaurante === "Boteco do França"));
+  assert.ok(GUIDES.salvador.dias.some((d) => d.restaurante === "Barraca do Lôro"));
+  assert.ok(FOR_SSA_SEMANA);
+  assert.equal(FOR_SSA_SEMANA.offerId, "for-ssa");
+  assert.equal(FOR_SSA_SEMANA.tarifa, "USD $242");
+  assert.equal(offerById("for-ssa").semana, FOR_SSA_SEMANA);
+
+  assert.doesNotMatch(guia, /Editorial, escrito em 28 de agosto/);
+  assert.doesNotMatch(guia, /id="semana-for-ssa"/);
+  assert.doesNotMatch(guia, /Alameda das Algarobas/);
+  assert.doesNotMatch(guia, /Rua do Meio 178/);
+  assert.doesNotMatch(guia, /Fortaleza \(FOR\) → Salvador \(SSA\)/);
+  assert.doesNotMatch(guia, /Tarifa ao vivo/);
+  assert.match(guia, /Boteco do França/);
+  assert.match(guia, /Barraca do Lôro/);
+  assert.match(guia, /ROTEIRO DE 5 DIAS/);
+
+  for (const restaurante of WEEK_RESTAURANTS) {
+    assert.ok(oferta.includes(restaurante), `oferta deve citar ${restaurante}`);
   }
-  assert.match(guia, /Fortaleza \(FOR\) → Salvador \(SSA\)/);
+  assert.match(oferta, /Editorial, escrito em 28 de agosto de 2026/);
+  assert.match(oferta, /Não é um texto de quem mora aí/);
+  assert.match(oferta, /id="semana-for-ssa"/);
   assert.match(oferta, /Fortaleza \(FOR\) → Salvador \(SSA\)/);
-  assert.match(guia, /USD \$242/);
-  assert.match(guia, /Visto no Aviasales, 28 ago 2026/);
-  assert.match(guia, /href="\/ofertas\/for-ssa"/);
   assert.match(oferta, /USD \$242/);
+  assert.match(oferta, /Tarifa vista no Aviasales em 28 de agosto de 2026/);
   assert.match(oferta, /Visto no Aviasales, 28 ago 2026/);
   assert.match(oferta, /Alameda das Algarobas/);
   assert.match(oferta, /Rua do Meio 178/);
-  assert.ok(GUIDES.salvador.semanaForSsa, "semana vive no guia de Salvador existente");
-  assert.equal(GUIDES.salvador.semanaForSsa.offerId, "for-ssa");
+  assert.doesNotMatch(oferta, /Tarifa ao vivo/);
+  assert.doesNotMatch(oferta, /ao vivo no Aviasales/);
+  assert.doesNotMatch(oferta, /R\$\s*287/);
+  assert.doesNotMatch(oferta, /R\$\s*242/);
+  assert.doesNotMatch(oferta, /eu moro|moro em Salvador|quem vive aí/i);
 });
 
 test("este PR nao adiciona FOR-SSA-story.jpg nem FOR-SSA-ig.jpg", () => {
@@ -267,6 +279,23 @@ test("este PR nao adiciona FOR-SSA-story.jpg nem FOR-SSA-ig.jpg", () => {
   for (const name of ["FOR-SSA-story.jpg", "FOR-SSA-ig.jpg", "for-ssa-story.jpg", "for-ssa-ig.jpg"]) {
     assert.equal(existsSync(path.join(ogDir, name)), false, `${name} nao entra no git`);
   }
+});
+
+test("GET /guias/salvador nao tem a semana lock; GET /ofertas/for-ssa tem, sem tarifa ao vivo", async (t) => {
+  const { baseUrl } = await withServer(t);
+  const guia = await (await fetch(`${baseUrl}/guias/salvador`)).text();
+  const oferta = await (await fetch(`${baseUrl}/ofertas/for-ssa`)).text();
+
+  assert.doesNotMatch(guia, /Editorial, escrito em 28 de agosto/);
+  assert.doesNotMatch(guia, /id="semana-for-ssa"/);
+  assert.doesNotMatch(guia, /Alameda das Algarobas/);
+  assert.match(guia, /Salvador em 5 dias/);
+
+  assert.match(oferta, /Editorial, escrito em 28 de agosto de 2026/);
+  assert.match(oferta, /id="semana-for-ssa"/);
+  assert.match(oferta, /Tarifa vista no Aviasales em 28 de agosto de 2026/);
+  assert.doesNotMatch(oferta, /Tarifa ao vivo/);
+  assert.doesNotMatch(oferta, /R\$\s*287/);
 });
 
 test("GET /hoje nao mostra for-ssa nem a semana editorial da janela", async (t) => {
