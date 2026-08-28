@@ -29,10 +29,16 @@ export function ogSharePathForOffer(offerId) {
 }
 
 /**
- * Cartao de /hoje: so GRU-EZE pode partilhar essa URL, entao a imagem e
- * sempre Buenos Aires (HOJE.jpg, ou GRU-EZE.jpg se HOJE faltar). Nunca a
- * foto do primeiro item do dia (Floripa/Salvador quando estao no feed).
+ * Cartao de /hoje: o og:image segue o PRIMEIRO achado reservavel da pagina.
+ * Floripa → /og/GRU-FLN.jpg, Salvador → /og/GIG-SSA.jpg. HOJE.jpg (Buenos
+ * Aires) so entra quando esse pick e gru-eze; o arquivo fica no repo para
+ * quando /hoje voltar a ser Buenos Aires.
  */
-export function hojeOgSharePath() {
-  return ogFilePath("HOJE.jpg") || ogFilePath("GRU-EZE.jpg");
+export function hojeOgSharePath(firstOfferId) {
+  const id = String(firstOfferId || "").trim().toLowerCase();
+  if (!id) return "";
+  if (id === "gru-eze") {
+    return ogFilePath("HOJE.jpg") || ogSharePathForOffer("gru-eze");
+  }
+  return ogSharePathForOffer(id);
 }

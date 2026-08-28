@@ -55,10 +55,13 @@ test("ogSharePathForOffer aponta para o jpg maiusculo quando o ficheiro existe",
   assert.equal(ogSharePathForOffer(""), "");
 });
 
-test("hojeOgSharePath e Buenos Aires, nunca Floripa nem Salvador", () => {
-  const p = hojeOgSharePath();
-  assert.ok(p === "/og/HOJE.jpg" || p === "/og/GRU-EZE.jpg", `inesperado: ${p}`);
-  assert.doesNotMatch(p, /FLN|SSA/i);
+test("hojeOgSharePath segue o primeiro achado; HOJE.jpg so quando e Buenos Aires", () => {
+  assert.equal(hojeOgSharePath("gru-fln"), "/og/GRU-FLN.jpg");
+  assert.equal(hojeOgSharePath("gig-ssa"), "/og/GIG-SSA.jpg");
+  assert.equal(hojeOgSharePath("gru-eze"), "/og/HOJE.jpg");
+  assert.equal(hojeOgSharePath(""), "");
+  assert.doesNotMatch(hojeOgSharePath("gru-fln"), /HOJE|GRU-EZE/);
+  assert.doesNotMatch(hojeOgSharePath("gig-ssa"), /HOJE|GRU-EZE/);
 });
 
 test("GET /ofertas/gru-fln og:image e twitter:image usam /og/GRU-FLN.jpg", async (t) => {
@@ -78,14 +81,31 @@ test("GET /ofertas/gig-ssa og:image usa /og/GIG-SSA.jpg", async (t) => {
   assert.doesNotMatch(ogImage(html), /commons\.wikimedia\.org/);
 });
 
-test("GET /hoje og:image e HOJE ou GRU-EZE, inclusive no dia de Floripa e Salvador", async (t) => {
+test("GET /hoje og:image e o cartao do primeiro achado, nao HOJE.jpg se o hero nao e Buenos Aires", async (t) => {
   const base = await withServer(t);
-  for (const dia of ["2026-08-21", "2026-08-22", "2026-08-23"]) {
-    const html = await (await fetch(`${base}/hoje?dia=${dia}`)).text();
-    const img = ogImage(html);
-    assert.match(img, /\/og\/(HOJE|GRU-EZE)\.jpg/, `/hoje?dia=${dia} og:image=${img}`);
-    assert.doesNotMatch(img, /FLN|SSA|Florian|Salvador|Barra da Lagoa|Pelourinho/i);
-    assert.match(twitterImage(html), /\/og\/(HOJE|GRU-EZE)\.jpg/);
+
+  const fln = await (await fetch(`${base}/hoje?dia=2026-08-22`)).text();
+  assert.match(ogImage(fln), /\/og\/GRU-FLN\.jpg/, "dia Floripa usa GRU-FLN.jpg");
+  assert.match(twitterImage(fln), /\/og\/GRU-FLN\.jpg/);
+  assert.doesNotMatch(ogImage(fln), /HOJE\.jpg|GRU-EZE\.jpg/);
+
+  const ssa = await (await fetch(`${base}/hoje?dia=2026-08-23`)).text();
+  assert.match(ogImage(ssa), /\/og\/GIG-SSA\.jpg/, "dia Salvador usa GIG-SSA.jpg");
+  assert.match(twitterImage(ssa), /\/og\/GIG-SSA\.jpg/);
+  assert.doesNotMatch(ogImage(ssa), /HOJE\.jpg|GRU-EZE\.jpg/);
+
+  const eze = await (await fetch(`${base}/hoje?dia=2026-08-21`)).text();
+  assert.match(ogImage(eze), /\/og\/(HOJE|GRU-EZE)\.jpg/, "dia Buenos Aires pode usar HOJE.jpg");
+
+  const hoje = await (await fetch(`${base}/hoje`)).text();
+  const pacote = pacoteDoDia();
+  const firstId = pacote.itens[0] && pacote.itens[0].oferta && pacote.itens[0].oferta.id;
+  assert.ok(firstId, "/hoje precisa ter um achado");
+  if (firstId === "gru-eze") {
+    assert.match(ogImage(hoje), /\/og\/(HOJE|GRU-EZE)\.jpg/);
+  } else {
+    assert.match(ogImage(hoje), new RegExp(`/og/${firstId.toUpperCase()}\\.jpg`));
+    assert.doesNotMatch(ogImage(hoje), /HOJE\.jpg/);
   }
 });
 
@@ -103,10 +123,10 @@ test("GET /og/GRU-FLN.jpg e GET /og/GIG-SSA.jpg servem os cartoes existentes", a
 test("GRU-FLN e GIG-SSA no WhatsApp de /hoje apontam para /ofertas/{id}, nao /hoje", () => {
   const fln = renderTodayPage(pacoteDoDia("2026-08-22"));
   const ssa = renderTodayPage(pacoteDoDia("2026-08-23"));
-  assert.match(fln, /ofertas\/gru-fln\?utm_source=wa/);
-  assert.match(ssa, /ofertas\/gig-ssa\?utm_source=wa/);
+  assert.match(fln, /ofertas%2Fgru-fln%3Futm_source%3Dwa/);
+  assert.match(ssa, /ofertas%2Fgig-ssa%3Futm_source%3Dwa/);
   const eze = renderTodayPage(pacoteDoDia("2026-08-21"));
-  assert.match(eze, /\/hoje\?utm_source=wa/);
+  assert.match(eze, /hoje%3Futm_source%3Dwa/);
 });
 
 test("origem-swap marca a foto do destino e restaura data-dest-src; nao troca por cidade de origem", () => {

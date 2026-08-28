@@ -26,7 +26,7 @@ Destination photography stays the destination even if the origin is swapped.
 ## Usage
 
 Served via GET /og/{filename} endpoint. Used as og:image meta tags for:
-- /hoje → HOJE.jpg (fallback GRU-EZE.jpg). Never Floripa or Salvador: only GRU-EZE may share /hoje.
+- /hoje → card of the first bookable pick on the page (`GRU-FLN.jpg`, `GIG-SSA.jpg`, …). `HOJE.jpg` (Buenos Aires) is used only when that pick is GRU-EZE; the file stays in this folder for those days.
 - /ofertas/gru-eze → GRU-EZE.jpg
 - /ofertas/gru-fln → GRU-FLN.jpg
 - /ofertas/gig-ssa → GIG-SSA.jpg

@@ -2079,7 +2079,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `<a class="det-share-btn" href="${escapeHtml(waShareLink(shareTitle, shareUrl))}" target="_blank" rel="noopener">` +
     `<span aria-hidden="true">💬</span> WhatsApp` +
     `</a>` +
-    `<p class="det-share-note">Envie para amigos que procuram passagem para ${destinoLabel}.</p>` +
+    `<p class="det-share-note">Envie para amigos que procuram passagem para ${escapeHtml(destinoLabel)}.</p>` +
     `</div>`;
   
   // Seletor de origem: ofertas com aviasalesUrl permitem trocar origem (outras
@@ -2532,7 +2532,7 @@ export function renderTodayPage(pacote) {
     body,
     script: enhancementScript(),
     canonical: "/hoje",
-    image: hojeOgSharePath() || "",
+    image: hojeOgSharePath(itens[0] && itens[0].oferta && itens[0].oferta.id) || "",
   });
 }
 
