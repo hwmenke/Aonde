@@ -37,7 +37,6 @@ import {
   FLIGHT_SORTS,
   FLIGHTS,
   FLIGHT_FILTERS,
-  FOR_SSA_SEMANA,
 } from "./aondeContent.js";
 import { escapeHtml, formatBRL, semAcento } from "./texto.js";
 import { getRouteSeries } from "../store/priceHistory.js";
@@ -2018,9 +2017,12 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
   const economia = vm.economia
     ? `<span class="det-econ">você economiza ${escapeHtml(vm.economia)} · ida e volta</span>`
     : "";
-  const texto = vm.texto ? `<p class="det-texto">${escapeHtml(vm.texto)}</p>` : "";
+  const originPriceAttr = offer.aviasalesUrl && vm.origem
+    ? ` data-origin-price="${escapeHtml(vm.origem)}"`
+    : "";
+  const texto = vm.texto ? `<p class="det-texto"${originPriceAttr}>${escapeHtml(vm.texto)}</p>` : "";
   const flex = vm.flex.length
-    ? `<h2 class="det-h2">Datas com o preço disponível</h2><div class="det-flex">` +
+    ? `<h2 class="det-h2"${originPriceAttr}>Datas com o preço disponível</h2><div class="det-flex"${originPriceAttr}>` +
       vm.flex
         .map(
           (f) =>
@@ -2030,7 +2032,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
       `</div>`
     : "";
   const dicas = vm.dicas.length
-    ? `<h2 class="det-h2">Antes de comprar</h2><div class="det-dicas">` +
+    ? `<h2 class="det-h2"${originPriceAttr}>Antes de comprar</h2><div class="det-dicas"${originPriceAttr}>` +
       vm.dicas.map((d) => `<div class="det-dica"><span>•</span><span>${escapeHtml(d)}</span></div>`).join("") +
       `</div>`
     : "";
@@ -2249,10 +2251,11 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `</aside>` +
     `</div>` +
     `</section>` +
-    (vm.id === "for-ssa"
-      ? editorialWeekHtml(offer.semana || FOR_SSA_SEMANA, {
+    (offer.semana
+      ? editorialWeekHtml(offer.semana, {
           cidade: destinoLabel,
           showFare: true,
+          originIata: vm.origem,
         })
       : "") +
     offerMap.html +
@@ -2269,12 +2272,13 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     ]),
   ].filter(Boolean);
 
-  // O titulo leva a ORIGEM: "gig-ssa" (Rio->Salvador) e "for-ssa"
-  // (Fortaleza->Salvador) tinham titulo, h1 e description identicos, porque o
-  // codigo usava so o destino. Duas paginas diferentes competindo entre si.
-  const tituloOferta = origemNome
-    ? `${origemNome} → ${destinoLabel}${vm.preco ? ` por ${vm.preco}` : ""} · Aonde`
-    : `${destinoLabel} — oferta de viagem · Aonde`;
+  // Titulo editorial (pageTitle) quando a oferta traz um; senao origem no
+  // <title> para gig-ssa e for-ssa nao competirem pelo mesmo destino.
+  const tituloOferta = offer.pageTitle
+    ? offer.pageTitle
+    : origemNome
+      ? `${origemNome} → ${destinoLabel}${vm.preco ? ` por ${vm.preco}` : ""} · Aonde`
+      : `${destinoLabel} — oferta de viagem · Aonde`;
   let doc = htmlDocument({
     title: tituloOferta,
     description: metaDescricao(vm.texto) || undefined,
@@ -2322,43 +2326,75 @@ function diaArticleHtml(d, cidade) {
 }
 
 /**
- * Semana editorial FOR-SSA (3–10 out 2026). Texto conferido em 28 ago 2026.
- * Tarifa do voo e a consulta Aviasales daquela data (USD); nao e "ao vivo".
- * Preco de restaurante e editorial. Nao mistura o R$ 874 de GRU do otimizador
- * nem o R$ 287 velho do catalogo.
+ * Semana editorial de um lock (FOR-SSA, GRU-FLN, …). id da secao e por oferta
+ * (`semana-for-ssa`, `semana-gru-fln`). Tarifa e consulta da data citada,
+ * nunca "ao vivo". Preco de restaurante, quando existe, e editorial.
+ * A tarifa do lock fica marcada com data-origin-price para o seletor nao
+ * implicar o mesmo valor saindo de outra cidade.
  */
-function editorialWeekHtml(semana, { cidade = "Salvador", ctaHref = "", ctaLabel = "", showFare = true } = {}) {
+function editorialWeekHtml(semana, { cidade = "", ctaHref = "", ctaLabel = "", showFare = true, originIata = "" } = {}) {
   if (!semana) return "";
+  const sectionId = semana.offerId ? `semana-${semana.offerId}` : "semana-lock";
+  const cidadeNome = cidade || semana.cidade || "";
   const dias = (Array.isArray(semana.dias) ? semana.dias : []).map(normalizeGuideDia);
-  const artigos = dias.map((d) => diaArticleHtml(d, cidade)).join("");
+  const artigos = dias.map((d) => diaArticleHtml(d, cidadeNome)).join("");
   const fonteNome = String(semana.tarifaFonte || "").trim();
   const quandoLonga = formatFontePrecoDataLonga(semana.tarifaFonteEm);
+  const origemLock = String(semana.origem || originIata || "").trim();
+  const originAttr = origemLock ? ` data-origin-price="${escapeHtml(origemLock)}"` : "";
   let fareFrase = "";
   if (fonteNome && quandoLonga) fareFrase = `Tarifa vista no ${fonteNome} em ${quandoLonga}`;
   else if (fonteNome) fareFrase = `Tarifa vista no ${fonteNome}`;
   else if (quandoLonga) fareFrase = `Tarifa vista em ${quandoLonga}`;
+  if (origemLock && fareFrase) fareFrase += `, saindo de ${origemLock}`;
   const tarifa = semana.tarifa;
-  const fare = showFare && tarifa
-    ? `<p class="semana-lock-fare">${escapeHtml(fareFrase || "Tarifa")}: <strong>${escapeHtml(tarifa)}</strong>. Não é preço em reais.</p>`
+  const tarifaTxt = String(tarifa || "");
+  const naoReais = tarifaTxt.includes("$") || /USD/i.test(tarifaTxt)
+    ? " Não é preço em reais."
     : "";
-  const fareNote = showFare
-    ? `<p class="semana-lock-fare-note">O valor do voo é a tarifa vista no Aviasales${quandoLonga ? ` em ${escapeHtml(quandoLonga)}` : ""}. Preços de restaurante (Senac, Origem) são editoriais: o que o site da casa cobrava na data citada.</p>`
+  const fare = showFare && tarifa
+    ? `<p class="semana-lock-fare"${originAttr}>${escapeHtml(fareFrase || "Tarifa")}: <strong>${escapeHtml(tarifa)}</strong>.${naoReais}</p>`
+    : "";
+  const fareNoteTxt = String(semana.fareNote || "").trim()
+    || (showFare && (fonteNome || quandoLonga)
+      ? `O valor do voo é a tarifa vista no ${fonteNome || "parceiro"}${quandoLonga ? ` em ${quandoLonga}` : ""}.`
+      : "");
+  const fareNote = showFare && fareNoteTxt
+    ? `<p class="semana-lock-fare-note"${originAttr}>${escapeHtml(fareNoteTxt)}</p>`
+    : "";
+  const voo = semana.voo
+    ? `<p class="semana-lock-meta"${originAttr}>${escapeHtml(semana.voo)}</p>`
+    : "";
+  const horarios = Array.isArray(semana.horarios) && semana.horarios.length
+    ? `<div class="semana-lock-horarios">` +
+      `<p class="semana-lock-meta">${escapeHtml(semana.horariosTitulo || "Horários conferidos")}</p>` +
+      `<ul>${semana.horarios.map((h) => `<li>${escapeHtml(h)}</li>`).join("")}</ul>` +
+      `</div>`
     : "";
   const cta = ctaHref
     ? `<p class="semana-lock-cta"><a class="btn btn-green" href="${escapeHtml(ctaHref)}">${escapeHtml(ctaLabel || "Ver a passagem →")}</a></p>`
     : "";
+  const guia = semana.guiaHref
+    ? `<p class="semana-lock-guia"><a href="${escapeHtml(semana.guiaHref)}">${escapeHtml(semana.guiaLabel || "Roteiro de 5 dias")}</a></p>`
+    : "";
+  const conferencia = semana.conferencia
+    ? `<p class="semana-lock-meta">${escapeHtml(semana.conferencia)}</p>`
+    : "";
   return (
-    `<section class="wrap section semana-lock" id="semana-for-ssa">` +
-    `<h2 class="guia-h2">${escapeHtml(semana.titulo || "Salvador, 3 a 10 de outubro de 2026")}</h2>` +
+    `<section class="wrap section semana-lock" id="${escapeHtml(sectionId)}">` +
+    (semana.titulo ? `<h2 class="guia-h2">${escapeHtml(semana.titulo)}</h2>` : "") +
     (semana.rota ? `<p class="semana-lock-meta">${escapeHtml(semana.rota)}</p>` : "") +
     (semana.aviso ? `<p class="semana-lock-aviso">${escapeHtml(semana.aviso)}</p>` : "") +
-    (semana.voo ? `<p class="semana-lock-meta">${escapeHtml(semana.voo)}</p>` : "") +
+    voo +
     fare +
     fareNote +
     (semana.hospedagem ? `<p class="semana-lock-meta">${escapeHtml(semana.hospedagem)}</p>` : "") +
     (semana.reservas ? `<p class="semana-lock-meta">${escapeHtml(semana.reservas)}</p>` : "") +
+    horarios +
     cta +
     `<div class="dias">${artigos}</div>` +
+    conferencia +
+    guia +
     `</section>`
   );
 }
@@ -3427,7 +3463,7 @@ function enhancementScript() {
   document.querySelectorAll('[data-origin-selector]').forEach(function(select){
     var offerId=select.getAttribute('data-offer-id');
     var origemOriginal=select.value;
-    var root=select.closest('.hoje-card, .det, main')||document;
+    var root=select.closest('.hoje-card')||select.closest('main')||document;
     select.addEventListener('change',function(){
       var novaOrigem=select.value;
       var opt=select.options[select.selectedIndex];
