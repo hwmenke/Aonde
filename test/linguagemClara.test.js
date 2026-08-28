@@ -71,9 +71,12 @@ test("codigo de aeroporto sempre vem acompanhado da cidade", () => {
   const ofertas = renderOffersPage([], {});
   assert.match(ofertas, /class="orig-pill[^"]*"[^>]*>GRU · São Paulo</, "pilula de origem nomeia a cidade");
 
-  // Detalhe da oferta nomeia as duas pontas.
+  // Detalhe da oferta nomeia as duas pontas. A origem fica em spans para o
+  // seletor "Saindo de" poder atualizar o rotulo sem mexer na foto do destino.
   const detalhe = renderOfferPage(OFFERS[0], { related: [] });
-  assert.match(detalhe, /class="det-rota">GRU · São Paulo → LIS · Lisboa</);
+  assert.match(detalhe, /data-origin-iata-label>GRU</);
+  assert.match(detalhe, /data-origin-city-label>São Paulo</);
+  assert.match(detalhe, /→ LIS · Lisboa</);
 
   // Card do feed nomeia a origem (o destino ja vem no titulo do card).
   assert.match(renderHomePage({}), /class="of-rota">saindo de São Paulo \(GRU\)</);

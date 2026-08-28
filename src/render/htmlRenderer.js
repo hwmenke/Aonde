@@ -47,6 +47,7 @@ import { createHash } from "node:crypto";
 
 import { getConfig } from "../config.js";
 import { rotuloAeroporto, cidadeDoIata } from "./aeroportos.js";
+import { ogSharePathForOffer, hojeOgSharePath } from "./ogShare.js";
 import {
   FAQ_GROUPS,
   buildOrganization,
@@ -143,7 +144,8 @@ function originSelectorHtml(offerId, origemPadrao, aviasalesUrl) {
   if (!aviasalesUrl) return "";
   const options = BRAZILIAN_ORIGINS.map((o) => {
     const selected = o.iata === origemPadrao ? " selected" : "";
-    return `<option value="${escapeHtml(o.iata)}"${selected}>${escapeHtml(o.nome)}</option>`;
+    const cidade = cidadeDoIata(o.iata) || o.nome;
+    return `<option value="${escapeHtml(o.iata)}" data-city="${escapeHtml(cidade)}"${selected}>${escapeHtml(o.nome)}</option>`;
   }).join("");
   return (
     `<div class="origin-selector">` +
@@ -315,7 +317,7 @@ function fotoLargura(url, largura) {
   return `${u}${u.includes("?") ? "&" : "?"}width=${largura}`;
 }
 
-function resilientImg(url, alt, label, className, largura = 900) {
+function resilientImg(url, alt, label, className, largura = 900, destPhoto = false) {
   const dataUri = placeholderDataUri(label);
   const cls = className ? ` class="${escapeHtml(className)}"` : "";
   const src = fotoLargura(url, largura);
@@ -323,16 +325,21 @@ function resilientImg(url, alt, label, className, largura = 900) {
   const srcset = src !== url
     ? ` srcset="${escapeHtml(fotoLargura(url, 480))} 480w, ${escapeHtml(fotoLargura(url, 900))} 900w, ${escapeHtml(fotoLargura(url, 1400))} 1400w" sizes="(max-width:860px) 100vw, 620px"`
     : "";
+  // dest-photo: a foto e do DESTINO. Trocar origem no seletor nao pode
+  // meter a foto da cidade de saida no lugar.
+  const destAttrs = destPhoto && url
+    ? ` data-dest-photo data-dest-src="${escapeHtml(src)}"`
+    : "";
   return (
-    `<img${cls} src="${escapeHtml(src)}" alt="${escapeHtml(alt)}"${srcset} loading="lazy" decoding="async" ` +
+    `<img${cls} src="${escapeHtml(src)}" alt="${escapeHtml(alt)}"${srcset}${destAttrs} loading="lazy" decoding="async" ` +
     `onerror="this.onerror=0;this.srcset='';this.src='${dataUri}'">`
   );
 }
 
 // Bloco de media: <img> resiliente quando ha URL; senao SVG placeholder inline.
-function imageBlock(url, alt, label, wrapperClass) {
+function imageBlock(url, alt, label, wrapperClass, destPhoto = false) {
   const inner = url
-    ? resilientImg(url, alt, label, "media-img")
+    ? resilientImg(url, alt, label, "media-img", 900, destPhoto)
     : `<div class="media-placeholder">${placeholderSvgMarkup(label)}</div>`;
   return `<div class="${escapeHtml(wrapperClass)}">${inner}</div>`;
 }
@@ -417,6 +424,8 @@ function normalizeLiveOffer(offer) {
     flex: Array.isArray(offer.flex) ? offer.flex : [],
     affiliateUrl,
     href,
+    fontePreco: offer.fontePreco || offer.fonte_preco || "",
+    fontePrecoEm: offer.fontePrecoEm || offer.fonte_preco_em || "",
   };
 }
 
@@ -460,6 +469,8 @@ function normalizeContentOffer(o) {
     flex: Array.isArray(o.flex) ? o.flex : [],
     affiliateUrl,
     href,
+    fontePreco: o.fontePreco || o.fonte_preco || "",
+    fontePrecoEm: o.fontePrecoEm || o.fonte_preco_em || "",
   };
 }
 
@@ -1250,6 +1261,39 @@ function metaDescricao(txt, limite = 155) {
   return `${(ultimoEspaco > 60 ? corte.slice(0, ultimoEspaco) : corte).replace(/[,;:.\s]+$/, "")}…`;
 }
 
+const MESES_CURTOS_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+/** "2026-08-21" → "21 ago 2026". Sem data reconhecivel → "". Nao inventa. */
+function formatFontePrecoData(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || "").trim());
+  if (!m) return "";
+  const mes = MESES_CURTOS_PT[Number(m[2]) - 1];
+  if (!mes) return "";
+  const dia = Number(m[3]);
+  if (!Number.isFinite(dia) || dia < 1 || dia > 31) return "";
+  return `${dia} ${mes} ${m[1]}`;
+}
+
+/**
+ * Linha honesta da origem do preco. So imprime o que existe: fonte e/ou data.
+ * Sem os dois, devolve "" — quem chama nao inventa "ao vivo" nem data.
+ */
+function fontePrecoLinha(fonte, isoDate) {
+  const nome = String(fonte || "").trim();
+  const quando = formatFontePrecoData(isoDate);
+  if (nome && quando) return `Visto no ${nome}, ${quando}`;
+  if (nome) return `Visto no ${nome}`;
+  if (quando) return `Visto em ${quando}`;
+  return "";
+}
+
+function fontePrecoHtml(fonte, isoDate, className, originIata) {
+  const linha = fontePrecoLinha(fonte, isoDate);
+  if (!linha) return "";
+  const originAttr = originIata ? ` data-origin-price="${escapeHtml(originIata)}"` : "";
+  return `<p class="${escapeHtml(className)}"${originAttr}>${escapeHtml(linha)}</p>`;
+}
+
 function htmlDocument({ title, body, script, description, jsonld, canonical, image }) {
   const desc = description || DEFAULT_DESCRIPTION;
   const t = escapeHtml(title);
@@ -1993,7 +2037,8 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     temProva ? vm.provaUrl : vm.thumbUrl,
     temProva ? `Captura do preço para ${destinoLabel}` : `Foto de ${destinoLabel}`,
     destinoLabel,
-    "det-prova-media"
+    "det-prova-media",
+    !temProva
   );
   const provaTag = temProva ? "Prova do preço · captura de tela" : "Imagem do destino";
 
@@ -2118,8 +2163,10 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `<div class="det-grid">` +
     `<div class="det-main">` +
     `<div class="det-badges">${badge}${vm.publicado ? `<span class="det-pub">publicado ${escapeHtml(vm.publicado)}</span>` : ""}</div>` +
-    (vm.origem && vm.destino ? `<span class="det-rota">${escapeHtml(rotuloAeroporto(vm.origem))} → ${escapeHtml(rotuloAeroporto(vm.destino))}</span>` : "") +
-    `<h1 class="det-cidade">${escapeHtml(destinoLabel)}${origemNome ? `<span class="det-cidade-origem"> saindo de ${escapeHtml(origemNome)}</span>` : ""}</h1>` +
+    (vm.origem && vm.destino
+      ? `<span class="det-rota"><span data-origin-iata-label>${escapeHtml(vm.origem)}</span> · <span data-origin-city-label>${escapeHtml(origemNome || vm.origem)}</span> → ${escapeHtml(rotuloAeroporto(vm.destino))}</span>`
+      : "") +
+    `<h1 class="det-cidade">${escapeHtml(destinoLabel)}${origemNome ? `<span class="det-cidade-origem"> saindo de <span data-origin-city-label>${escapeHtml(origemNome)}</span></span>` : ""}</h1>` +
     (vm.local || vm.cia ? `<p class="det-local">${[vm.local, vm.cia].filter(Boolean).map(escapeHtml).join(" · ")}</p>` : "") +
     (() => {
       // Marca preco especifico da origem: GRU-EZE tem preco de GRU, GIG-SSA tem preco de GIG.
@@ -2127,7 +2174,10 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
       // quando a pessoa trocar de cidade no seletor.
       const isOriginSpecificPrice = offer.aviasalesUrl && vm.origem;
       const dataAttr = isOriginSpecificPrice ? ` data-origin-price="${escapeHtml(vm.origem)}"` : '';
-      return `<div class="det-preco-row"${dataAttr}><span class="det-preco">${escapeHtml(vm.preco)}</span>${media}</div>`;
+      const fonte = (offer.aviasalesUrl || vm.affiliateUrl)
+        ? fontePrecoHtml(vm.fontePreco, vm.fontePrecoEm, "det-fonte-preco", isOriginSpecificPrice ? vm.origem : "")
+        : "";
+      return `<div class="det-preco-row"${dataAttr}><span class="det-preco">${escapeHtml(vm.preco)}</span>${media}</div>${fonte}`;
     })() +
     economia +
     fareErrorNote +
@@ -2142,7 +2192,10 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     (() => {
       const isOriginSpecificPrice = offer.aviasalesUrl && vm.origem;
       const dataAttr = isOriginSpecificPrice ? ` data-origin-price="${escapeHtml(vm.origem)}"` : '';
-      return `<p class="det-buy-preco"${dataAttr}>${escapeHtml(vm.preco)}</p>`;
+      const fonte = (offer.aviasalesUrl || vm.affiliateUrl)
+        ? fontePrecoHtml(vm.fontePreco, vm.fontePrecoEm, "det-fonte-preco", isOriginSpecificPrice ? vm.origem : "")
+        : "";
+      return `<p class="det-buy-preco"${dataAttr}>${escapeHtml(vm.preco)}</p>${fonte}`;
     })() +
     `<p class="det-buy-sub">ida e volta${vm.datas ? ` · ${escapeHtml(vm.datas)}` : ""}</p>` +
     `<a class="btn btn-green det-buy-cta" href="${escapeHtml(ctaHref)}">${ctaLabel}</a>` +
@@ -2183,7 +2236,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     body,
     script: [offerMap.script, enhancementScript()].filter(Boolean).join(";"),
     canonical: vm.href || (vm.id ? `/ofertas/${vm.id}` : "/ofertas"),
-    image: vm.thumbUrl || "",
+    image: ogSharePathForOffer(vm.id) || vm.thumbUrl || "",
     jsonld: offerJsonld,
   });
   if (offerMap.loader) doc = doc.replace("</body>", `${offerMap.loader}</body>`);
@@ -2375,7 +2428,7 @@ export function renderTodayPage(pacote) {
       const o = it.oferta;
       const r = it.roteiro;
       const foto = r.foto && r.foto.url
-        ? resilientImg(r.foto.url, r.destino, r.destino, "media-img")
+        ? resilientImg(r.foto.url, r.destino, r.destino, "media-img", 900, true)
         : `<div class="media-placeholder">${placeholderSvgMarkup(r.destino)}</div>`;
       const credito = r.foto && r.foto.credito
         ? `<span class="media-credit-overlay">${
@@ -2427,11 +2480,17 @@ export function renderTodayPage(pacote) {
         (o.badge ? `<span class="of-badge badge-desconto">${escapeHtml(o.badge)}</span>` : "") +
         `</div>` +
         `<div class="hoje-body">` +
-        `<p class="of-rota">${escapeHtml(o.origemCidade)} → ${escapeHtml(o.cidade)}</p>` +
+        `<p class="of-rota"><span data-origin-city-label>${escapeHtml(o.origemCidade)}</span> → ${escapeHtml(o.cidade)}</p>` +
         `<h3 class="hoje-titulo">${escapeHtml(r.titulo)}</h3>` +
         (r.resumo ? `<p class="hoje-resumo">${escapeHtml(r.resumo)}</p>` : "") +
         `<div class="hoje-preco-row"${precoDataAttr}><span class="of-preco">${escapeHtml(o.preco)}</span>` +
         `<span class="of-iv">ida e volta, por pessoa · ${escapeHtml(o.datas)}</span></div>` +
+        fontePrecoHtml(
+          offerFull && offerFull.fontePreco,
+          offerFull && offerFull.fontePrecoEm,
+          "hoje-fonte-preco",
+          isOriginSpecificPrice ? o.origem : ""
+        ) +
         originSelector +
         `<ul class="hoje-bullets">${bullets}</ul>` +
         (r.melhorMes ? `<p class="hoje-mes">Melhor mês para essa rota, pelo nosso histórico: <strong>${escapeHtml(r.melhorMes)}</strong></p>` : "") +
@@ -2473,7 +2532,7 @@ export function renderTodayPage(pacote) {
     body,
     script: enhancementScript(),
     canonical: "/hoje",
-    image: (itens[0] && itens[0].roteiro.foto && itens[0].roteiro.foto.url) || "",
+    image: hojeOgSharePath() || "",
   });
 }
 
@@ -3279,21 +3338,39 @@ function enhancementScript() {
   document.querySelectorAll('[data-origin-selector]').forEach(function(select){
     var offerId=select.getAttribute('data-offer-id');
     var origemOriginal=select.value;
+    var root=select.closest('.hoje-card, .det, main')||document;
     select.addEventListener('change',function(){
       var novaOrigem=select.value;
+      var opt=select.options[select.selectedIndex];
+      var cidade=(opt&&opt.getAttribute('data-city'))||'';
       var saidaLinks=document.querySelectorAll('a[href^="/saida/'+offerId+'"]');
       saidaLinks.forEach(function(link){
-        var base=link.href.split('?')[0];
         var url=new URL(link.href);
         url.searchParams.set('origem',novaOrigem);
         link.href=url.toString();
       });
       // Se a oferta mostra preco especifico da origem original e a origem mudou,
       // esconde o preco (honestidade: o valor mostrado era para a origem original).
-      var precoEls=document.querySelectorAll('[data-origin-price="'+origemOriginal+'"]');
+      var precoEls=root.querySelectorAll('[data-origin-price="'+origemOriginal+'"]');
       precoEls.forEach(function(el){
         if(novaOrigem!==origemOriginal){el.hidden=true;}
         else{el.hidden=false;}
+      });
+      if(cidade){
+        root.querySelectorAll('[data-origin-city-label]').forEach(function(el){
+          el.textContent=cidade;
+        });
+      }
+      root.querySelectorAll('[data-origin-iata-label]').forEach(function(el){
+        el.textContent=novaOrigem;
+      });
+      // Foto do destino fica do destino. Nao entra jpg da cidade de origem.
+      root.querySelectorAll('img[data-dest-photo]').forEach(function(img){
+        var keep=img.getAttribute('data-dest-src');
+        if(keep&&img.getAttribute('src')!==keep){
+          img.srcset='';
+          img.src=keep;
+        }
       });
     });
   });
