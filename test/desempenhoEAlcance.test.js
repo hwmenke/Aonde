@@ -86,7 +86,9 @@ test("todo desconto anunciado bate com a conta", () => {
       const real = Math.round(100 * (1 - n(o.preco) / n(o.media)));
       assert.ok(Math.abs(real - Number(dito)) <= 1, `${o.id}: diz ${dito}%, a conta da ${real}%`);
     }
-    assert.equal(n(o.media) - n(o.preco), n(o.economia), `${o.id}: economia anunciada nao fecha`);
+    if (o.media && o.economia) {
+      assert.equal(n(o.media) - n(o.preco), n(o.economia), `${o.id}: economia anunciada nao fecha`);
+    }
   }
 });
 

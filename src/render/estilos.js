@@ -429,6 +429,7 @@ export function pageStyles() {
   .det-preco{font-size:clamp(40px,8vw,56px);font-weight:700;color:var(--green-2);letter-spacing:-1.5px;line-height:1;}
   .det-media s{font-size:18px;color:var(--muted);}
   .det-econ{display:inline-block;background:var(--tint);color:var(--green-2);font-size:14px;font-weight:700;padding:6px 14px;border-radius:var(--pill);}
+  .det-fonte-preco,.hoje-fonte-preco{margin:4px 0 0;font-size:13px;color:var(--muted);line-height:1.45;}
   .det-texto{margin:24px 0 0;font-size:17px;line-height:1.6;color:var(--muted);}
   .det-prova{margin-top:28px;position:relative;height:280px;border-radius:14px;overflow:hidden;background:var(--tint);}
   .det-prova-media{width:100%;height:100%;}
