@@ -9,6 +9,7 @@ and 9:16 stills for Instagram / WhatsApp stories.
 - **GRU-EZE.jpg** (1200×630) - Catalog card for GRU-EZE offer page: cities only, NO price
 - **GRU-FLN.jpg** (1200×630) - Catalog card for GRU-FLN offer: São Paulo → Florianópolis
 - **GIG-SSA.jpg** (1200×630) - Catalog card for GIG-SSA offer: Rio de Janeiro → Salvador
+- **FOR-SSA.jpg** (1200×630) - Catalog card for FOR-SSA (Fortaleza → Salvador). Not in this commit. When the file lands, `/ofertas/for-ssa` uses it as og:image. Until then OG falls back to the Salvador dest photo (`thumbUrl`). Never GIG-SSA.jpg (Rio) and never HOJE.jpg.
 - **VCP-BUE.jpg** (1200×630) - Catalog card for VCP-BUE offer: Campinas → Buenos Aires
 - **GRU-LIS.jpg** (1200×630) - Catalog card for GRU-LIS offer: São Paulo → Lisboa
 
@@ -42,5 +43,6 @@ og:image / twitter:image (landscape cards only):
 - /ofertas/gru-eze → GRU-EZE.jpg
 - /ofertas/gru-fln → GRU-FLN.jpg
 - /ofertas/gig-ssa → GIG-SSA.jpg
+- /ofertas/for-ssa → FOR-SSA.jpg when the file exists; otherwise Salvador dest photo. Never GIG-SSA.jpg.
 - /ofertas/vcp-bue → VCP-BUE.jpg (when available)
 - /ofertas/gru-lis → GRU-LIS.jpg (when available)

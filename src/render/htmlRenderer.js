@@ -1142,6 +1142,19 @@ const DEFAULT_DESCRIPTION =
 // Paginas com foto propria (roteiro, oferta) passam a sua.
 const DEFAULT_SHARE_IMAGE = (HERO_SLIDES[0] && HERO_SLIDES[0].src) || "";
 
+// og:image da pagina de oferta. for-ssa tem cartao proprio (FOR-SSA.jpg);
+// sem arquivo, foto de Salvador no Commons. Nunca o cartao do Rio (GIG-SSA.jpg)
+// nem HOJE.jpg.
+function ogImageForOfferPage(offerId, thumbUrl) {
+  const id = String(offerId || "").toLowerCase();
+  const card = ogSharePathForOffer(offerId);
+  if (id === "for-ssa") {
+    if (card && /GIG-SSA|HOJE/i.test(card)) return thumbUrl || "";
+    return card || thumbUrl || "";
+  }
+  return card || thumbUrl || "";
+}
+
 // Emite um <script type="application/ld+json"> por objeto em `jsonld`
 // (array de objetos JS schema.org). Ausente/vazio => "". Reusa jsonForScript
 // para a mesma embutição SEGURA usada nos scripts inline (neutraliza
@@ -2070,8 +2083,12 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
       return "https://aonde.com.br";
     }
   })();
-  const canonicalUrl = `${canonicalBase}${vm.href || (vm.id ? `/ofertas/${vm.id}` : "/ofertas")}`;
-  const shareUrl = `${canonicalUrl}?utm_source=wa&utm_medium=social&utm_campaign=${encodeURIComponent(vm.id)}`;
+  const ofertasPath = vm.id ? `/ofertas/${encodeURIComponent(vm.id)}` : "/ofertas";
+  // for-ssa: WhatsApp OG e a pagina da oferta, nunca /hoje e nunca o cartao do Rio.
+  const sharePath = vm.id === "for-ssa" ? ofertasPath : (vm.href || ofertasPath);
+  const shareUrl = vm.id === "for-ssa"
+    ? `${canonicalBase}${ofertasPath}?utm_source=wa`
+    : `${canonicalBase}${sharePath}?utm_source=wa&utm_medium=social&utm_campaign=${encodeURIComponent(vm.id)}`;
   const shareTitle = `${destinoLabel} por ${vm.preco} saindo de ${origemNome || vm.origem}`;
   const waShare =
     `<div class="det-share">` +
@@ -2235,8 +2252,10 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     description: metaDescricao(vm.texto) || undefined,
     body,
     script: [offerMap.script, enhancementScript()].filter(Boolean).join(";"),
-    canonical: vm.href || (vm.id ? `/ofertas/${vm.id}` : "/ofertas"),
-    image: ogSharePathForOffer(vm.id) || vm.thumbUrl || "",
+    canonical: vm.id === "for-ssa"
+      ? `/ofertas/${encodeURIComponent(vm.id)}`
+      : vm.href || (vm.id ? `/ofertas/${vm.id}` : "/ofertas"),
+    image: ogImageForOfferPage(vm.id, vm.thumbUrl),
     jsonld: offerJsonld,
   });
   if (offerMap.loader) doc = doc.replace("</body>", `${offerMap.loader}</body>`);

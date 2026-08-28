@@ -66,6 +66,9 @@ export function buildTpMediaLink({ marker, programId, url, subId }) {
  * A Data API retorna paths relativos (ex.: "/search/GRULIS0109") apontando
  * para aviasales.com. Aqui compomos a URL absoluta e aplicamos o marker de
  * afiliado via tp.media, para que o link do "deal" ja saia rastreavel.
+ *
+ * Sem marker devolve a URL publica (https://www.aviasales.com/search/...).
+ * O wrap de comissao (tp.media + TRAVELPAYOUTS_MARKER) acontece em /saida.
  */
 export function buildAviasalesLink({ marker, path, programId = DEFAULT_TP_PROGRAM_ID }) {
   if (!path) return null;

@@ -202,13 +202,31 @@ export function buildTouristTrip(g) {
 // como string formatada em pt-BR (ex. "R$ 1.847" ou "R$ 1.847,50").
 // ---------------------------------------------------------------------------
 
+function looksLikeUsd(str) {
+  if (/USD/i.test(str)) return true;
+  // "$242" is USD. "R$ 242" is reais (the $ sits inside R$).
+  return /\$/.test(str) && !/R\s*\$/.test(str);
+}
+
 // "R$ 1.847,50" -> 1847.5 ; "R$ 587" -> 587. Entrada invalida => null.
+// "USD $242" nao e real: o strip de nao-digitos viraria 242 em BRL.
 function parseBRLToNumber(str) {
   if (typeof str !== "string" || !str.trim()) return null;
+  if (looksLikeUsd(str)) return null;
   const cleaned = str.replace(/[^\d,.-]/g, "");
   if (!cleaned) return null;
   const normalized = cleaned.replace(/\./g, "").replace(",", ".");
   const n = Number.parseFloat(normalized);
+  return Number.isFinite(n) ? n : null;
+}
+
+// "USD $242" / "$242" -> 242. Recusa R$.
+function parseUSDToNumber(str) {
+  if (typeof str !== "string" || !str.trim()) return null;
+  if (!looksLikeUsd(str)) return null;
+  const cleaned = str.replace(/[^\d.]/g, "");
+  if (!cleaned) return null;
+  const n = Number.parseFloat(cleaned);
   return Number.isFinite(n) ? n : null;
 }
 
@@ -239,13 +257,15 @@ export function buildOfferProduct(vm) {
   // casos, contradizendo o texto visivel da mesma pagina. Isso e desonesto
   // com o usuario que ve o resultado na busca e ainda arrisca penalizacao por
   // dado estruturado enganoso.
-  const price = parseBRLToNumber(vm.preco);
+  const usd = parseUSDToNumber(vm.preco);
+  const brl = parseBRLToNumber(vm.preco);
+  const price = usd !== null ? usd : brl;
   const precoGarantido = price !== null && !vm.erro && !!vm.affiliateUrl;
   if (precoGarantido) {
     product.offers = {
       "@type": "Offer",
       price,
-      priceCurrency: "BRL",
+      priceCurrency: usd !== null ? "USD" : "BRL",
       availability: "https://schema.org/InStock",
       url: absUrl(vm.href || (vm.id ? `/ofertas/${encodeURIComponent(vm.id)}` : "")),
     };
