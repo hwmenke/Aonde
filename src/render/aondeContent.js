@@ -252,7 +252,10 @@ export const OFFERS = [
   { id: "for-ssa", origem: "FOR", destino: "SSA", cidade: "Salvador", local: "Bahia", preco: "USD $242", preco_usd: "$242", cia: "LATAM", datas: "3–10 out", tipo: "Nacional", publicadoEm: "2026-07-24T18:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "Direto · 1h50",
     thumbUrl: wiki("Pelourinho, Salvador, Bahia.jpg"), credit: "Pelourinho — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Pelourinho",
     texto: "Fortaleza–Salvador, 3 a 10 de outubro de 2026. LATAM direto, 1h50 nos dois sentidos. USD $242 no Aviasales em 28 de agosto de 2026.",
-    dicas: ["LATAM direto, 1h50 nos dois sentidos", "3 a 10 de outubro de 2026"],
+    dicas: [
+      "LATAM direto. Ida sáb 3, 14h40 FOR → 16h30 SSA. Volta sáb 10, 18h25 SSA → 20h15 FOR.",
+      "Tarifa em dólar no Aviasales, 28 de agosto de 2026, com botão Buy. Não é preço em reais.",
+    ],
     flex: [{ d: "3–10 out", p: "USD $242" }],
     aviasalesUrl: "https://www.aviasales.com/search/FOR0310SSA10101",
     fontePreco: "Aviasales",
@@ -712,6 +715,85 @@ const BASE_GUIDES = {
     ],
   },
 };
+
+// Semana editorial da janela FOR-SSA (3–10 out 2026). Texto conferido em
+// 28 de agosto de 2026; nao e voz de quem mora em Salvador. Vive na oferta
+// /ofertas/for-ssa — nao no guia de 5 dias /guias/salvador.
+export const FOR_SSA_SEMANA = {
+  offerId: "for-ssa",
+  titulo: "Salvador, 3 a 10 de outubro de 2026",
+  janela: "3 a 10 de outubro de 2026",
+  origem: "FOR",
+  destino: "SSA",
+  escritoEm: "2026-08-28",
+  aviso: "Editorial, escrito em 28 de agosto de 2026. Não é um texto de quem mora aí. Cada restaurante abaixo existia nessa data, conferido em fonte pública.",
+  rota: "Fortaleza (FOR) → Salvador (SSA).",
+  voo: "LATAM direto. Ida sáb 3, 14h40 FOR → 16h30 SSA. Volta sáb 10, 18h25 SSA → 20h15 FOR.",
+  tarifa: "USD $242",
+  tarifaFonte: "Aviasales",
+  tarifaFonteEm: "2026-08-28",
+  hospedagem: "Rio Vermelho. Casa de Tereza, Dona Mariquita e o acarajé da Dinha ficam a pé. Pelourinho e Barra são Uber (20–30 min). Santo Antônio Além do Carmo é a alternativa mais quieta, ainda no centro histórico. Evita dormir no Largo do Pelourinho se for a primeira vez.",
+  reservas: "Casa de Tereza (jantar) e Origem (terça a sábado, 19h, só com reserva). Origem é menu degustação; em maio de 2026 o Recôncavo 2.0 saía a R$ 420 por pessoa no site da casa.",
+  dias: [
+    { n: 1, titulo: "Sábado 3, chegada", desc: "Voo às 16h30. Check-in no Rio Vermelho.",
+      pontos: [{ nome: "Largo da Mariquita", nota: "Fim de tarde, de frente para o mar." }],
+      restaurante: "Acarajé da Dinha", restauranteNota: "Praça de Santana, desde 1967.",
+      restauranteEndereco: "Praça de Santana, Rio Vermelho" },
+    { n: 2, titulo: "Domingo 4, Pelourinho",
+      pontos: [
+        { nome: "Igreja de São Francisco" },
+        { nome: "Largo do Pelourinho" },
+        { nome: "Fundação Casa de Jorge Amado" },
+      ],
+      restaurante: "Restaurante Escola Senac",
+      restauranteNota: "Largo do Pelourinho 13. Buffet típico 11h30–15h30, inclusive domingo. ~40 pratos baianos; em 2026 o site do Senac cobrava cerca de R$ 110 no fim de semana. Reserva: senacpelourinho@ba.senac.br.",
+      restauranteEndereco: "Largo do Pelourinho 13" },
+    { n: 3, titulo: "Segunda 5, Bonfim e Cidade Baixa",
+      pontos: [
+        { nome: "Igreja do Bonfim" },
+        { nome: "Ponta de Humaitá" },
+        { nome: "Sorveteria da Ribeira", nota: "desde 1931" },
+      ],
+      restaurante: "Dona Mariquita",
+      restauranteNota: "Av. da França, Comércio. Chef Leila Carreiro. Aberto 12h–17h, todos os dias. Poqueca é o prato da casa. Não abre à noite.",
+      restauranteEndereco: "Av. da França, Comércio" },
+    { n: 4, titulo: "Terça 6, Rio Vermelho",
+      pontos: [{ nome: "Casa do Rio Vermelho", nota: "Jorge Amado e Zélia" }],
+      restaurante: "Casa de Tereza",
+      restauranteNota: "Rua Odilon Santos 45. Chef Tereza Paim. Reserva. casadetereza.com.br.",
+      restauranteEndereco: "Rua Odilon Santos 45" },
+    { n: 5, titulo: "Quarta 7, Itapuã",
+      pontos: [
+        { nome: "Praia de Itapuã" },
+        { nome: "Lagoa do Abaeté" },
+        { nome: "Farol de Itapuã" },
+      ],
+      restaurante: "Origem",
+      restauranteNota: "Alameda das Algarobas 74, Caminho das Árvores. Fabrício Lemos e Lisiane Arouca. Terça a sábado, 19h–23h, só reserva. (71) 99202-4587. Menu degustação; alternativa é jantar no Rio Vermelho.",
+      restauranteEndereco: "Alameda das Algarobas 74, Caminho das Árvores" },
+    { n: 6, titulo: "Quinta 8, Barra",
+      pontos: [{ nome: "Farol da Barra" }, { nome: "Porto da Barra" }],
+      restaurante: "Pereira",
+      restauranteNota: "Av. Sete de Setembro 3959. Fecha segunda; quinta aberto. @pereira_restaurante.",
+      restauranteEndereco: "Av. Sete de Setembro 3959" },
+    { n: 7, titulo: "Sexta 9, Cidade Baixa e Santo Antônio",
+      pontos: [
+        { nome: "Elevador Lacerda" },
+        { nome: "Mercado Modelo" },
+        { nome: "Santo Antônio Além do Carmo" },
+      ],
+      restaurante: "Dona Mariquita",
+      restauranteNota: "no Rio Vermelho, Rua do Meio 178. Só até 17h.",
+      restauranteEndereco: "Rua do Meio 178, Rio Vermelho" },
+    { n: 8, titulo: "Sábado 10, saída", desc: "Voo 18h25. Sem restaurante marcado.",
+      pontos: [] },
+  ],
+};
+
+{
+  const forSsa = OFFERS.find((o) => o.id === "for-ssa");
+  if (forSsa) forSsa.semana = FOR_SSA_SEMANA;
+}
 
 // Todos os guias: os 10 editoriais-base + os 12 escritos pelos agentes de
 // turismo (um por regiao). Ver src/render/moreGuides.js.

@@ -51,7 +51,12 @@ test("ogSharePathForOffer aponta para o jpg maiusculo quando o ficheiro existe",
   assert.equal(ogSharePathForOffer("gru-lis"), "/og/GRU-LIS.jpg");
   assert.equal(ogSharePathForOffer("vcp-bue"), "/og/VCP-BUE.jpg");
   assert.equal(ogSharePathForOffer("gru-rec"), "", "sem cartao, nao inventa caminho");
-  assert.equal(ogSharePathForOffer("for-ssa"), "", "FOR-SSA.jpg ainda nao esta no disco");
+  const forSsaJpg = existsSync(path.join(process.cwd(), "public", "og", "FOR-SSA.jpg"));
+  assert.equal(
+    ogSharePathForOffer("for-ssa"),
+    forSsaJpg ? "/og/FOR-SSA.jpg" : "",
+    "FOR-SSA.jpg so vira og:image quando o JPEG esta no disco; nunca herda GIG-SSA.jpg"
+  );
   assert.equal(ogSharePathForOffer("../etc/passwd"), "");
   assert.equal(ogSharePathForOffer(""), "");
 });
@@ -240,7 +245,49 @@ test("README documenta stills 9:16 e os creditos, sem usa-los como og:image", as
   assert.match(readme, /GIG-SSA-story\.jpg/);
   assert.match(readme, /Rodrigo Soldon, CC BY 2\.0/);
   assert.match(readme, /Ciroamado, CC BY-SA 4\.0/);
+  assert.match(readme, /Paul R\. Burley, CC BY-SA 4\.0/);
+  assert.match(readme, /Largo do Pelourinho Salvador 2019-9754/);
+  assert.match(readme, /FOR-SSA\.jpg/);
+  assert.match(readme, /Never GIG-SSA/);
+  assert.match(readme, /Caspar skipped the gist|do not add `FOR-SSA-story\.jpg`/i);
   assert.match(readme, /Not og:image|Never `\*-story\.jpg`|Do not use the 9:16/i);
+});
+
+const FOR_SSA_JPG = path.join(process.cwd(), "public", "og", "FOR-SSA.jpg");
+const forSsaJpgOnDisk = existsSync(FOR_SSA_JPG);
+
+test(
+  "GET /og/FOR-SSA.jpg serve o cartao landscape 1200x630",
+  {
+    skip: forSsaJpgOnDisk
+      ? false
+      : "FOR-SSA.jpg nao chegou neste checkout (so descricao); nao inventar JPEG",
+  },
+  async (t) => {
+    const info = await stat(FOR_SSA_JPG);
+    assert.ok(info.size > 10_000, "FOR-SSA.jpg parece um stub, nao o cartao desenhado");
+    const base = await withServer(t);
+    const res = await fetch(`${base}/og/FOR-SSA.jpg`);
+    assert.equal(res.status, 200);
+    assert.match(res.headers.get("content-type") || "", /image\/jpeg/);
+    const buf = Buffer.from(await res.arrayBuffer());
+    assert.ok(buf.length > 10_000, "corpo pequeno demais");
+    assert.equal(buf[0], 0xff);
+    assert.equal(buf[1], 0xd8);
+  }
+);
+
+test("GET /ofertas/for-ssa og:image e /og/FOR-SSA.jpg quando o cartao existe", async (t) => {
+  const base = await withServer(t);
+  const html = await (await fetch(`${base}/ofertas/for-ssa`)).text();
+  assert.doesNotMatch(ogImage(html), /GIG-SSA\.jpg/);
+  assert.doesNotMatch(twitterImage(html), /GIG-SSA\.jpg/);
+  assert.doesNotMatch(ogImage(html), /HOJE\.jpg/);
+  assert.doesNotMatch(ogImage(html), /-story\.jpg/);
+  if (forSsaJpgOnDisk) {
+    assert.match(ogImage(html), /\/og\/FOR-SSA\.jpg/);
+    assert.match(twitterImage(html), /\/og\/FOR-SSA\.jpg/);
+  }
 });
 
 const STORY_STILLS = ["GRU-FLN-story.jpg", "GIG-SSA-story.jpg"];

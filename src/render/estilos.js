@@ -505,6 +505,12 @@ export function pageStyles() {
   .escopo-cols ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:15px;line-height:1.5;color:var(--muted);}
   .escopo-nota{margin:18px 0 0;font-size:13px;line-height:1.6;color:var(--muted);border-top:1px solid var(--border);padding-top:14px;}
   .guia-h2{font-size:36px;margin-bottom:28px;}
+  .semana-lock{max-width:860px;}
+  .semana-lock-aviso{margin:0 0 18px;font-size:15px;line-height:1.6;color:var(--text);background:var(--tint);border:1px solid var(--tint-border);border-radius:12px;padding:14px 18px;}
+  .semana-lock-meta{margin:0 0 14px;font-size:16px;line-height:1.6;color:var(--muted);}
+  .semana-lock-fare{margin:0 0 6px;font-size:16px;line-height:1.55;color:var(--text);}
+  .semana-lock-fare-note{margin:0 0 18px;font-size:13px;line-height:1.55;color:var(--muted);}
+  .semana-lock-cta{margin:0 0 24px;}
   .dias{display:flex;flex-direction:column;gap:20px;max-width:860px;}
   .dia{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px;display:grid;grid-template-columns:64px 1fr;gap:24px;}
   .dia-num{width:56px;height:56px;border-radius:14px;background:#18181b;color:var(--lime-2);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;}

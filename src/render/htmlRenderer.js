@@ -37,6 +37,7 @@ import {
   FLIGHT_SORTS,
   FLIGHTS,
   FLIGHT_FILTERS,
+  FOR_SSA_SEMANA,
 } from "./aondeContent.js";
 import { escapeHtml, formatBRL, semAcento } from "./texto.js";
 import { getRouteSeries } from "../store/priceHistory.js";
@@ -565,12 +566,15 @@ function normalizeGuideDia(dia) {
   }));
   let restauranteNome = "";
   let restauranteNota = "";
+  let restauranteEndereco = "";
   if (dia.restaurante && typeof dia.restaurante === "object") {
     restauranteNome = dia.restaurante.nome || "";
     restauranteNota = dia.restaurante.endereco || "";
+    restauranteEndereco = dia.restaurante.endereco || "";
   } else if (typeof dia.restaurante === "string") {
     restauranteNome = dia.restaurante;
     restauranteNota = dia.restauranteNota || "";
+    restauranteEndereco = dia.restauranteEndereco || "";
   }
   return {
     n: dia.n,
@@ -579,6 +583,7 @@ function normalizeGuideDia(dia) {
     pontos,
     restauranteNome,
     restauranteNota,
+    restauranteEndereco,
   };
 }
 
@@ -1275,16 +1280,33 @@ function metaDescricao(txt, limite = 155) {
 }
 
 const MESES_CURTOS_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const MESES_LONGOS_PT = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
+
+function parseFontePrecoIso(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || "").trim());
+  if (!m) return null;
+  const dia = Number(m[3]);
+  const mesIdx = Number(m[2]) - 1;
+  if (!Number.isFinite(dia) || dia < 1 || dia > 31) return null;
+  if (mesIdx < 0 || mesIdx > 11) return null;
+  return { ano: m[1], mesIdx, dia };
+}
 
 /** "2026-08-21" → "21 ago 2026". Sem data reconhecivel → "". Nao inventa. */
 function formatFontePrecoData(iso) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || "").trim());
-  if (!m) return "";
-  const mes = MESES_CURTOS_PT[Number(m[2]) - 1];
-  if (!mes) return "";
-  const dia = Number(m[3]);
-  if (!Number.isFinite(dia) || dia < 1 || dia > 31) return "";
-  return `${dia} ${mes} ${m[1]}`;
+  const p = parseFontePrecoIso(iso);
+  if (!p) return "";
+  return `${p.dia} ${MESES_CURTOS_PT[p.mesIdx]} ${p.ano}`;
+}
+
+/** "2026-08-28" → "28 de agosto de 2026". Sem data reconhecivel → "". Nao inventa. */
+function formatFontePrecoDataLonga(iso) {
+  const p = parseFontePrecoIso(iso);
+  if (!p) return "";
+  return `${p.dia} de ${MESES_LONGOS_PT[p.mesIdx]} de ${p.ano}`;
 }
 
 /**
@@ -2227,6 +2249,12 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `</aside>` +
     `</div>` +
     `</section>` +
+    (vm.id === "for-ssa"
+      ? editorialWeekHtml(offer.semana || FOR_SSA_SEMANA, {
+          cidade: destinoLabel,
+          showFare: true,
+        })
+      : "") +
     offerMap.html +
     relatedBlock +
     `</main>` +
@@ -2266,6 +2294,75 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
 // GUIA / ROTEIRO
 // ---------------------------------------------------------------------------
 
+function diaArticleHtml(d, cidade) {
+  const pontos = (d.pontos || []).map(pontoHtml).join("");
+  const restQuery = d.restauranteEndereco
+    ? `${d.restauranteNome}, ${d.restauranteEndereco}`
+    : `${d.restauranteNome}, ${cidade}`;
+  const rest = d.restauranteNome
+    ? `<div class="dia-rest"><span class="dia-rest-label">Onde comer</span>` +
+      `<span><a class="dia-rest-link" href="${escapeHtml(mapsSearchUrl(restQuery))}" target="_blank" rel="noopener"><strong>${escapeHtml(d.restauranteNome)}</strong></a>${d.restauranteNota ? ` · ${escapeHtml(d.restauranteNota)}` : ""}</span></div>`
+    : "";
+  const dirUrl = mapsDirUrl((d.pontos || []).map((p) => (cidade ? `${p.nome}, ${cidade}` : p.nome)));
+  const dayMap = dirUrl
+    ? `<a class="dia-map" href="${escapeHtml(dirUrl)}" target="_blank" rel="noopener"><span class="dia-map-pin" aria-hidden="true">📍</span> Ver o dia no Google Maps →</a>`
+    : "";
+  return (
+    `<article class="dia">` +
+    `<div class="dia-num"><span>DIA</span><strong>${escapeHtml(d.n)}</strong></div>` +
+    `<div class="dia-body">` +
+    `<h3>${escapeHtml(d.titulo)}</h3>` +
+    (d.desc ? `<p class="dia-desc">${escapeHtml(d.desc)}</p>` : "") +
+    (pontos ? `<div class="dia-pontos">${pontos}</div>` : "") +
+    rest +
+    dayMap +
+    `</div>` +
+    `</article>`
+  );
+}
+
+/**
+ * Semana editorial FOR-SSA (3–10 out 2026). Texto conferido em 28 ago 2026.
+ * Tarifa do voo e a consulta Aviasales daquela data (USD); nao e "ao vivo".
+ * Preco de restaurante e editorial. Nao mistura o R$ 874 de GRU do otimizador
+ * nem o R$ 287 velho do catalogo.
+ */
+function editorialWeekHtml(semana, { cidade = "Salvador", ctaHref = "", ctaLabel = "", showFare = true } = {}) {
+  if (!semana) return "";
+  const dias = (Array.isArray(semana.dias) ? semana.dias : []).map(normalizeGuideDia);
+  const artigos = dias.map((d) => diaArticleHtml(d, cidade)).join("");
+  const fonteNome = String(semana.tarifaFonte || "").trim();
+  const quandoLonga = formatFontePrecoDataLonga(semana.tarifaFonteEm);
+  let fareFrase = "";
+  if (fonteNome && quandoLonga) fareFrase = `Tarifa vista no ${fonteNome} em ${quandoLonga}`;
+  else if (fonteNome) fareFrase = `Tarifa vista no ${fonteNome}`;
+  else if (quandoLonga) fareFrase = `Tarifa vista em ${quandoLonga}`;
+  const tarifa = semana.tarifa;
+  const fare = showFare && tarifa
+    ? `<p class="semana-lock-fare">${escapeHtml(fareFrase || "Tarifa")}: <strong>${escapeHtml(tarifa)}</strong>. Não é preço em reais.</p>`
+    : "";
+  const fareNote = showFare
+    ? `<p class="semana-lock-fare-note">O valor do voo é a tarifa vista no Aviasales${quandoLonga ? ` em ${escapeHtml(quandoLonga)}` : ""}. Preços de restaurante (Senac, Origem) são editoriais: o que o site da casa cobrava na data citada.</p>`
+    : "";
+  const cta = ctaHref
+    ? `<p class="semana-lock-cta"><a class="btn btn-green" href="${escapeHtml(ctaHref)}">${escapeHtml(ctaLabel || "Ver a passagem →")}</a></p>`
+    : "";
+  return (
+    `<section class="wrap section semana-lock" id="semana-for-ssa">` +
+    `<h2 class="guia-h2">${escapeHtml(semana.titulo || "Salvador, 3 a 10 de outubro de 2026")}</h2>` +
+    (semana.rota ? `<p class="semana-lock-meta">${escapeHtml(semana.rota)}</p>` : "") +
+    (semana.aviso ? `<p class="semana-lock-aviso">${escapeHtml(semana.aviso)}</p>` : "") +
+    (semana.voo ? `<p class="semana-lock-meta">${escapeHtml(semana.voo)}</p>` : "") +
+    fare +
+    fareNote +
+    (semana.hospedagem ? `<p class="semana-lock-meta">${escapeHtml(semana.hospedagem)}</p>` : "") +
+    (semana.reservas ? `<p class="semana-lock-meta">${escapeHtml(semana.reservas)}</p>` : "") +
+    cta +
+    `<div class="dias">${artigos}</div>` +
+    `</section>`
+  );
+}
+
 function renderGuideVM(g, apiKey) {
   const map = guideMiniMap(g, apiKey);
   const hero = g.hero || {};
@@ -2278,34 +2375,7 @@ function renderGuideVM(g, apiKey) {
     .join("");
 
   const cidade = g.breadcrumb || g.titulo || "";
-  const dias = (g.dias || [])
-    .map((d) => {
-      const pontos = d.pontos.map(pontoHtml).join("");
-      // Restaurante vira link para o Google Maps (busca do lugar).
-      const rest = d.restauranteNome
-        ? `<div class="dia-rest"><span class="dia-rest-label">Onde comer</span>` +
-          `<span><a class="dia-rest-link" href="${escapeHtml(mapsSearchUrl(`${d.restauranteNome}, ${cidade}`))}" target="_blank" rel="noopener"><strong>${escapeHtml(d.restauranteNome)}</strong></a>${d.restauranteNota ? ` · ${escapeHtml(d.restauranteNota)}` : ""}</span></div>`
-        : "";
-      // "Ver o dia no mapa": rota do Google Maps passando pelos pontos do dia
-      // (Maps URLs API — sem chave, preciso, abre no app/site do Google Maps).
-      const dirUrl = mapsDirUrl(d.pontos.map((p) => (cidade ? `${p.nome}, ${cidade}` : p.nome)));
-      const dayMap = dirUrl
-        ? `<a class="dia-map" href="${escapeHtml(dirUrl)}" target="_blank" rel="noopener"><span class="dia-map-pin" aria-hidden="true">📍</span> Ver o dia no Google Maps →</a>`
-        : "";
-      return (
-        `<article class="dia">` +
-        `<div class="dia-num"><span>DIA</span><strong>${escapeHtml(d.n)}</strong></div>` +
-        `<div class="dia-body">` +
-        `<h3>${escapeHtml(d.titulo)}</h3>` +
-        (d.desc ? `<p class="dia-desc">${escapeHtml(d.desc)}</p>` : "") +
-        `<div class="dia-pontos">${pontos}</div>` +
-        rest +
-        dayMap +
-        `</div>` +
-        `</article>`
-      );
-    })
-    .join("");
+  const dias = (g.dias || []).map((d) => diaArticleHtml(d, cidade)).join("");
 
   // O preco do roteiro e sempre da rota monitorada (GRU -> destino), a mesma do
   // otimizador logo abaixo. Sem dizer a origem, quem via "R$ 312 saindo de BH"

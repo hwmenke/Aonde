@@ -9,7 +9,7 @@ and 9:16 stills for Instagram / WhatsApp stories.
 - **GRU-EZE.jpg** (1200×630) - Catalog card for GRU-EZE offer page: cities only, NO price
 - **GRU-FLN.jpg** (1200×630) - Catalog card for GRU-FLN offer: São Paulo → Florianópolis
 - **GIG-SSA.jpg** (1200×630) - Catalog card for GIG-SSA offer: Rio de Janeiro → Salvador
-- **FOR-SSA.jpg** (1200×630) - Catalog card for FOR-SSA (Fortaleza → Salvador). Not in this commit. When the file lands, `/ofertas/for-ssa` uses it as og:image. Until then OG falls back to the Salvador dest photo (`thumbUrl`). Never GIG-SSA.jpg (Rio) and never HOJE.jpg.
+- **FOR-SSA.jpg** (1200×630) - Catalog card for FOR-SSA: Fortaleza → Salvador, 3–10 out, NO price. WhatsApp og:image. JPEG bytes did not land in this checkout. Do not remake. When the file is in this folder, `/ofertas/for-ssa` uses `/og/FOR-SSA.jpg`. Until then OG falls back to the Salvador dest photo (`thumbUrl`). Never GIG-SSA.jpg (Rio) and never HOJE.jpg. Caspar skipped the gist: do not add `FOR-SSA-story.jpg` or `FOR-SSA-ig.jpg`.
 - **VCP-BUE.jpg** (1200×630) - Catalog card for VCP-BUE offer: Campinas → Buenos Aires
 - **GRU-LIS.jpg** (1200×630) - Catalog card for GRU-LIS offer: São Paulo → Lisboa
 
@@ -26,6 +26,7 @@ Do not use the 9:16 story files as og:image.
 - GRU-EZE.jpg: Obelisco, Buenos Aires. Photo: Roberto Fiadone, CC BY-SA 4.0
 - GRU-FLN.jpg: Ponte Hercílio Luz, Florianópolis.
 - GIG-SSA.jpg: Elevador Lacerda, Salvador.
+- FOR-SSA.jpg: Largo do Pelourinho, Salvador. Photo: Paul R. Burley, CC BY-SA 4.0. File: Largo do Pelourinho Salvador 2019-9754.jpg. https://commons.wikimedia.org/wiki/File:Largo_do_Pelourinho_Salvador_2019-9754.jpg
 - GRU-FLN-story.jpg: Ponte Hercílio Luz — Rodrigo Soldon, CC BY 2.0
 - GIG-SSA-story.jpg: Elevador Lacerda — Ciroamado, CC BY-SA 4.0
 - VCP-BUE.jpg: Obelisco, Buenos Aires. Photo: Roberto Fiadone, CC BY-SA 4.0
@@ -43,6 +44,6 @@ og:image / twitter:image (landscape cards only):
 - /ofertas/gru-eze → GRU-EZE.jpg
 - /ofertas/gru-fln → GRU-FLN.jpg
 - /ofertas/gig-ssa → GIG-SSA.jpg
-- /ofertas/for-ssa → FOR-SSA.jpg when the file exists; otherwise Salvador dest photo. Never GIG-SSA.jpg.
+- /ofertas/for-ssa → /og/FOR-SSA.jpg when the file exists; otherwise Salvador dest photo. Never GIG-SSA.jpg. Never HOJE.jpg.
 - /ofertas/vcp-bue → VCP-BUE.jpg (when available)
 - /ofertas/gru-lis → GRU-LIS.jpg (when available)
