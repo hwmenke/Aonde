@@ -422,6 +422,7 @@ export function pageStyles() {
   .det-grid--lock .semana-lock,
   .det-grid--lock .det-lock-more,
   .det-grid--lock .det-lock-extras{grid-column:1/-1;}
+  .det-grid--lock .det-aside{position:static;}
   .semana-lock--embedded{margin-top:8px;scroll-margin-top:92px;}
   .semana-lock--embedded .guia-h2{font-size:clamp(28px,4vw,36px);margin-bottom:16px;}
   .det-lock-extras{display:flex;flex-direction:column;gap:16px;max-width:420px;}
@@ -453,8 +454,8 @@ export function pageStyles() {
   .det-buy-preco{margin:2px 0 0;font-size:36px;font-weight:700;color:var(--green-2);letter-spacing:-1px;}
   .det-buy-sub{margin:2px 0 16px;font-size:14px;color:var(--muted);}
   .det-buy-cta{width:100%;font-size:16px;}
-  .det-buy-cta-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 14px;margin-top:0;}
-  .det-buy-cta-row .det-buy-cta{width:auto;flex:1 1 12rem;}
+  .det-buy-cta-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:0;}
+  .det-buy-cta-row .det-buy-cta{width:auto;flex:0 1 auto;}
   .det-buy-cta-row .det-buy-fonte{margin:0;font-size:13px;color:var(--muted);line-height:1.45;}
   .det-buy-fine{margin:12px 0 0;font-size:12px;color:var(--muted);line-height:1.5;text-align:center;}
   /* Historico de preco (sparkline). Fica no mesmo cartao claro do aside. */
