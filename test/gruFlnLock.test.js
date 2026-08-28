@@ -257,3 +257,47 @@ test("GET /guias/florianopolis nao tem a semana lock; GET /ofertas/gru-fln tem, 
   assert.doesNotMatch(hoje, /id="semana-gru-fln"/);
   assert.doesNotMatch(hoje, /Editorial, escrito em 28 de agosto/);
 });
+
+test("lock GRU-FLN abre na semana datada, consulta ao lado de Reservar, sem countdown", () => {
+  const html = renderOfferPage(offerById("gru-fln"), { related: [] });
+
+  const weekAt = html.indexOf('id="semana-gru-fln"');
+  const flexAt = html.indexOf("Datas com o preço disponível");
+  const dicasAt = html.indexOf("Antes de comprar");
+  assert.ok(weekAt > -1, "semana lock presente");
+  assert.ok(weekAt < flexAt, "semana aparece antes das datas flex");
+  assert.ok(weekAt < dicasAt, "semana aparece antes das dicas");
+
+  assert.doesNotMatch(html, /Horários que travam a semana/);
+  assert.doesNotMatch(html, /class="semana-lock-horarios"/);
+  assert.match(html, /Box 32 fecha domingo/);
+
+  assert.doesNotMatch(html, /publicado há/);
+  assert.doesNotMatch(html, /class="det-pub"/);
+  assert.doesNotMatch(html, /há 2h|há 2 horas/);
+
+  const buy = (html.match(/<div class="det-buy">([\s\S]*?)<p class="det-buy-perks">/) || [])[1] || "";
+  const ctaAt = buy.indexOf("Reservar no Aviasales");
+  const fonteAt = buy.indexOf("Visto no Google Flights, 21 ago 2026");
+  assert.ok(ctaAt > -1 && fonteAt > ctaAt, "fontePreco fica ao lado de Reservar, nao acima");
+  assert.match(html, /class="det-fonte-preco det-buy-fonte"/);
+
+  assert.match(html, /href="\/guias\/florianopolis"/);
+  assert.doesNotMatch(html, /Centro Histórico e Mercado Público/);
+  assert.doesNotMatch(html, /R\$\s*153\b/);
+  assert.match(html, /R\$ 770/);
+  assert.match(html, /USD \$153/);
+});
+
+test("FOR-SSA continua com a semana propria; guia de 5 dias e link irmao", () => {
+  const html = renderOfferPage(offerById("for-ssa"), { related: [] });
+  assert.match(html, /id="semana-for-ssa"/);
+  const weekAt = html.indexOf('id="semana-for-ssa"');
+  const flexAt = html.indexOf("Datas com o preço disponível");
+  assert.ok(weekAt > -1 && (flexAt === -1 || weekAt < flexAt));
+  assert.match(html, /href="\/guias\/salvador"/);
+  assert.doesNotMatch(html, /id="semana-gru-fln"/);
+  assert.doesNotMatch(html, /Horários que travam a semana/);
+  assert.doesNotMatch(html, /publicado há/);
+  assert.doesNotMatch(html, /R\$\s*242\b/);
+});

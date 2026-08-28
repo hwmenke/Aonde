@@ -149,7 +149,74 @@ test("GRU-FLN e GIG-SSA no WhatsApp de /hoje apontam para /ofertas/{id}, nao /ho
   assert.match(fln, /ofertas%2Fgru-fln%3Futm_source%3Dwa/);
   assert.match(ssa, /ofertas%2Fgig-ssa%3Futm_source%3Dwa/);
   const eze = renderTodayPage(pacoteDoDia("2026-08-21"));
-  assert.match(eze, /hoje%3Futm_source%3Dwa/);
+  assert.match(eze, /ofertas%2Fgru-eze%3Futm_source%3Dwa/);
+  assert.doesNotMatch(eze, /hoje%3Futm_source%3Dwa/);
+  assert.doesNotMatch(fln, /hoje%3Futm_source%3Dwa/);
+});
+
+function waSharedUrl(html) {
+  const m = html.match(/wa\.me\/\?text=([^"&]+)/);
+  if (!m) return "";
+  return decodeURIComponent(m[1]).split("\n").pop() || "";
+}
+
+function heroImgSrc(html) {
+  const prova = html.match(/<div class="det-prova-media">([\s\S]*?)<\/div>/);
+  if (!prova) return "";
+  return (prova[1].match(/src="([^"]+)"/) || [])[1] || "";
+}
+
+test("GRU-FLN e GRU-EZE compartilham URLs distintas de /ofertas/{id}?utm_source=wa, nunca /hoje", () => {
+  const flnPage = renderOfferPage(offerById("gru-fln"), { related: [] });
+  const ezePage = renderOfferPage(offerById("gru-eze"), { related: [] });
+  const flnHoje = renderTodayPage(pacoteDoDia("2026-08-22"));
+  const ezeHoje = renderTodayPage(pacoteDoDia("2026-08-21"));
+
+  const flnShare = waSharedUrl(flnPage);
+  const ezeShare = waSharedUrl(ezePage);
+  const flnHojeShare = waSharedUrl(flnHoje);
+  const ezeHojeShare = waSharedUrl(ezeHoje);
+
+  assert.match(flnShare, /\/ofertas\/gru-fln\?utm_source=wa$/);
+  assert.match(ezeShare, /\/ofertas\/gru-eze\?utm_source=wa$/);
+  assert.notEqual(flnShare, ezeShare, "cada oferta tem o proprio link");
+  assert.doesNotMatch(flnShare, /\/hoje/);
+  assert.doesNotMatch(ezeShare, /\/hoje/);
+  assert.doesNotMatch(flnShare, /\/saida\//);
+  assert.doesNotMatch(ezeShare, /\/saida\//);
+
+  assert.match(flnHojeShare, /\/ofertas\/gru-fln\?utm_source=wa$/);
+  assert.match(ezeHojeShare, /\/ofertas\/gru-eze\?utm_source=wa$/);
+  assert.notEqual(flnHojeShare, ezeHojeShare);
+  assert.doesNotMatch(flnHojeShare, /\/hoje/);
+  assert.doesNotMatch(ezeHojeShare, /\/hoje/);
+});
+
+test("hero da oferta e o cartao OG daquela rota; FOR-SSA nunca usa GIG-SSA.jpg", () => {
+  const fln = renderOfferPage(offerById("gru-fln"), { related: [] });
+  const gig = renderOfferPage(offerById("gig-ssa"), { related: [] });
+  const forSsa = renderOfferPage(offerById("for-ssa"), { related: [] });
+  const cardForSsa = existsSync(path.join(process.cwd(), "public", "og", "FOR-SSA.jpg"));
+
+  const flnHero = heroImgSrc(fln);
+  const gigHero = heroImgSrc(gig);
+  const forHero = heroImgSrc(forSsa);
+
+  assert.match(flnHero, /\/og\/GRU-FLN\.jpg/);
+  assert.match(ogImage(fln), /\/og\/GRU-FLN\.jpg/);
+  assert.match(gigHero, /\/og\/GIG-SSA\.jpg/);
+  assert.match(ogImage(gig), /\/og\/GIG-SSA\.jpg/);
+
+  assert.doesNotMatch(forHero, /GIG-SSA\.jpg/);
+  assert.doesNotMatch(ogImage(forSsa), /GIG-SSA\.jpg/);
+  assert.doesNotMatch(forHero, /HOJE\.jpg/);
+  if (cardForSsa) {
+    assert.match(forHero, /\/og\/FOR-SSA\.jpg/);
+    assert.match(ogImage(forSsa), /\/og\/FOR-SSA\.jpg/);
+  } else {
+    assert.doesNotMatch(forHero, /\/og\/FOR-SSA\.jpg/);
+    assert.match(forHero, /commons\.wikimedia\.org|Pelourinho|Salvador/i);
+  }
 });
 
 test("origem-swap marca a foto do destino e restaura data-dest-src; nao troca por cidade de origem", () => {

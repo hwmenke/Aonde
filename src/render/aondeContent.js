@@ -740,6 +740,8 @@ export const FOR_SSA_SEMANA = {
   tarifaFonte: "Aviasales",
   tarifaFonteEm: "2026-08-28",
   fareNote: "O valor do voo é a tarifa vista no Aviasales em 28 de agosto de 2026. Preços de restaurante (Senac, Origem) são editoriais: o que o site da casa cobrava na data citada.",
+  guiaHref: "/guias/salvador",
+  guiaLabel: "Roteiro de 5 dias em Salvador, sem as datas desta passagem →",
   hospedagem: "Rio Vermelho. Casa de Tereza, Dona Mariquita e o acarajé da Dinha ficam a pé. Pelourinho e Barra são Uber (20–30 min). Santo Antônio Além do Carmo é a alternativa mais quieta, ainda no centro histórico. Evita dormir no Largo do Pelourinho se for a primeira vez.",
   reservas: "Casa de Tereza (jantar) e Origem (terça a sábado, 19h, só com reserva). Origem é menu degustação; em maio de 2026 o Recôncavo 2.0 saía a R$ 420 por pessoa no site da casa.",
   dias: [
@@ -817,18 +819,11 @@ export const GRU_FLN_SEMANA = {
   tarifaFonteEm: "2026-08-28",
   fareNote: "O USD $153 é a tarifa vista no Aviasales em 28 de agosto de 2026, saindo de GRU. O R$ 770 é outra consulta, no Google Flights em 21 de agosto de 2026. Não misture: o dólar não é o real.",
   hospedagem: "Lagoa da Conceição. Barra da Lagoa e Joaquina ficam perto. Centro, norte e sul pedem carro ou app.",
-  horariosTitulo: "Horários que travam a semana (conferidos em 28 de agosto de 2026)",
-  horarios: [
-    "Box 32: fecha domingo. Sábado só até 15h. Segunda a sexta 10h–20h.",
-    "Ammo Beach (Jurerê): quarta a domingo 11h–18h. Fecha terça. Não é jantar (fecha 18h).",
-    "Ostradamus: segunda 11h–17h; terça a sábado 11h–23h; domingo 11h30–17h30.",
-    "Oliveira (Lagoa): almoço todos os dias; jantar mais seguro quarta a sábado.",
-  ],
   conferencia: "Restaurantes conferidos em 28 de agosto de 2026 nos sites das casas (Box 32, Ostradamus, Ammo Beach) e em páginas públicas (Oliveira, Bar do Arante).",
   guiaHref: "/guias/florianopolis",
   guiaLabel: "Roteiro de 5 dias em Florianópolis, sem as datas desta passagem →",
   dias: [
-    { n: 1, titulo: "Domingo 27, chegada", desc: "Voo 11h05. Check-in na Lagoa. Não vá ao Mercado: o Box 32 fecha domingo. Tarde: dunas da Joaquina ou caiaque na lagoa.",
+    { n: 1, titulo: "Domingo 27, chegada", desc: "Voo 11h05. Check-in na Lagoa. Box 32 fecha domingo. Tarde: dunas da Joaquina ou caiaque na lagoa.",
       pontos: [{ nome: "Lagoa da Conceição" }, { nome: "Dunas da Joaquina", nota: "ou caiaque na lagoa" }],
       restaurante: "Restaurante Oliveira",
       restauranteNota: "Rua Henrique Veras do Nascimento 57, Lagoa da Conceição (desde 1961). Aberto domingo até o fim da tarde.",
