@@ -13,6 +13,9 @@ const OG_NAME_RE = /^[A-Z0-9_-]+\.(jpg|jpeg|png)$/;
 function ogFilePath(filename) {
   const name = String(filename || "");
   if (!OG_NAME_RE.test(name)) return "";
+  // 9:16 stills (*-story.jpg) are for IG/WA stories. GET /og/ still serves
+  // them; they must not become og:image / twitter:image (those stay 1200x630).
+  if (/-story\./i.test(name)) return "";
   const filePath = path.join(OG_DIR, name);
   if (!existsSync(filePath)) return "";
   return `/og/${name}`;

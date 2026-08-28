@@ -97,6 +97,15 @@ test("GET /hoje og:image e o cartao do primeiro achado, nao HOJE.jpg se o hero n
   const eze = await (await fetch(`${base}/hoje?dia=2026-08-21`)).text();
   assert.match(ogImage(eze), /\/og\/(HOJE|GRU-EZE)\.jpg/, "dia Buenos Aires pode usar HOJE.jpg");
 
+  // 24 e 27 ago: pagina e Salvador + Floripa (primeiro = gig-ssa). HOJE.jpg e Buenos Aires.
+  for (const dia of ["2026-08-24", "2026-08-27"]) {
+    const html = await (await fetch(`${base}/hoje?dia=${dia}`)).text();
+    assert.match(ogImage(html), /\/og\/GIG-SSA\.jpg/, `${dia} Salvador+Floripa usa GIG-SSA.jpg`);
+    assert.match(twitterImage(html), /\/og\/GIG-SSA\.jpg/);
+    assert.doesNotMatch(ogImage(html), /HOJE\.jpg|GRU-EZE\.jpg|-story\.jpg/);
+    assert.doesNotMatch(twitterImage(html), /HOJE\.jpg|-story\.jpg/);
+  }
+
   const hoje = await (await fetch(`${base}/hoje`)).text();
   const pacote = pacoteDoDia();
   const firstId = pacote.itens[0] && pacote.itens[0].oferta && pacote.itens[0].oferta.id;
@@ -184,11 +193,63 @@ test("oferta reservavel com fonte/data imprime o visto honesto; sem fonte nao in
   assert.match(hojeFln, /data-dest-photo/);
 });
 
-test("README lista GRU-FLN.jpg e GIG-SSA.jpg", async () => {
+test("og:image e twitter:image nunca usam still 9:16 (*-story.jpg)", async (t) => {
+  const base = await withServer(t);
+  const pages = [
+    "/ofertas/gru-fln",
+    "/ofertas/gig-ssa",
+    "/ofertas/gru-eze",
+    "/hoje",
+    "/hoje?dia=2026-08-22",
+    "/hoje?dia=2026-08-23",
+    "/hoje?dia=2026-08-24",
+    "/hoje?dia=2026-08-27",
+  ];
+  for (const page of pages) {
+    const html = await (await fetch(`${base}${page}`)).text();
+    assert.doesNotMatch(ogImage(html), /-story\.jpg/i, `${page} og:image nao e story`);
+    assert.doesNotMatch(twitterImage(html), /-story\.jpg/i, `${page} twitter:image nao e story`);
+  }
+  assert.doesNotMatch(ogSharePathForOffer("gru-fln"), /story/i);
+  assert.doesNotMatch(hojeOgSharePath("gig-ssa"), /story/i);
+  assert.equal(ogSharePathForOffer("gru-fln-story"), "", "id com -story nao vira og:image");
+});
+
+test("README documenta stills 9:16 e os creditos, sem usa-los como og:image", async () => {
   const { readFile } = await import("node:fs/promises");
   const readme = await readFile(path.join(process.cwd(), "public", "og", "README.md"), "utf8");
   assert.match(readme, /GRU-FLN\.jpg/);
   assert.match(readme, /GIG-SSA\.jpg/);
   assert.match(readme, /\/ofertas\/gru-fln/);
   assert.match(readme, /\/ofertas\/gig-ssa/);
+  assert.match(readme, /GRU-FLN-story\.jpg/);
+  assert.match(readme, /GIG-SSA-story\.jpg/);
+  assert.match(readme, /Rodrigo Soldon, CC BY 2\.0/);
+  assert.match(readme, /Ciroamado, CC BY-SA 4\.0/);
+  assert.match(readme, /Not og:image|Never `\*-story\.jpg`|Do not use the 9:16/i);
 });
+
+const STORY_STILLS = ["GRU-FLN-story.jpg", "GIG-SSA-story.jpg"];
+const storyStillsOnDisk = STORY_STILLS.every((name) =>
+  existsSync(path.join(process.cwd(), "public", "og", name))
+);
+
+test(
+  "GET /og/ serve os stills 9:16 (GRU-FLN-story.jpg, GIG-SSA-story.jpg)",
+  { skip: storyStillsOnDisk ? false : "binaries 9:16 nao chegaram a este checkout; nao refazer" },
+  async (t) => {
+    for (const name of STORY_STILLS) {
+      const filePath = path.join(process.cwd(), "public", "og", name);
+      const info = await stat(filePath);
+      assert.ok(info.size > 10_000, `${name} parece um stub`);
+    }
+    const base = await withServer(t);
+    for (const name of STORY_STILLS) {
+      const res = await fetch(`${base}/og/${name}`);
+      assert.equal(res.status, 200, `${name} deve responder 200 via GET /og/`);
+      assert.match(res.headers.get("content-type") || "", /image\/jpeg/);
+      const buf = Buffer.from(await res.arrayBuffer());
+      assert.ok(buf.length > 10_000, `${name} corpo pequeno demais`);
+    }
+  }
+);
