@@ -565,12 +565,15 @@ function normalizeGuideDia(dia) {
   }));
   let restauranteNome = "";
   let restauranteNota = "";
+  let restauranteEndereco = "";
   if (dia.restaurante && typeof dia.restaurante === "object") {
     restauranteNome = dia.restaurante.nome || "";
     restauranteNota = dia.restaurante.endereco || "";
+    restauranteEndereco = dia.restaurante.endereco || "";
   } else if (typeof dia.restaurante === "string") {
     restauranteNome = dia.restaurante;
     restauranteNota = dia.restauranteNota || "";
+    restauranteEndereco = dia.restauranteEndereco || "";
   }
   return {
     n: dia.n,
@@ -579,6 +582,7 @@ function normalizeGuideDia(dia) {
     pontos,
     restauranteNome,
     restauranteNota,
+    restauranteEndereco,
   };
 }
 
@@ -600,6 +604,7 @@ function guideFromContent(g) {
     // o texto ficava no dado e nunca chegava a tela.
     hospedagem: g.hospedagem || null,
     dias: (Array.isArray(g.dias) ? g.dias : []).map(normalizeGuideDia),
+    semanaForSsa: g.semanaForSsa || null,
     places: false,
   };
 }
@@ -2227,6 +2232,12 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     `</aside>` +
     `</div>` +
     `</section>` +
+    (vm.id === "for-ssa"
+      ? editorialWeekHtml(GUIDES.salvador && GUIDES.salvador.semanaForSsa, {
+          cidade: destinoLabel,
+          showFare: false,
+        })
+      : "") +
     offerMap.html +
     relatedBlock +
     `</main>` +
@@ -2266,6 +2277,68 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
 // GUIA / ROTEIRO
 // ---------------------------------------------------------------------------
 
+function diaArticleHtml(d, cidade) {
+  const pontos = (d.pontos || []).map(pontoHtml).join("");
+  const restQuery = d.restauranteEndereco
+    ? `${d.restauranteNome}, ${d.restauranteEndereco}`
+    : `${d.restauranteNome}, ${cidade}`;
+  const rest = d.restauranteNome
+    ? `<div class="dia-rest"><span class="dia-rest-label">Onde comer</span>` +
+      `<span><a class="dia-rest-link" href="${escapeHtml(mapsSearchUrl(restQuery))}" target="_blank" rel="noopener"><strong>${escapeHtml(d.restauranteNome)}</strong></a>${d.restauranteNota ? ` · ${escapeHtml(d.restauranteNota)}` : ""}</span></div>`
+    : "";
+  const dirUrl = mapsDirUrl((d.pontos || []).map((p) => (cidade ? `${p.nome}, ${cidade}` : p.nome)));
+  const dayMap = dirUrl
+    ? `<a class="dia-map" href="${escapeHtml(dirUrl)}" target="_blank" rel="noopener"><span class="dia-map-pin" aria-hidden="true">📍</span> Ver o dia no Google Maps →</a>`
+    : "";
+  return (
+    `<article class="dia">` +
+    `<div class="dia-num"><span>DIA</span><strong>${escapeHtml(d.n)}</strong></div>` +
+    `<div class="dia-body">` +
+    `<h3>${escapeHtml(d.titulo)}</h3>` +
+    (d.desc ? `<p class="dia-desc">${escapeHtml(d.desc)}</p>` : "") +
+    (pontos ? `<div class="dia-pontos">${pontos}</div>` : "") +
+    rest +
+    dayMap +
+    `</div>` +
+    `</article>`
+  );
+}
+
+/**
+ * Semana editorial FOR-SSA (3–10 out 2026). Texto conferido em 28 ago 2026.
+ * Tarifa do voo e a vista no Aviasales (USD); preco de restaurante e editorial.
+ * Nao mistura o R$ 874 de GRU do otimizador nem o R$ 287 velho do catalogo.
+ */
+function editorialWeekHtml(semana, { cidade = "Salvador", ctaHref = "", ctaLabel = "", showFare = true } = {}) {
+  if (!semana) return "";
+  const dias = (Array.isArray(semana.dias) ? semana.dias : []).map(normalizeGuideDia);
+  const artigos = dias.map((d) => diaArticleHtml(d, cidade)).join("");
+  const fonte = fontePrecoLinha(semana.tarifaFonte, semana.tarifaFonteEm);
+  const fare = showFare && semana.tarifaViva
+    ? `<p class="semana-lock-fare">Tarifa ao vivo no Aviasales: <strong>${escapeHtml(semana.tarifaViva)}</strong>` +
+      `${fonte ? ` · ${escapeHtml(fonte)}` : ""}. Não é preço em reais.</p>`
+    : "";
+  const fareNote = showFare
+    ? `<p class="semana-lock-fare-note">O valor do voo é a tarifa vista no Aviasales. Preços de restaurante (Senac, Origem) são editoriais: o que o site da casa cobrava na data citada.</p>`
+    : "";
+  const cta = ctaHref
+    ? `<p class="semana-lock-cta"><a class="btn btn-green" href="${escapeHtml(ctaHref)}">${escapeHtml(ctaLabel || "Ver a passagem →")}</a></p>`
+    : "";
+  return (
+    `<section class="wrap section semana-lock" id="semana-for-ssa">` +
+    `<h2 class="guia-h2">${escapeHtml(semana.titulo || "Salvador, 3 a 10 de outubro de 2026")}</h2>` +
+    (semana.aviso ? `<p class="semana-lock-aviso">${escapeHtml(semana.aviso)}</p>` : "") +
+    (semana.voo ? `<p class="semana-lock-meta">${escapeHtml(semana.voo)}</p>` : "") +
+    fare +
+    fareNote +
+    (semana.hospedagem ? `<p class="semana-lock-meta">${escapeHtml(semana.hospedagem)}</p>` : "") +
+    (semana.reservas ? `<p class="semana-lock-meta">${escapeHtml(semana.reservas)}</p>` : "") +
+    cta +
+    `<div class="dias">${artigos}</div>` +
+    `</section>`
+  );
+}
+
 function renderGuideVM(g, apiKey) {
   const map = guideMiniMap(g, apiKey);
   const hero = g.hero || {};
@@ -2278,34 +2351,13 @@ function renderGuideVM(g, apiKey) {
     .join("");
 
   const cidade = g.breadcrumb || g.titulo || "";
-  const dias = (g.dias || [])
-    .map((d) => {
-      const pontos = d.pontos.map(pontoHtml).join("");
-      // Restaurante vira link para o Google Maps (busca do lugar).
-      const rest = d.restauranteNome
-        ? `<div class="dia-rest"><span class="dia-rest-label">Onde comer</span>` +
-          `<span><a class="dia-rest-link" href="${escapeHtml(mapsSearchUrl(`${d.restauranteNome}, ${cidade}`))}" target="_blank" rel="noopener"><strong>${escapeHtml(d.restauranteNome)}</strong></a>${d.restauranteNota ? ` · ${escapeHtml(d.restauranteNota)}` : ""}</span></div>`
-        : "";
-      // "Ver o dia no mapa": rota do Google Maps passando pelos pontos do dia
-      // (Maps URLs API — sem chave, preciso, abre no app/site do Google Maps).
-      const dirUrl = mapsDirUrl(d.pontos.map((p) => (cidade ? `${p.nome}, ${cidade}` : p.nome)));
-      const dayMap = dirUrl
-        ? `<a class="dia-map" href="${escapeHtml(dirUrl)}" target="_blank" rel="noopener"><span class="dia-map-pin" aria-hidden="true">📍</span> Ver o dia no Google Maps →</a>`
-        : "";
-      return (
-        `<article class="dia">` +
-        `<div class="dia-num"><span>DIA</span><strong>${escapeHtml(d.n)}</strong></div>` +
-        `<div class="dia-body">` +
-        `<h3>${escapeHtml(d.titulo)}</h3>` +
-        (d.desc ? `<p class="dia-desc">${escapeHtml(d.desc)}</p>` : "") +
-        `<div class="dia-pontos">${pontos}</div>` +
-        rest +
-        dayMap +
-        `</div>` +
-        `</article>`
-      );
-    })
-    .join("");
+  const dias = (g.dias || []).map((d) => diaArticleHtml(d, cidade)).join("");
+  const semanaLock = editorialWeekHtml(g.semanaForSsa, {
+    cidade,
+    ctaHref: "/ofertas/for-ssa",
+    ctaLabel: "Ver a passagem Fortaleza → Salvador →",
+    showFare: true,
+  });
 
   // O preco do roteiro e sempre da rota monitorada (GRU -> destino), a mesma do
   // otimizador logo abaixo. Sem dizer a origem, quem via "R$ 312 saindo de BH"
@@ -2359,6 +2411,7 @@ function renderGuideVM(g, apiKey) {
     `</div>` +
     `</section>` +
     map.html +
+    semanaLock +
     `<section class="wrap section">` +
     `<h2 class="guia-h2">O roteiro, dia a dia</h2>` +
     `<div class="dias">${dias}</div>` +

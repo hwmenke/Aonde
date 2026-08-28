@@ -10,8 +10,8 @@ import path from "node:path";
 
 import { createServer } from "../src/server.js";
 import { OFFERS, GUIDES } from "../src/render/aondeContent.js";
-import { escolhaDoDia, guiaDaOferta } from "../src/daily/dailyPick.js";
-import { renderOfferPage } from "../src/render/htmlRenderer.js";
+import { escolhaDoDia, guiaDaOferta, pacoteDoDia } from "../src/daily/dailyPick.js";
+import { renderOfferPage, renderGuidePage, renderTodayPage } from "../src/render/htmlRenderer.js";
 import { ogSharePathForOffer } from "../src/render/ogShare.js";
 
 const LOCK_URLS = {
@@ -221,4 +221,55 @@ test("/hoje nunca heroi for-ssa; rotacao fica nos tres locks", () => {
     }
   }
   assert.deepEqual([...vistos].sort(), ["gig-ssa", "gru-eze", "gru-fln"]);
+});
+
+const WEEK_RESTAURANTS = [
+  "Acarajé da Dinha",
+  "Restaurante Escola Senac",
+  "Dona Mariquita",
+  "Casa de Tereza",
+  "Origem",
+  "Pereira",
+];
+
+test("a semana editorial FOR-SSA aparece no guia de Salvador e em /ofertas/for-ssa", () => {
+  const guia = renderGuidePage("salvador");
+  const oferta = renderOfferPage(offerById("for-ssa"), { related: [] });
+  for (const [nome, html] of [
+    ["guia", guia],
+    ["oferta", oferta],
+  ]) {
+    for (const restaurante of WEEK_RESTAURANTS) {
+      assert.ok(html.includes(restaurante), `${nome} deve citar ${restaurante}`);
+    }
+    assert.match(html, /Editorial, escrito em 28 de agosto de 2026/);
+    assert.match(html, /Não é um texto de quem mora aí/);
+    assert.match(html, /id="semana-for-ssa"/);
+    assert.doesNotMatch(html, /R\$\s*287/);
+    assert.doesNotMatch(html, /R\$\s*242/);
+    assert.doesNotMatch(html, /eu moro|moro em Salvador|quem vive aí/i);
+  }
+  assert.match(guia, /USD \$242/);
+  assert.match(guia, /Visto no Aviasales, 28 ago 2026/);
+  assert.match(guia, /href="\/ofertas\/for-ssa"/);
+  assert.match(oferta, /USD \$242/);
+  assert.match(oferta, /Visto no Aviasales, 28 ago 2026/);
+  assert.match(oferta, /Alameda das Algarobas/);
+  assert.match(oferta, /Rua do Meio 178/);
+  assert.ok(GUIDES.salvador.semanaForSsa, "semana vive no guia de Salvador existente");
+  assert.equal(GUIDES.salvador.semanaForSsa.offerId, "for-ssa");
+});
+
+test("GET /hoje nao mostra for-ssa nem a semana editorial da janela", async (t) => {
+  const { baseUrl } = await withServer(t);
+  const html = await (await fetch(`${baseUrl}/hoje`)).text();
+  assert.doesNotMatch(html, /for-ssa/);
+  assert.doesNotMatch(html, /semana-for-ssa/);
+  assert.doesNotMatch(html, /Alameda das Algarobas/);
+  assert.doesNotMatch(html, /R\$\s*287/);
+
+  const pacote = renderTodayPage(pacoteDoDia("2026-08-28"));
+  assert.doesNotMatch(pacote, /for-ssa/);
+  assert.doesNotMatch(pacote, /semana-for-ssa/);
+  assert.doesNotMatch(pacote, /Alameda das Algarobas/);
 });
