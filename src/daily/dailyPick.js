@@ -36,6 +36,10 @@ import { cidadeDoIata } from "../render/aeroportos.js";
  */
 const FUSO_PRODUTO = process.env.AONDE_TIMEZONE || "America/Sao_Paulo";
 
+// /hoje mostra so os tres achados conferidos (locks). Wrap no catalogo
+// liga /saida/{id}; nao coloca a oferta na rotacao diaria.
+const HOJE_LOCK_IDS = new Set(["gru-eze", "gru-fln", "gig-ssa"]);
+
 export function chaveDoDia(date = new Date()) {
   // "2026-07-26" ja E uma data de calendario, nao um instante: converter para
   // fuso jogaria para o dia anterior (meia-noite UTC = 21h do dia anterior em
@@ -158,7 +162,8 @@ export function escolhaDoDia(data = new Date(), { quantidade = 2, offers = OFFER
   const candidatos = offers
     .map((offer) => ({ offer, guide: guiaDaOferta(offer, guides) }))
     .filter((c) => c.guide) // so entra quem tem roteiro de verdade
-    .filter((c) => c.offer.aviasalesUrl || c.offer.affiliate_url || c.offer.affiliateUrl); // e so entra quem e RESERVAVEL (tem wrap do Aviasales)
+    .filter((c) => c.offer.aviasalesUrl || c.offer.affiliate_url || c.offer.affiliateUrl) // e so entra quem e RESERVAVEL (tem wrap do Aviasales)
+    .filter((c) => HOJE_LOCK_IDS.has(c.offer.id)); // catalogo wrapped nao entra em /hoje
 
   if (!candidatos.length) return [];
 

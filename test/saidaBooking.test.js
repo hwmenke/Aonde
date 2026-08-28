@@ -111,16 +111,15 @@ test("GET /saida/gru-eze: clique registrado em clicks.jsonl", async (t) => {
   assert.ok(line.timestamp);
 });
 
-test("GET /saida/{id} para oferta editorial antiga (affiliate_url pre-montado): funciona como antes", async (t) => {
+test("GET /saida/vcp-bue COM wrap: interstitial 200 com path VCP0309BUE10091", async (t) => {
   const { baseUrl } = await withServer(t);
-  // VCP-BUE e uma oferta editorial que NAO tem aviasalesUrl — tem affiliate_url
-  // (se existisse de verdade). O comportamento antigo deve continuar funcionando.
-  
+  process.env.TRAVELPAYOUTS_MARKER = "123456";
+
   const res = await fetch(`${baseUrl}/saida/vcp-bue`, {
     headers: { "User-Agent": "test/1.0" },
   });
-  
-  // VCP-BUE nao tem affiliate_url nem aviasalesUrl no catalogo editorial, entao
-  // deve cair no 409 (sem link de parceiro).
-  assert.equal(res.status, 409, "oferta editorial sem affiliate_url deve dar 409 como antes");
+  assert.equal(res.status, 200, "vcp-bue wrapped deve abrir /saida");
+  const html = await res.text();
+  assert.match(html, /VCP0309BUE10091/);
+  assert.match(html, /Você está indo para Aviasales/i);
 });

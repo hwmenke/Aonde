@@ -66,6 +66,9 @@ export function buildTpMediaLink({ marker, programId, url, subId }) {
  * A Data API retorna paths relativos (ex.: "/search/GRULIS0109") apontando
  * para aviasales.com. Aqui compomos a URL absoluta e aplicamos o marker de
  * afiliado via tp.media, para que o link do "deal" ja saia rastreavel.
+ *
+ * Sem marker devolve a URL publica (https://www.aviasales.com/search/...).
+ * O wrap de comissao (tp.media + TRAVELPAYOUTS_MARKER) acontece em /saida.
  */
 export function buildAviasalesLink({ marker, path, programId = DEFAULT_TP_PROGRAM_ID }) {
   if (!path) return null;
@@ -77,6 +80,154 @@ export function buildAviasalesLink({ marker, path, programId = DEFAULT_TP_PROGRA
   if (!marker) return absoluteUrl; // sem marker nao ha como aplicar tracking
 
   return buildTpMediaLink({ marker, programId, url: absoluteUrl });
+}
+
+// Meses editoriais do catalogo (datas: "12–24 out", "27 set–3 out").
+const MESES_EDITORIAIS = {
+  jan: "01",
+  fev: "02",
+  mar: "03",
+  abr: "04",
+  mai: "05",
+  jun: "06",
+  jul: "07",
+  ago: "08",
+  set: "09",
+  out: "10",
+  nov: "11",
+  dez: "12",
+};
+
+// Aviasales search usa codigo de CIDADE quando o IATA do catalogo e aeroporto
+// de uma cidade com varios terminais. O lock gru-eze ja grava BUE, nao EZE.
+const AVIASALES_CITY_IATA = {
+  EZE: "BUE",
+  AEP: "BUE",
+};
+
+const IATA_RE = /^[A-Za-z]{3}$/;
+// "12–24 out" (mesmo mes) ou "27 set–3 out" (meses diferentes). Aceita
+// hifen ASCII, en-dash e em-dash.
+const ROUND_TRIP_RE =
+  /^(\d{1,2})(?:\s+([a-zçá-ú]{3,}))?\s*[–—-]\s*(\d{1,2})\s+([a-zçá-ú]{3,})$/i;
+
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
+function mesEditorial(raw) {
+  if (!raw) return null;
+  const chave = String(raw)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .slice(0, 3)
+    .toLowerCase();
+  return MESES_EDITORIAIS[chave] || null;
+}
+
+function iataAviasales(code) {
+  const iata = String(code || "").trim().toUpperCase();
+  if (!IATA_RE.test(iata)) return null;
+  return AVIASALES_CITY_IATA[iata] || iata;
+}
+
+/**
+ * Le o campo editorial `datas` ("12–24 out", "27 set–3 out") e devolve
+ * dia/mes de ida e volta. Sem ano: o path do Aviasales e DDMM. Null quando
+ * nao e ida-e-volta parseavel — a oferta fica sem wrap.
+ */
+export function parseEditorialRoundTrip(datas) {
+  if (typeof datas !== "string") return null;
+  const str = datas.trim();
+  if (!str) return null;
+
+  const m = ROUND_TRIP_RE.exec(str);
+  if (!m) return null;
+
+  const [, day1Raw, month1Raw, day2Raw, month2Raw] = m;
+  const month2 = mesEditorial(month2Raw);
+  const month1 = month1Raw ? mesEditorial(month1Raw) : month2;
+  if (!month1 || !month2) return null;
+
+  const day1 = Number(day1Raw);
+  const day2 = Number(day2Raw);
+  if (!Number.isInteger(day1) || !Number.isInteger(day2)) return null;
+  if (day1 < 1 || day1 > 31 || day2 < 1 || day2 > 31) return null;
+
+  return {
+    departDay: pad2(day1),
+    departMonth: month1,
+    returnDay: pad2(day2),
+    returnMonth: month2,
+  };
+}
+
+/**
+ * Path de busca round-trip do Aviasales, no formato dos tres locks:
+ * GRU1209BUE19091, GRU2709FLN03101, GIG0711SSA14111.
+ * adults default 1, igual aos locks.
+ */
+export function buildAviasalesSearchPath({
+  origin,
+  destination,
+  departDay,
+  departMonth,
+  returnDay,
+  returnMonth,
+  adults = 1,
+} = {}) {
+  const o = iataAviasales(origin);
+  const d = iataAviasales(destination);
+  const dd1 = pad2(departDay || "");
+  const mm1 = pad2(departMonth || "");
+  const dd2 = pad2(returnDay || "");
+  const mm2 = pad2(returnMonth || "");
+  const pax = Number(adults);
+  if (!o || !d) return null;
+  if (!/^\d{2}$/.test(dd1) || !/^\d{2}$/.test(mm1)) return null;
+  if (!/^\d{2}$/.test(dd2) || !/^\d{2}$/.test(mm2)) return null;
+  if (!Number.isInteger(pax) || pax < 1 || pax > 9) return null;
+  return `/search/${o}${dd1}${mm1}${d}${dd2}${mm2}${pax}`;
+}
+
+/**
+ * URL publica aviasales.com/search/... a partir de origem, destino e
+ * `datas` editorial. Sem marker: o tracking entra em /saida via env.
+ * Devolve null quando IATA ou datas nao parseiam — nao inventa busca.
+ */
+export function publicAviasalesUrlForOffer(offer) {
+  if (!offer || typeof offer !== "object") return null;
+  const parsed = parseEditorialRoundTrip(offer.datas);
+  if (!parsed) return null;
+  const path = buildAviasalesSearchPath({
+    origin: offer.origem,
+    destination: offer.destino,
+    ...parsed,
+  });
+  return buildAviasalesLink({ marker: "", path });
+}
+
+/**
+ * Preenche aviasalesUrl nas ofertas editoriais que ja tem IATA + datas
+ * parseaveis. Nao sobrescreve URL ja gravada (os tres locks ficam iguais).
+ * Nao mexe em preco, badge, texto, fontePreco.
+ */
+export function applyEditorialAviasalesWraps(offers) {
+  if (!Array.isArray(offers)) return { wrapped: [], skipped: [] };
+  const wrapped = [];
+  const skipped = [];
+  for (const offer of offers) {
+    if (!offer || !offer.id) continue;
+    if (offer.aviasalesUrl) continue;
+    const url = publicAviasalesUrlForOffer(offer);
+    if (url) {
+      offer.aviasalesUrl = url;
+      wrapped.push(offer.id);
+    } else {
+      skipped.push(offer.id);
+    }
+  }
+  return { wrapped, skipped };
 }
 
 /**

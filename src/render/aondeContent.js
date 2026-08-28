@@ -13,6 +13,7 @@
 // pelo htmlRenderer.
 
 import { EXTRA_GUIDES } from "./moreGuides.js";
+import { applyEditorialAviasalesWraps } from "../partners/travelpayouts.js";
 
 export const MONTH_NAMES = [
   "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
@@ -291,6 +292,11 @@ export const OFFERS = [
     dicas: ["Voo até Campo Grande (CGR); o roteiro de Bonito continua de van ou carro", "Passeios de flutuação têm vagas limitadas por dia — reserve antes de comprar a passagem", "Água mais clara na seca (ago–out); leve protetor solar biodegradável, é exigido em vários atrativos"],
     flex: [{ d: "8–15 ago", p: "R$ 680" }, { d: "12–19 ago", p: "R$ 705" }, { d: "15–22 ago", p: "R$ 730" }] },
 ];
+
+// Wrap Aviasales so /saida/{id} converte. So preenche aviasalesUrl quando
+// origem, destino e datas de ida-e-volta parseiam. Os tres locks (gru-eze,
+// gru-fln, gig-ssa) ja tem URL e nao sao tocados. Marker fica no env, em /saida.
+applyEditorialAviasalesWraps(OFFERS);
 
 // Origens do filtro, DERIVADAS das ofertas reais em vez de fixas na mao. Antes
 // a lista era ["Todas","GRU","VCP","GIG","CNF"] e nao acompanhava o feed: uma

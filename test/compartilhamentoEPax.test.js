@@ -26,7 +26,7 @@ test("toda pagina principal declara seu canonical absoluto", () => {
     [renderHomePage({}), "https://aonde.com.br/"],
     [renderOffersPage([], {}), "https://aonde.com.br/ofertas"],
     [renderGuidePage("cusco", { apiKey: "" }), "https://aonde.com.br/guias/cusco"],
-    [renderOfferPage(OFFERS[0], { related: [] }), "https://aonde.com.br/ofertas/gru-lis"],
+    [renderOfferPage(OFFERS[0], { related: [] }), "https://aonde.com.br/saida/gru-lis"],
     [renderHelpPage(), "https://aonde.com.br/ajuda"],
   ];
   for (const [html, esperado] of casos) {

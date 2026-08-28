@@ -32,7 +32,7 @@ test("renderHomePage sem ofertas ao vivo usa a curadoria editorial", () => {
   const html = renderHomePage({ offers: [] });
   // Cards de guia linkam para /guias/:id
   assert.ok(/href="\/guias\/salvador"/.test(html), "deve linkar guias editoriais");
-  assert.ok(/href="\/ofertas\/[a-z-]+"/.test(html), "cards de oferta linkam para o detalhe");
+  assert.ok(/href="\/saida\/[a-z-]+"/.test(html), "cards de oferta reservavel linkam para /saida");
 });
 
 test("renderHomePage alimentada por ofertas ao vivo mostra o preco formatado", () => {
@@ -57,9 +57,8 @@ test("renderOfferPage mostra preco, economia e CTA de afiliado", () => {
   assert.ok(html.includes("Datas com o preço disponível"), "deve listar datas flexiveis");
   assert.ok(html.includes("Antes de comprar"), "deve trazer as dicas");
   assert.ok(html.includes("Outras ofertas parecidas"), "deve trazer relacionadas");
-  // Oferta editorial (sem affiliate_url): o CTA leva a busca de voos da rota
-  // (honesto — nao finge ir a um parceiro inexistente), nunca a uma rota POST-only.
-  assert.ok(/href="\/resultados\?origem=/.test(html), "CTA leva à busca de voos da rota");
+  // Oferta editorial com aviasalesUrl: o CTA passa por /saida, nunca por POST-only.
+  assert.ok(html.includes('href="/saida/gru-lis"'), "CTA passa pela página de saída");
   assert.ok(!/href="\/api\/offers\/[^"]*\/click"/.test(html), "CTA nunca aponta para rota POST-only");
 });
 

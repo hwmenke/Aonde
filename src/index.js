@@ -6,6 +6,10 @@
 
 import {
   buildAviasalesLink,
+  buildAviasalesSearchPath,
+  parseEditorialRoundTrip,
+  publicAviasalesUrlForOffer,
+  applyEditorialAviasalesWraps,
   buildTpMediaLink,
   getDealLinkTravelpayouts,
   searchDealsTravelpayouts,
@@ -231,7 +235,7 @@ export async function getAllDealLinks(options = {}) {
 
 // Reexportados por conveniencia (util para quem quer montar links manualmente
 // sem passar pela camada de options/config, ex.: scripts utilitarios).
-export { buildTpMediaLink, buildAviasalesLink };
+export { buildTpMediaLink, buildAviasalesLink, buildAviasalesSearchPath, parseEditorialRoundTrip, publicAviasalesUrlForOffer, applyEditorialAviasalesWraps };
 export { toOffer, toOffers };
 
 // Imagens reais de destino via Wikimedia Commons (Action API, sem chave). Ver
