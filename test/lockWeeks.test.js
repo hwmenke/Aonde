@@ -368,11 +368,34 @@ for (const card of OG_PAIRS) {
 
 test("hora armadilha e linha de texto, sem countdown", () => {
   const scl = renderOfferPage(offerById("gru-scl"), { related: [] });
+  assert.match(scl, /class="semana-lock-aviso"/);
+  assert.match(scl, /9 de novembro/);
+  assert.match(scl, /5h de SCL/);
   assert.match(scl, /2h30/);
-  assert.match(scl, /5h/);
+  assert.match(scl, /parece uma manhã normal/);
   assert.doesNotMatch(scl, /countdown|há 2h/i);
 
   const igu = renderOfferPage(offerById("cgh-igu"), { related: [] });
   assert.match(igu, /5h15/);
   assert.match(igu, /madrugada/);
+  assert.match(igu, /CGH1010IGU17101/);
+  assert.doesNotMatch(igu, /GRU1010IGU/);
+});
+
+test("Recife–Rio e REC-GIG, nao GRU nem Salvador; Bariloche e 1 parada", () => {
+  const rec = renderOfferPage(offerById("rec-gig"), { related: [] });
+  const weekAt = rec.indexOf('id="semana-rec-gig"');
+  const week = rec.slice(weekAt, rec.indexOf("</section>", weekAt));
+  assert.match(rec, /id="semana-rec-gig"/);
+  assert.match(week, /Recife \(REC\) → Rio de Janeiro \(GIG\)/);
+  assert.match(rec, /REC1010GIG17101/);
+  assert.match(rec, /<title>Recife–Rio de Janeiro em outubro/);
+  assert.doesNotMatch(ogImage(rec), /GIG-SSA\.jpg|GRU-EZE\.jpg|FOR-SSA\.jpg/);
+  assert.doesNotMatch(week, /Fortaleza|Salvador em outubro|saindo de GRU|GRU1010/);
+  assert.doesNotMatch(rec, /id="semana-for-ssa"|id="semana-gig-ssa"/);
+
+  const brc = renderOfferPage(offerById("gru-brc"), { related: [] });
+  assert.match(brc, /1 parada/);
+  assert.match(brc, /det-badge[^>]*>1 parada · AEP/);
+  assert.match(brc, /1 parada em AEP/);
 });

@@ -2402,6 +2402,9 @@ function editorialWeekHtml(semana, { cidade = "", ctaHref = "", ctaLabel = "", s
   const voo = semana.voo
     ? `<p class="semana-lock-meta"${originAttr}>${escapeHtml(semana.voo)}</p>`
     : "";
+  const horaArmadilha = semana.horaArmadilha
+    ? `<p class="semana-lock-aviso">${escapeHtml(semana.horaArmadilha)}</p>`
+    : "";
   const horarios = Array.isArray(semana.horarios) && semana.horarios.length
     ? `<div class="semana-lock-horarios">` +
       `<p class="semana-lock-meta">${escapeHtml(semana.horariosTitulo || "Horários conferidos")}</p>` +
@@ -2424,6 +2427,7 @@ function editorialWeekHtml(semana, { cidade = "", ctaHref = "", ctaLabel = "", s
     (semana.rota ? `<p class="semana-lock-meta">${escapeHtml(semana.rota)}</p>` : "") +
     (semana.aviso ? `<p class="semana-lock-aviso">${escapeHtml(semana.aviso)}</p>` : "") +
     voo +
+    horaArmadilha +
     fare +
     fareNote +
     (semana.hospedagem ? `<p class="semana-lock-meta">${escapeHtml(semana.hospedagem)}</p>` : "") +
