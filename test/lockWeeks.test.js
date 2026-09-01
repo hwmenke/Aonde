@@ -388,8 +388,9 @@ test("Recife–Rio e REC-GIG, nao GRU nem Salvador; Bariloche e 1 parada", () =>
   const week = rec.slice(weekAt, rec.indexOf("</section>", weekAt));
   assert.match(rec, /id="semana-rec-gig"/);
   assert.match(week, /Recife \(REC\) → Rio de Janeiro \(GIG\)/);
-  assert.match(rec, /REC1010GIG17101/);
+  assert.match(week, /REC1010GIG17101/);
   assert.match(rec, /<title>Recife–Rio de Janeiro em outubro/);
+  assert.equal(offerById("rec-gig").aviasalesUrl, "https://www.aviasales.com/search/REC1010GIG17101");
   assert.doesNotMatch(ogImage(rec), /GIG-SSA\.jpg|GRU-EZE\.jpg|FOR-SSA\.jpg/);
   assert.doesNotMatch(week, /Fortaleza|Salvador em outubro|saindo de GRU|GRU1010/);
   assert.doesNotMatch(rec, /id="semana-for-ssa"|id="semana-gig-ssa"/);

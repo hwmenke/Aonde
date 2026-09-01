@@ -278,7 +278,7 @@ export const OFFERS = [
     texto: "Recife–Rio de Janeiro, 10 a 17 de outubro de 2026. Azul direto, USD $270 no Aviasales em 28 de agosto de 2026, saindo de REC.",
     dicas: [
       "Azul direto. Ida sábado 10 out, 8h15 REC → 11h10 GIG. Volta sábado 17 out, 16h20 GIG → 19h05 REC.",
-      "USD $270 no Aviasales, 28 de agosto de 2026, saindo de REC. Não é preço em reais.",
+      "USD $270 no Aviasales, 28 de agosto de 2026, saindo de REC. Wrap REC1010GIG17101. Não é preço em reais.",
     ],
     flex: [{ d: "10–17 out", p: "USD $270" }],
     aviasalesUrl: "https://www.aviasales.com/search/REC1010GIG17101",
@@ -1142,7 +1142,7 @@ export const REC_GIG_SEMANA = {
   tarifa: "USD $270",
   tarifaFonte: "Aviasales",
   tarifaFonteEm: "2026-08-28",
-  fareNote: "O USD $270 é a tarifa Azul direto vista no Aviasales em 28 de agosto de 2026, saindo de REC. Não é preço em reais.",
+  fareNote: "O USD $270 é a tarifa Azul direto vista no Aviasales em 28 de agosto de 2026, wrap REC1010GIG17101, saindo de REC. Não é GRU e não é Salvador. Não é preço em reais.",
   hospedagem: "Copacabana ou Ipanema.",
   reservas: "Aprazível (terça): reserve.",
   conferencia: "Bar Urca, Aprazível, Confeitaria Colombo e Braseiro da Gávea conferidos em 28 de agosto de 2026 em páginas públicas.",
