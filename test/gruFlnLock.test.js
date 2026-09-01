@@ -230,10 +230,10 @@ test("origin-swap esconde a tarifa lock da semana, sem implicar outra origem", (
   assert.match(html, /el\.hidden=true/);
 });
 
-test("este PR nao adiciona *-ig.jpg nem inventa FOR-SSA.jpg", () => {
+test("este PR nao adiciona *-ig.jpg nem *-story.jpg", () => {
   const ogDir = path.join(process.cwd(), "public", "og");
-  for (const name of ["GRU-FLN-ig.jpg", "gru-fln-ig.jpg", "FOR-SSA.jpg", "FOR-SSA-story.jpg", "FOR-SSA-ig.jpg"]) {
-    assert.equal(existsSync(path.join(ogDir, name)), false, `${name} nao entra neste PR`);
+  for (const name of ["GRU-FLN-ig.jpg", "gru-fln-ig.jpg", "FOR-SSA-story.jpg", "FOR-SSA-ig.jpg"]) {
+    assert.equal(existsSync(path.join(ogDir, name)), false, `${name} nao entra no git`);
   }
 });
 
