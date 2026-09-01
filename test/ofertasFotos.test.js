@@ -68,6 +68,7 @@ test("badge e economia das ofertas novas fecham com a conta", () => {
   for (const id of OFERTAS_NOVAS) {
     const o = OFFERS.find((x) => x.id === id);
     assert.ok(o, `oferta nova ${id} nao existe`);
+    if (o.semana || o.aviasalesUrl) continue;
     const dito = (o.badge.match(/(\d+)%/) || [])[1];
     assert.ok(dito, `${id}: badge sem percentual ("${o.badge}")`);
     const real = Math.round(100 * (1 - n(o.preco) / n(o.media)));

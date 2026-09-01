@@ -30,7 +30,11 @@ export function ogSharePathForOffer(offerId) {
   const id = String(offerId || "").trim();
   if (!id) return "";
   const path = ogFilePath(`${id.toUpperCase()}.jpg`);
-  if (id.toLowerCase() === "for-ssa" && /GIG-SSA|HOJE/i.test(path)) return "";
+  const lower = id.toLowerCase();
+  // Nunca herdar o cartao de outra rota.
+  if (lower === "for-ssa" && /GIG-SSA|HOJE/i.test(path)) return "";
+  if (lower === "cgh-igu" && /GRU-/i.test(path)) return "";
+  if (lower === "rec-gig" && /GIG-SSA|GRU-EZE|HOJE/i.test(path)) return "";
   return path;
 }
 

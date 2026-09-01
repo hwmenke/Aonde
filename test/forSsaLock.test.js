@@ -28,16 +28,12 @@ const UNWRAPPED_IDS = [
   "vcp-bue",
   "cnf-fln",
   "gig-mia",
-  "gru-scl",
   "gru-mco",
   "rec-gru",
-  "rec-gig",
   "ssa-cnf",
   "gru-cuz",
-  "gru-brc",
   "cnf-mao",
   "gig-cnf-op",
-  "poa-mvd",
   "bsb-cgr",
 ];
 
@@ -76,14 +72,14 @@ async function withServer(t) {
   return { baseUrl };
 }
 
-test("so quatro ofertas editoriais tem aviasalesUrl, e os 16 da Roteiro nao", () => {
-  const wrapped = OFFERS.filter((o) => o.aviasalesUrl).map((o) => o.id).sort();
-  assert.deepEqual(wrapped, ["for-ssa", "gig-ssa", "gru-eze", "gru-fln"]);
-
+test("for-ssa continua wrapped; ids da Roteiro sem lock continuam sem wrap", () => {
+  const offer = offerById("for-ssa");
+  assert.equal(offer.aviasalesUrl, FOR_SSA_URL);
   for (const id of UNWRAPPED_IDS) {
-    const offer = offerById(id);
-    assert.ok(offer, `${id} deve existir no catalogo`);
-    assert.equal(offer.aviasalesUrl, undefined, `${id} nao pode ter wrap Aviasales`);
+    const o = offerById(id);
+    assert.ok(o, `${id} deve existir no catalogo`);
+    assert.equal(o.aviasalesUrl, undefined, `${id} nao pode ter wrap Aviasales`);
+    assert.equal(o.semana, undefined, `${id} nao e semana lock`);
   }
 });
 

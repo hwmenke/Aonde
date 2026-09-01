@@ -10,10 +10,15 @@ and 9:16 stills for Instagram / WhatsApp stories.
 - **GRU-FLN.jpg** (1200×630) - Catalog card for GRU-FLN offer: São Paulo → Florianópolis
 - **GIG-SSA.jpg** (1200×630) - Catalog card for GIG-SSA offer: Rio de Janeiro → Salvador
 - **FOR-SSA.jpg** (1200×630) - Catalog card for FOR-SSA: Fortaleza → Salvador, 3–10 out, NO price. WhatsApp og:image. JPEG bytes did not land in this checkout. Do not remake. When the file is in this folder, `/ofertas/for-ssa` uses `/og/FOR-SSA.jpg`. Until then OG falls back to the Salvador dest photo (`thumbUrl`). Never GIG-SSA.jpg (Rio) and never HOJE.jpg. Caspar skipped the gist: do not add `FOR-SSA-story.jpg` or `FOR-SSA-ig.jpg`.
+- **GRU-SCL.jpg** (1200×630) - São Paulo → Santiago, 2–9 nov. JPEG bytes did not land in this checkout. Do not remake. When present, `/ofertas/gru-scl` uses `/og/GRU-SCL.jpg`. Never Güldem Üstün.
+- **REC-GIG.jpg** (1200×630) - Recife → Rio de Janeiro, 10–17 out. JPEG bytes did not land in this checkout. Do not remake. When present, `/ofertas/rec-gig` uses `/og/REC-GIG.jpg`. Never GRU, never Salvador, never GIG-SSA.jpg.
+- **POA-MVD.jpg** (1200×630) - Porto Alegre → Montevidéu, 10–17 out. JPEG bytes did not land in this checkout. Do not remake. When present, `/ofertas/poa-mvd` uses `/og/POA-MVD.jpg`.
+- **CGH-IGU.jpg** (1200×630) - Congonhas → Foz do Iguaçu, 10–17 out. Title Congonhas, NOT GRU. JPEG bytes did not land in this checkout. Do not remake. When present, `/ofertas/cgh-igu` uses `/og/CGH-IGU.jpg`. Never GRU-EZE.jpg, never a GRU origin card.
+- **GRU-BRC.jpg** (1200×630) - São Paulo → Bariloche, 11–18 out. JPEG bytes did not land in this checkout. Do not remake. When present, `/ofertas/gru-brc` uses `/og/GRU-BRC.jpg`.
 - **VCP-BUE.jpg** (1200×630) - Catalog card for VCP-BUE offer: Campinas → Buenos Aires
 - **GRU-LIS.jpg** (1200×630) - Catalog card for GRU-LIS offer: São Paulo → Lisboa
 
-Do not use the 9:16 story files as og:image.
+Do not use the 9:16 story files as og:image. Do not add `*-story.jpg` or `*-ig.jpg` for these lock weeks.
 
 ## Story stills (9:16) — IG / WA stories only
 
@@ -27,6 +32,11 @@ Do not use the 9:16 story files as og:image.
 - GRU-FLN.jpg: Ponte Hercílio Luz, Florianópolis.
 - GIG-SSA.jpg: Elevador Lacerda, Salvador.
 - FOR-SSA.jpg: Largo do Pelourinho, Salvador. Photo: Paul R. Burley, CC BY-SA 4.0. File: Largo do Pelourinho Salvador 2019-9754.jpg. https://commons.wikimedia.org/wiki/File:Largo_do_Pelourinho_Salvador_2019-9754.jpg
+- GRU-SCL.jpg: Cerro San Cristóbal / Gran Torre, Santiago. Photo: Omnespsx, CC BY-SA 4.0. NOT Güldem Üstün.
+- REC-GIG.jpg: Botafogo / Pão de Açúcar, Rio de Janeiro. Photo: Donatas Dabravolskas, CC BY-SA 4.0.
+- POA-MVD.jpg: Palacio Salvo, Montevidéu. Photo: Christian Córdova, CC BY 2.0.
+- CGH-IGU.jpg: Iguaçu Falls. Photo: Emesbe, CC BY-SA 3.0.
+- GRU-BRC.jpg: Centro Cívico, Bariloche. Photo: Phil Whitehouse, CC BY 2.0.
 - GRU-FLN-story.jpg: Ponte Hercílio Luz — Rodrigo Soldon, CC BY 2.0
 - GIG-SSA-story.jpg: Elevador Lacerda — Ciroamado, CC BY-SA 4.0
 - VCP-BUE.jpg: Obelisco, Buenos Aires. Photo: Roberto Fiadone, CC BY-SA 4.0
@@ -34,6 +44,7 @@ Do not use the 9:16 story files as og:image.
 
 All cards maintain existing media-credit overlay as designed.
 Destination photography stays the destination even if the origin is swapped.
+Credit also appears on-page on the offer hero when the OG card is used, or the dest photo credit when the JPEG has not landed.
 
 ## Usage
 
@@ -45,5 +56,10 @@ og:image / twitter:image (landscape cards only):
 - /ofertas/gru-fln → GRU-FLN.jpg
 - /ofertas/gig-ssa → GIG-SSA.jpg
 - /ofertas/for-ssa → /og/FOR-SSA.jpg when the file exists; otherwise Salvador dest photo. Never GIG-SSA.jpg. Never HOJE.jpg.
+- /ofertas/gru-scl → /og/GRU-SCL.jpg when the file exists; otherwise Santiago dest photo
+- /ofertas/rec-gig → /og/REC-GIG.jpg when the file exists; otherwise Rio dest photo. Never GIG-SSA.jpg.
+- /ofertas/poa-mvd → /og/POA-MVD.jpg when the file exists; otherwise Palacio Salvo dest photo
+- /ofertas/cgh-igu → /og/CGH-IGU.jpg when the file exists; otherwise Iguaçu dest photo. Never a GRU card. Origin is Congonhas.
+- /ofertas/gru-brc → /og/GRU-BRC.jpg when the file exists; otherwise dest photo
 - /ofertas/vcp-bue → VCP-BUE.jpg (when available)
 - /ofertas/gru-lis → GRU-LIS.jpg (when available)
