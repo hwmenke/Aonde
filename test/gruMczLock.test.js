@@ -110,7 +110,7 @@ test("a semana vive so em /ofertas/gru-mcz; guia de 5 dias e /hoje nao crescem",
   assert.doesNotMatch(week, /Congonhas/);
   const frances = week.slice(week.indexOf("Segunda 19"), week.indexOf("Terça 20"));
   assert.match(frances, /sem casa nomeada|não tem nome/i);
-  assert.doesNotMatch(frances, /<strong>/);
+  assert.doesNotMatch(frances, /dia-rest|Onde comer/);
 
   assert.equal(GUIDES.maceio.dias.length, 5);
   assert.equal(GUIDES.maceio.semana, undefined);
