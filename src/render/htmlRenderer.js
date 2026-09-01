@@ -480,6 +480,9 @@ function normalizeContentOffer(o) {
     href,
     fontePreco: o.fontePreco || o.fonte_preco || "",
     fontePrecoEm: o.fontePrecoEm || o.fonte_preco_em || "",
+    origemCidade: o.origemCidade || "",
+    ogCredit: o.ogCredit || "",
+    ogCreditHref: o.ogCreditHref || "",
   };
 }
 
@@ -2020,7 +2023,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
   // Nome da cidade de origem: entra no <h1>, no <title> e na description.
   // Sem isso, duas ofertas para o mesmo destino ficavam identicas para o Google
   // e para quem compartilha o link.
-  const origemNome = vm.origem ? cidadeDoIata(vm.origem) || vm.origem : "";
+  const origemNome = vm.origemCidade || (vm.origem ? cidadeDoIata(vm.origem) || vm.origem : "");
   const badge = vm.badge ? `<span class="det-badge ${badgeClass(vm)}">${escapeHtml(vm.badge)}</span>` : "";
   const media = vm.media ? `<span class="det-media"><s>${escapeHtml(vm.media)}</s></span>` : "";
   const economia = vm.economia
@@ -2079,6 +2082,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
   // Hero: print de preco quando existe; senao o cartao OG daquela oferta
   // (GRU-FLN.jpg, GIG-SSA.jpg). Sem cartao, foto do destino. Nunca o cartao
   // de outra rota — FOR-SSA nao herda GIG-SSA.jpg (Elevador Lacerda, Rio).
+  const isLock = Boolean(offer.semana);
   const temProva = !!vm.provaUrl;
   const ogCard = ogSharePathForOffer(vm.id);
   const heroUrl = temProva
@@ -2101,6 +2105,9 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     : usaCartaoOg
       ? "Cartão da oferta"
       : "Imagem do destino";
+  const heroCreditTxt = usaCartaoOg ? (vm.ogCredit || "") : isLock ? (vm.credit || "") : "";
+  const heroCreditHref = usaCartaoOg ? (vm.ogCreditHref || "") : isLock ? (vm.creditHref || "") : "";
+  const heroCredit = heroCreditTxt ? mediaCredit(heroCreditTxt, heroCreditHref) : "";
 
   // Alerta de preço da propria rota (form real, 1 campo visivel) no lugar do
   // link estatico antigo.
@@ -2216,7 +2223,6 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     fallbackText: `Ver ${destinoLabel} no Google Maps`,
   });
 
-  const isLock = Boolean(offer.semana);
   const isOriginSpecificPrice = offer.aviasalesUrl && vm.origem;
   const priceDataAttr = isOriginSpecificPrice ? ` data-origin-price="${escapeHtml(vm.origem)}"` : "";
   const fonteHero = (offer.aviasalesUrl || vm.affiliateUrl)
@@ -2232,7 +2238,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
       )
     : "";
   const provaBlock =
-    `<div class="det-prova">${provaImg}<span class="det-prova-tag">${provaTag}</span></div>`;
+    `<div class="det-prova">${provaImg}${heroCredit}<span class="det-prova-tag">${provaTag}</span></div>`;
   const weekHtml = isLock
     ? editorialWeekHtml(offer.semana, {
         cidade: destinoLabel,
@@ -2396,6 +2402,9 @@ function editorialWeekHtml(semana, { cidade = "", ctaHref = "", ctaLabel = "", s
   const voo = semana.voo
     ? `<p class="semana-lock-meta"${originAttr}>${escapeHtml(semana.voo)}</p>`
     : "";
+  const horaArmadilha = semana.horaArmadilha
+    ? `<p class="semana-lock-aviso">${escapeHtml(semana.horaArmadilha)}</p>`
+    : "";
   const horarios = Array.isArray(semana.horarios) && semana.horarios.length
     ? `<div class="semana-lock-horarios">` +
       `<p class="semana-lock-meta">${escapeHtml(semana.horariosTitulo || "Horários conferidos")}</p>` +
@@ -2418,6 +2427,7 @@ function editorialWeekHtml(semana, { cidade = "", ctaHref = "", ctaLabel = "", s
     (semana.rota ? `<p class="semana-lock-meta">${escapeHtml(semana.rota)}</p>` : "") +
     (semana.aviso ? `<p class="semana-lock-aviso">${escapeHtml(semana.aviso)}</p>` : "") +
     voo +
+    horaArmadilha +
     fare +
     fareNote +
     (semana.hospedagem ? `<p class="semana-lock-meta">${escapeHtml(semana.hospedagem)}</p>` : "") +

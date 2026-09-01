@@ -37,7 +37,8 @@ import { cidadeDoIata } from "../render/aeroportos.js";
 const FUSO_PRODUTO = process.env.AONDE_TIMEZONE || "America/Sao_Paulo";
 
 // /hoje mostra so os tres achados conferidos (gru-eze, gru-fln, gig-ssa).
-// for-ssa e inventario com wrap Aviasales; nao entra na rotacao diaria.
+// Semanas editoriais de inventario (for-ssa, gru-scl, rec-gig, poa-mvd,
+// cgh-igu, gru-brc) tem wrap Aviasales em /ofertas; nao entram na rotacao.
 const HOJE_LOCK_IDS = new Set(["gru-eze", "gru-fln", "gig-ssa"]);
 
 export function chaveDoDia(date = new Date()) {

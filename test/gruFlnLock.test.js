@@ -58,12 +58,14 @@ test("GET /ofertas/gru-fln mostra duas etiquetas de preco: Google Flights e Avia
   assert.ok(html.includes("R$ 770"), "deve mostrar R$ 770");
   assert.match(html, /Visto no Google Flights, 21 ago 2026/, "R$ 770 e consulta Google Flights 21 ago");
 
-  assert.ok(html.includes("$153"), "deve mostrar USD $153 do Aviasales");
+  assert.ok(html.includes("$158"), "deve mostrar USD $158 do Aviasales (reconsulta 1 set)");
   assert.ok(html.includes("Aviasales"), "deve mencionar Aviasales para o preco USD");
-  assert.match(html, /28 de agosto de 2026/, "consulta Aviasales e 28 ago");
+  assert.match(html, /1 de setembro de 2026/, "consulta Aviasales vigente e 1 set");
+  assert.match(html, /21 de agosto de 2026|21 ago 2026/, "R$ 770 continua rotulado 21 ago");
 
-  assert.doesNotMatch(html, /R\$\s*153\b/, "nao imprime $153 como reais");
-  assert.doesNotMatch(html, /\$149/, "consulta Aviasales desta janela e $153");
+  assert.doesNotMatch(html, /R\$\s*158\b/, "nao imprime $158 como reais");
+  assert.doesNotMatch(html, /R\$\s*153\b/, "nao imprime o $153 antigo como reais");
+  assert.doesNotMatch(html, /\$149/, "consulta Aviasales desta janela nao e $149");
   assert.doesNotMatch(html, /Tarifa ao vivo/);
   assert.doesNotMatch(html, /ao vivo no Aviasales/);
   assert.doesNotMatch(html, /encontramos (hoje|esta manhã|esta manha)/i);
@@ -151,7 +153,7 @@ test("a semana editorial GRU-FLN vive so em /ofertas/gru-fln, nao no guia de Flo
   assert.equal(GUIDES.florianopolis.semana, undefined);
   assert.ok(GRU_FLN_SEMANA);
   assert.equal(GRU_FLN_SEMANA.offerId, "gru-fln");
-  assert.equal(GRU_FLN_SEMANA.tarifa, "USD $153");
+  assert.equal(GRU_FLN_SEMANA.tarifa, "USD $158");
   assert.equal(offerById("gru-fln").semana, GRU_FLN_SEMANA);
   assert.notEqual(offerById("for-ssa").semana, GRU_FLN_SEMANA);
   assert.equal(offerById("for-ssa").semana, FOR_SSA_SEMANA);
@@ -177,12 +179,16 @@ test("a semana editorial GRU-FLN vive so em /ofertas/gru-fln, nao no guia de Flo
   assert.match(oferta, /id="semana-gru-fln"/);
   assert.doesNotMatch(oferta, /id="semana-for-ssa"/);
   assert.match(oferta, /São Paulo \(GRU\) → Florianópolis \(FLN\)/);
-  assert.match(oferta, /USD \$153/);
-  assert.match(oferta, /Tarifa vista no Aviasales em 28 de agosto de 2026/);
+  assert.match(oferta, /USD \$158/);
+  assert.match(oferta, /Tarifa vista no Aviasales em 1 de setembro de 2026/);
   assert.match(oferta, /Visto no Google Flights, 21 ago 2026/);
+  assert.match(oferta, /9h50 GRU/);
+  assert.match(oferta, /10h35 FLN/);
+  assert.match(oferta, /Horários reconsultados em 1 de setembro de 2026/);
   assert.match(oferta, /href="\/guias\/florianopolis"/);
   assert.doesNotMatch(oferta, /Tarifa ao vivo/);
   assert.doesNotMatch(oferta, /ao vivo no Aviasales/);
+  assert.doesNotMatch(oferta, /R\$\s*158\b/);
   assert.doesNotMatch(oferta, /R\$\s*153\b/);
   assert.doesNotMatch(oferta, /Centro Histórico e Mercado Público/, "oferta nao despeja o guia evergreen");
   assert.doesNotMatch(oferta, /eu moro|moro em Floripa|quem vive aí/i);
@@ -245,9 +251,10 @@ test("GET /guias/florianopolis nao tem a semana lock; GET /ofertas/gru-fln tem, 
 
   assert.match(oferta, /Editorial, escrito em 28 de agosto de 2026/);
   assert.match(oferta, /id="semana-gru-fln"/);
-  assert.match(oferta, /Tarifa vista no Aviasales em 28 de agosto de 2026/);
+  assert.match(oferta, /Tarifa vista no Aviasales em 1 de setembro de 2026/);
   assert.match(oferta, /Visto no Google Flights, 21 ago 2026/);
   assert.doesNotMatch(oferta, /Tarifa ao vivo/);
+  assert.doesNotMatch(oferta, /R\$\s*158\b/);
   assert.doesNotMatch(oferta, /R\$\s*153\b/);
 
   assert.match(forSsa, /id="semana-for-ssa"/);
@@ -285,8 +292,9 @@ test("lock GRU-FLN abre na semana datada, consulta ao lado de Reservar, sem coun
   assert.match(html, /href="\/guias\/florianopolis"/);
   assert.doesNotMatch(html, /Centro Histórico e Mercado Público/);
   assert.doesNotMatch(html, /R\$\s*153\b/);
+  assert.doesNotMatch(html, /R\$\s*158\b/);
   assert.match(html, /R\$ 770/);
-  assert.match(html, /USD \$153/);
+  assert.match(html, /USD \$158/);
 });
 
 test("FOR-SSA continua com a semana propria; guia de 5 dias e link irmao", () => {

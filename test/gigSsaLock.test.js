@@ -54,12 +54,13 @@ test("GET /ofertas/gig-ssa mostra duas etiquetas de preco: Google Flights e Avia
   // Preco principal: R$ 1.320 (Google Flights).
   assert.ok(html.includes("R$ 1.320"), "deve mostrar R$ 1.320");
   
-  // Preco USD no Aviasales: $273.
-  assert.ok(html.includes("$273"), "deve mostrar $273");
+  // Preco USD no Aviasales: $259 (28 ago).
+  assert.ok(html.includes("$259"), "deve mostrar $259");
   assert.ok(html.includes("Aviasales"), "deve mencionar Aviasales para o preco USD");
   
-  // NAO deve converter $273 para reais nem rotular R$ 1.320 como Aviasales.
-  assert.ok(!html.includes("R$ 273") && !html.includes("R$273"), "nao deve converter USD para reais");
+  // NAO deve converter $259 para reais nem rotular R$ 1.320 como Aviasales.
+  assert.ok(!html.includes("R$ 259") && !html.includes("R$259"), "nao deve converter USD para reais");
+  assert.ok(!html.includes("$273"), "consulta Aviasales desta janela e $259");
 });
 
 test("GET /saida/gig-ssa SEM marker nao cria botao falso de reserva", async (t) => {
