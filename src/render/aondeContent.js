@@ -181,6 +181,8 @@ export const OFFERS = [
     origemCidade: "Guarulhos",
     pageTitle: "São Paulo–Recife em outubro: voo direto, Recife e Porto de Galinhas",
     thumbUrl: wiki("Marco Zero Recife.jpg"), credit: "Marco Zero, Recife — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Marco_Zero_(Recife)",
+    ogCredit: "Marco Zero, Recife Antigo — Simone C Vitor, CC BY-SA 4.0",
+    ogCreditHref: "https://commons.wikimedia.org/wiki/File:Marco_Zero_-_Recife_Antigo.jpg",
     texto: "São Paulo (Guarulhos)–Recife, 17 a 24 de outubro de 2026. LATAM direto, GRU nos dois sentidos. USD $235 no Aviasales em 1º de setembro de 2026, botão Buy. Não é preço em reais.",
     dicas: [
       "LATAM direto. Ida sábado 17 out, 17h30 GRU → 20h30 REC (3h00). Volta sábado 24 out, 2h45 REC → 6h00 GRU (3h15).",

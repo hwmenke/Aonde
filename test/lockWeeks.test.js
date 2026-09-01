@@ -334,6 +334,8 @@ test("credito OG esta no README (Omnespsx, nao Gueldem)", async () => {
   assert.match(readme, /Emesbe, CC BY-SA 3\.0/);
   assert.match(readme, /Phil Whitehouse, CC BY 2\.0/);
   assert.match(readme, /Paul R\. Burley, CC BY-SA 4\.0/);
+  assert.match(readme, /Simone C Vitor, CC BY-SA 4\.0/);
+  assert.match(readme, /Marco Zero - Recife Antigo\.jpg/);
   assert.match(readme, /\/ofertas\/cgh-igu/);
   assert.match(readme, /Congonhas/);
 });
@@ -345,6 +347,7 @@ const OG_PAIRS = [
   { name: "POA-MVD.jpg", min: 10_000 },
   { name: "CGH-IGU.jpg", min: 10_000 },
   { name: "GRU-BRC.jpg", min: 10_000 },
+  { name: "GRU-REC.jpg", min: 10_000 },
 ];
 
 for (const card of OG_PAIRS) {

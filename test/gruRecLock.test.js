@@ -4,8 +4,8 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { existsSync, readFileSync } from "node:fs";
+import { mkdtemp, rm, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -79,6 +79,8 @@ test("gru-rec e LATAM direto GRU→REC, USD $235, wrap Aviasales 1 set", () => {
   assert.equal(offer.aviasalesUrl, WRAP);
   assert.equal(offer.fontePreco, "Aviasales");
   assert.equal(offer.fontePrecoEm, "2026-09-01");
+  assert.match(offer.ogCredit, /Simone C Vitor, CC BY-SA 4\.0/);
+  assert.match(offer.ogCreditHref, /File:Marco_Zero_-_Recife_Antigo\.jpg/);
   assert.equal(offer.erro, false);
   assert.equal(offer.media, undefined);
   assert.equal(offer.economia, undefined);
@@ -233,26 +235,80 @@ test("GET /ofertas/gru-rec 200 com a semana; wrap, hour trap e share desta ofert
   assert.match(recGig, /REC1010GIG17101/);
 });
 
-test("hero e og:image: GRU-REC.jpg se existir, senao foto do destino; nunca REC-GIG", () => {
+function jpegSofSize(buf) {
+  let i = 2;
+  while (i < buf.length - 8) {
+    if (buf[i] !== 0xff) {
+      i += 1;
+      continue;
+    }
+    const marker = buf[i + 1];
+    if (marker === 0xc0 || marker === 0xc2) {
+      return { height: buf.readUInt16BE(i + 5), width: buf.readUInt16BE(i + 7) };
+    }
+    if (marker === 0xd8 || marker === 0xd9 || marker === 0x01) {
+      i += 2;
+      continue;
+    }
+    if (marker >= 0xd0 && marker <= 0xd7) {
+      i += 2;
+      continue;
+    }
+    const len = buf.readUInt16BE(i + 2);
+    i += 2 + len;
+  }
+  return null;
+}
+
+test("hero e og:image usam /og/GRU-REC.jpg; nunca REC-GIG; credito Simone no overlay", () => {
   const html = renderOfferPage(offerById("gru-rec"), { related: [] });
-  const cardOnDisk = existsSync(path.join(process.cwd(), "public", "og", "GRU-REC.jpg"));
-  assert.equal(ogSharePathForOffer("gru-rec"), cardOnDisk ? "/og/GRU-REC.jpg" : "");
+  assert.equal(ogSharePathForOffer("gru-rec"), "/og/GRU-REC.jpg");
   const hero = heroImgSrc(html);
   const og = ogImage(html);
+  assert.match(hero, /\/og\/GRU-REC\.jpg/);
+  assert.match(og, /\/og\/GRU-REC\.jpg/);
   assert.doesNotMatch(hero, /REC-GIG\.jpg|GIG-SSA\.jpg|HOJE\.jpg|CGH-IGU\.jpg/);
   assert.doesNotMatch(og, /REC-GIG\.jpg|GIG-SSA\.jpg|HOJE\.jpg|CGH-IGU\.jpg/);
-  if (cardOnDisk) {
-    assert.match(hero, /\/og\/GRU-REC\.jpg/);
-    assert.match(og, /\/og\/GRU-REC\.jpg/);
-  } else {
-    assert.doesNotMatch(hero, /\/og\/GRU-REC\.jpg/);
-    assert.match(hero, /Marco%20Zero%20Recife|Marco Zero Recife|commons\.wikimedia\.org/i);
-  }
+  assert.match(html, /media-credit-overlay/);
+  assert.match(html, /Simone C Vitor, CC BY-SA 4\.0/);
+  assert.doesNotMatch(html, /GRU-REC-layout-ref/);
 });
 
-test("este PR nao inventa GRU-REC.jpg nem stills 9:16", () => {
+test("GET /og/GRU-REC.jpg serve o cartao landscape 1200x630", async (t) => {
+  const filePath = path.join(process.cwd(), "public", "og", "GRU-REC.jpg");
+  const info = await stat(filePath);
+  assert.ok(info.size > 10_000, "GRU-REC.jpg parece um stub");
+  const disk = readFileSync(filePath);
+  assert.equal(disk[0], 0xff);
+  assert.equal(disk[1], 0xd8);
+  const dims = jpegSofSize(disk);
+  assert.ok(dims, "SOF do JPEG");
+  assert.equal(dims.width, 1200);
+  assert.equal(dims.height, 630);
+
+  const base = await withServer(t);
+  const res = await fetch(`${base}/og/GRU-REC.jpg`);
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("content-type") || "", /image\/jpeg/);
+  const buf = Buffer.from(await res.arrayBuffer());
+  assert.ok(buf.length > 10_000);
+  assert.equal(buf[0], 0xff);
+  assert.equal(buf[1], 0xd8);
+  const served = jpegSofSize(buf);
+  assert.equal(served.width, 1200);
+  assert.equal(served.height, 630);
+});
+
+test("este PR nao adiciona stills 9:16 nem cartoes MCZ/CUZ", () => {
   const ogDir = path.join(process.cwd(), "public", "og");
-  for (const name of ["GRU-REC-story.jpg", "gru-rec-ig.jpg", "GRU-REC-ig.jpg"]) {
+  for (const name of [
+    "GRU-REC-story.jpg",
+    "gru-rec-ig.jpg",
+    "GRU-REC-ig.jpg",
+    "GRU-REC-layout-ref.jpg",
+    "GRU-MCZ.jpg",
+    "GRU-CUZ.jpg",
+  ]) {
     assert.equal(existsSync(path.join(ogDir, name)), false, `${name} nao entra`);
   }
 });
