@@ -177,11 +177,20 @@ export const OFFERS = [
     texto: "Tarifa cheia São Paulo–Lisboa raramente cai abaixo de R$ 2.500 na alta. Achamos assentos em outubro por menos de R$ 1.900 ida e volta, com uma escala curta em algumas datas.",
     dicas: ["Inclui 1 bagagem de mão; despachada é paga à parte na TAP", "Datas de terça e quarta são as mais baratas do período"],
     flex: [{ d: "12–24 out", p: "R$ 1.847" }, { d: "15–27 out", p: "R$ 1.912" }, { d: "19–31 out", p: "R$ 2.045" }] },
-  { id: "gru-rec", origem: "GRU", destino: "REC", cidade: "Recife", local: "Pernambuco", preco: "R$ 587", media: "R$ 1.180", economia: "R$ 593", cia: "Azul", datas: "9–16 set", tipo: "Nacional", publicadoEm: "2026-07-25T12:29:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: true, badge: "Erro de tarifa",
+  { id: "gru-rec", origem: "GRU", destino: "REC", cidade: "Recife", local: "Pernambuco", preco: "USD $235", preco_usd: "$235", cia: "LATAM", datas: "17–24 out", tipo: "Nacional", publicadoEm: "2026-09-01T12:00:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "Direto · LATAM",
+    origemCidade: "Guarulhos",
+    pageTitle: "São Paulo–Recife em outubro: voo direto, Recife e Porto de Galinhas",
     thumbUrl: wiki("Marco Zero Recife.jpg"), credit: "Marco Zero, Recife — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Marco_Zero_(Recife)",
-    texto: "Possível erro de tarifa: São Paulo–Recife ida e volta por menos de R$ 600, menos da metade da média histórica. Erros de tarifa costumam ser corrigidos rápido — se for viajar, compre já e só marque hotel depois da confirmação por e-mail.",
-    dicas: ["Erros de tarifa podem ser cancelados pela cia; espere a confirmação antes de reservar hotel", "Voo direto de 3h05 pela Azul", "Não some datas ao carrinho: reserve exatamente as que aparecem"],
-    flex: [{ d: "9–16 set", p: "R$ 587" }, { d: "11–18 set", p: "R$ 612" }, { d: "16–23 set", p: "R$ 634" }] },
+    texto: "São Paulo (Guarulhos)–Recife, 17 a 24 de outubro de 2026. LATAM direto, GRU nos dois sentidos. USD $235 no Aviasales em 1º de setembro de 2026, botão Buy. Não é preço em reais.",
+    dicas: [
+      "LATAM direto. Ida sábado 17 out, 17h30 GRU → 20h30 REC (3h00). Volta sábado 24 out, 2h45 REC → 6h00 GRU (3h15).",
+      "A volta às 2h45: precisa estar no REC por volta da 1h. Sexta à noite em Porto perde o voo. É o horário do voo, não um cronômetro.",
+      "USD $235 no Aviasales, 1º de setembro de 2026, saindo de GRU. Wrap https://www.aviasales.com/search/GRU1710REC24101. Bagagem de mão 1×26lb; despachada +US$84 nessa consulta. Não é preço em reais.",
+    ],
+    flex: [{ d: "17–24 out", p: "USD $235" }],
+    aviasalesUrl: "https://www.aviasales.com/search/GRU1710REC24101",
+    fontePreco: "Aviasales",
+    fontePrecoEm: "2026-09-01" },
   { id: "vcp-bue", origem: "VCP", destino: "BUE", cidade: "Buenos Aires", local: "Argentina", preco: "R$ 989", media: "R$ 1.520", economia: "R$ 531", cia: "GOL", datas: "3–10 set", tipo: "Internacional", publicadoEm: "2026-07-25T11:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "35% abaixo da média",
     thumbUrl: wiki("Caminito, La Boca, Buenos Aires.jpg"), credit: "Buenos Aires — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Caminito",
     texto: "Saindo de Campinas (VCP), Buenos Aires por menos de mil reais ida e volta. Ótimo para um fim de semana esticado de tango, parrilla e compras, com o câmbio jogando a favor.",
@@ -1322,6 +1331,78 @@ export const GRU_BRC_SEMANA = {
   ],
 };
 
+// Semana editorial GRU-REC (17–24 out 2026). Vive so em /ofertas/gru-rec.
+// Nao entra em /hoje, nao substitui o guia de 5 dias Recife/Porto.
+// Casas ja estavam no guia; horarios nao conferidos nesta passagem.
+export const GRU_REC_SEMANA = {
+  offerId: "gru-rec",
+  titulo: "Recife e Porto de Galinhas, 17 a 24 de outubro de 2026",
+  janela: "17 a 24 de outubro de 2026",
+  origem: "GRU",
+  destino: "REC",
+  cidade: "Recife",
+  escritoEm: "2026-09-01",
+  aviso: "Editorial, escrito em 1º de setembro de 2026. Não é um texto de quem mora em Pernambuco. Cada restaurante abaixo já estava no guia Recife/Porto; horários não conferidos nesta passagem, ligar no dia.",
+  rota: "São Paulo (GRU) → Recife (REC). Guarulhos nos dois sentidos.",
+  voo: "LATAM direto. Ida sábado 17 out, 17h30 GRU → 20h30 REC (3h00). Volta sábado 24 out, 2h45 REC → 6h00 GRU (3h15).",
+  horaArmadilha: "A volta do dia 24 de outubro sai às 2h45 de REC (chega 6h GRU). Precisa estar no REC por volta da 1h. Sexta à noite em Porto perde o voo. É o horário do voo, não um cronômetro.",
+  tarifa: "USD $235",
+  tarifaFonte: "Aviasales",
+  tarifaFonteEm: "2026-09-01",
+  fareNote: "O USD $235 é a tarifa LATAM direto vista no Aviasales em 1 de setembro de 2026, wrap https://www.aviasales.com/search/GRU1710REC24101, saindo de GRU. Guarulhos nos dois sentidos. Bagagem de mão 1×26lb; despachada +US$84 nessa consulta. Não é preço em reais.",
+  hospedagem: "Duas noites no bairro do Recife (a pé do Marco Zero). Quarta a sexta em Porto de Galinhas, na vila. Sexta à noite de volta a Recife, hotel perto do aeroporto: o voo é 2h45 da madrugada. Quem fica em Porto até a sexta à noite perde o voo. Transfer Recife–Porto ~1h.",
+  reservas: "Bora Bora é clube de praia, confirmar. Leite fecha cedo — sábado de chegada sem casa marcada.",
+  conferencia: "Cada restaurante já estava no guia Recife/Porto. Horários não conferidos nesta passagem, ligar no dia.",
+  guiaHref: "/guias/portodegalinhas",
+  guiaLabel: "Roteiro de 5 dias em Recife e Porto de Galinhas, sem as datas desta passagem →",
+  dias: [
+    { n: 1, titulo: "Sábado 17, chegada", desc: "Chegada 20h30. Check-in no Recife. Jantar simples perto do hotel. Leite já terá fechado.",
+      pontos: [{ nome: "Bairro do Recife" }] },
+    { n: 2, titulo: "Domingo 18, Recife Antigo",
+      pontos: [
+        { nome: "Marco Zero" },
+        { nome: "Paço do Frevo" },
+        { nome: "Rua do Bom Jesus" },
+        { nome: "Kahal Zur Israel" },
+      ],
+      restaurante: "Leite",
+      restauranteNota: "Praça Joaquim Nabuco 147, desde 1882. Cartola. restauranteleite.com.br",
+      restauranteEndereco: "Praça Joaquim Nabuco 147" },
+    { n: 3, titulo: "Segunda 19, Olinda",
+      pontos: [
+        { nome: "Alto da Sé" },
+        { nome: "Mosteiro de São Bento" },
+        { nome: "Ateliês da Rua do Amparo" },
+      ],
+      restaurante: "Oficina do Sabor",
+      restauranteNota: "Rua do Amparo 335. Jerimum recheado com camarão. oficinadosabor.com",
+      restauranteEndereco: "Rua do Amparo 335" },
+    { n: 4, titulo: "Terça 20, Porto de Galinhas", desc: "Transfer cedo. Piscinas naturais na maré baixa (tábua na véspera). Tarde na vila.",
+      pontos: [
+        { nome: "Piscinas naturais", nota: "na maré baixa; tábua na véspera" },
+        { nome: "Vila de Porto de Galinhas" },
+      ],
+      restaurante: "Beijupirá",
+      restauranteNota: "Rua Beijupirá. Peixe com tamarindo. beijupira.com.br",
+      restauranteEndereco: "Rua Beijupirá" },
+    { n: 5, titulo: "Quarta 21, Muro Alto e Cupe", desc: "Buggy pela associação da vila.",
+      pontos: [{ nome: "Muro Alto" }, { nome: "Praia do Cupe" }],
+      restaurante: "Barcaxeira",
+      restauranteNota: "Macaxeira na carta. barcaxeira.com.br" },
+    { n: 6, titulo: "Quinta 22, Carneiros", desc: "Carneiros ~40 min ao sul. Igrejinha de São Benedito na areia.",
+      pontos: [
+        { nome: "Praia dos Carneiros", nota: "~40 min ao sul" },
+        { nome: "Igrejinha de São Benedito", nota: "na areia" },
+      ],
+      restaurante: "Bora Bora Beach",
+      restauranteNota: "Mesas na água. Confirmar reserva; clube de praia, não restaurante de vila." },
+    { n: 7, titulo: "Sexta 23, volta a Recife", desc: "Porto de manhã, Recife à tarde. Sem casa nova. Transfer depois do almoço. Check-in perto do aeroporto. Dormir cedo. Despertador meia-noite.",
+      pontos: [{ nome: "Porto de Galinhas", nota: "de manhã" }, { nome: "Hotel perto do aeroporto", nota: "check-in à tarde" }] },
+    { n: 8, titulo: "Sábado 24, saída", desc: "2h45. Sem refeição. Voo 2h45 REC → 6h GRU.",
+      pontos: [] },
+  ],
+};
+
 function attachLockWeek(semana) {
   const offer = OFFERS.find((o) => o.id === semana.offerId);
   if (offer) offer.semana = semana;
@@ -1335,6 +1416,7 @@ attachLockWeek(REC_GIG_SEMANA);
 attachLockWeek(POA_MVD_SEMANA);
 attachLockWeek(CGH_IGU_SEMANA);
 attachLockWeek(GRU_BRC_SEMANA);
+attachLockWeek(GRU_REC_SEMANA);
 
 // Todos os guias: os 10 editoriais-base + os 12 escritos pelos agentes de
 // turismo (um por regiao). Ver src/render/moreGuides.js.

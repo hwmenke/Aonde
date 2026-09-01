@@ -15,6 +15,7 @@ and 9:16 stills for Instagram / WhatsApp stories.
 - **POA-MVD.jpg** (1200×630) - Porto Alegre → Montevidéu, 10–17 out. JPEG bytes did not land in this checkout. Do not remake. When present, `/ofertas/poa-mvd` uses `/og/POA-MVD.jpg`.
 - **CGH-IGU.jpg** (1200×630) - Congonhas → Foz do Iguaçu, 10–17 out. Title Congonhas, NOT GRU. JPEG bytes did not land in this checkout. Do not remake. When present, `/ofertas/cgh-igu` uses `/og/CGH-IGU.jpg`. Never GRU-EZE.jpg, never a GRU origin card.
 - **GRU-BRC.jpg** (1200×630) - São Paulo → Bariloche, 11–18 out. JPEG bytes did not land in this checkout. Do not remake. When present, `/ofertas/gru-brc` uses `/og/GRU-BRC.jpg`.
+- **GRU-REC.jpg** (1200×630) - São Paulo Guarulhos → Recife, 17–24 out. JPEG bytes did not land in this checkout. Do not remake, do not gist. When present, `/ofertas/gru-rec` uses `/og/GRU-REC.jpg`. Until then OG and hero fall back to the Recife dest photo (`thumbUrl`, Marco Zero). Never REC-GIG.jpg (that's Recife→Rio). Never a Congonhas card.
 - **VCP-BUE.jpg** (1200×630) - Catalog card for VCP-BUE offer: Campinas → Buenos Aires
 - **GRU-LIS.jpg** (1200×630) - Catalog card for GRU-LIS offer: São Paulo → Lisboa
 
@@ -61,5 +62,6 @@ og:image / twitter:image (landscape cards only):
 - /ofertas/poa-mvd → /og/POA-MVD.jpg when the file exists; otherwise Palacio Salvo dest photo
 - /ofertas/cgh-igu → /og/CGH-IGU.jpg when the file exists; otherwise Iguaçu dest photo. Never a GRU card. Origin is Congonhas.
 - /ofertas/gru-brc → /og/GRU-BRC.jpg when the file exists; otherwise dest photo
+- /ofertas/gru-rec → /og/GRU-REC.jpg when the file exists; otherwise Recife dest photo (Marco Zero). Never REC-GIG.jpg.
 - /ofertas/vcp-bue → VCP-BUE.jpg (when available)
 - /ofertas/gru-lis → GRU-LIS.jpg (when available)

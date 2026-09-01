@@ -38,7 +38,7 @@ const FUSO_PRODUTO = process.env.AONDE_TIMEZONE || "America/Sao_Paulo";
 
 // /hoje mostra so os tres achados conferidos (gru-eze, gru-fln, gig-ssa).
 // Semanas editoriais de inventario (for-ssa, gru-scl, rec-gig, poa-mvd,
-// cgh-igu, gru-brc) tem wrap Aviasales em /ofertas; nao entram na rotacao.
+// cgh-igu, gru-brc, gru-rec) tem wrap Aviasales em /ofertas; nao entram na rotacao.
 const HOJE_LOCK_IDS = new Set(["gru-eze", "gru-fln", "gig-ssa"]);
 
 export function chaveDoDia(date = new Date()) {
