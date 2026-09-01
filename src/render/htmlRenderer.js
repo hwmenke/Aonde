@@ -37,7 +37,6 @@ import {
   FLIGHT_SORTS,
   FLIGHTS,
   FLIGHT_FILTERS,
-  FOR_SSA_SEMANA,
 } from "./aondeContent.js";
 import { escapeHtml, formatBRL, semAcento } from "./texto.js";
 import { getRouteSeries } from "../store/priceHistory.js";
@@ -94,6 +93,15 @@ function waHref(text) {
 function waShareLink(title, url) {
   const message = `${title}\n${url}`;
   return `https://wa.me/?text=${encodeURIComponent(message)}`;
+}
+
+// Link que o WhatsApp abre. Sempre a pagina daquela oferta — nunca /hoje
+// (dois cards de /hoje com o mesmo /hoje viram preview de Buenos Aires)
+// e nunca /saida/{id} (a saida nao carrega o cartao OG).
+function offerShareUrl(base, offerId) {
+  const id = String(offerId || "").trim();
+  if (!id) return "";
+  return `${base}/ofertas/${encodeURIComponent(id)}?utm_source=wa`;
 }
 
 function telLabel() {
@@ -2018,9 +2026,12 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
   const economia = vm.economia
     ? `<span class="det-econ">você economiza ${escapeHtml(vm.economia)} · ida e volta</span>`
     : "";
-  const texto = vm.texto ? `<p class="det-texto">${escapeHtml(vm.texto)}</p>` : "";
+  const originPriceAttr = offer.aviasalesUrl && vm.origem
+    ? ` data-origin-price="${escapeHtml(vm.origem)}"`
+    : "";
+  const texto = vm.texto ? `<p class="det-texto"${originPriceAttr}>${escapeHtml(vm.texto)}</p>` : "";
   const flex = vm.flex.length
-    ? `<h2 class="det-h2">Datas com o preço disponível</h2><div class="det-flex">` +
+    ? `<h2 class="det-h2"${originPriceAttr}>Datas com o preço disponível</h2><div class="det-flex"${originPriceAttr}>` +
       vm.flex
         .map(
           (f) =>
@@ -2030,7 +2041,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
       `</div>`
     : "";
   const dicas = vm.dicas.length
-    ? `<h2 class="det-h2">Antes de comprar</h2><div class="det-dicas">` +
+    ? `<h2 class="det-h2"${originPriceAttr}>Antes de comprar</h2><div class="det-dicas"${originPriceAttr}>` +
       vm.dicas.map((d) => `<div class="det-dica"><span>•</span><span>${escapeHtml(d)}</span></div>`).join("") +
       `</div>`
     : "";
@@ -2065,17 +2076,31 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     ? "Você será levado ao site do parceiro. O Aonde pode receber comissão, sem custo extra para você."
     : "Você vai ver os voos desta rota (tarifas de exemplo por enquanto). A busca e a compra acontecem no site do parceiro — o Aonde pode receber comissão, sem custo extra para você.";
 
-  // "Prova do preço" HONESTA: so mostra a etiqueta de captura de tela quando ha
-  // um print real (prova_url). Sem isso, e a foto do destino, rotulada como tal.
+  // Hero: print de preco quando existe; senao o cartao OG daquela oferta
+  // (GRU-FLN.jpg, GIG-SSA.jpg). Sem cartao, foto do destino. Nunca o cartao
+  // de outra rota — FOR-SSA nao herda GIG-SSA.jpg (Elevador Lacerda, Rio).
   const temProva = !!vm.provaUrl;
+  const ogCard = ogSharePathForOffer(vm.id);
+  const heroUrl = temProva
+    ? vm.provaUrl
+    : ogImageForOfferPage(vm.id, vm.thumbUrl) || vm.thumbUrl;
+  const usaCartaoOg = !temProva && !!ogCard && heroUrl === ogCard;
   const provaImg = imageBlock(
-    temProva ? vm.provaUrl : vm.thumbUrl,
-    temProva ? `Captura do preço para ${destinoLabel}` : `Foto de ${destinoLabel}`,
+    heroUrl,
+    temProva
+      ? `Captura do preço para ${destinoLabel}`
+      : usaCartaoOg
+        ? `Cartão da oferta ${destinoLabel}`
+        : `Foto de ${destinoLabel}`,
     destinoLabel,
     "det-prova-media",
     !temProva
   );
-  const provaTag = temProva ? "Prova do preço · captura de tela" : "Imagem do destino";
+  const provaTag = temProva
+    ? "Prova do preço · captura de tela"
+    : usaCartaoOg
+      ? "Cartão da oferta"
+      : "Imagem do destino";
 
   // Alerta de preço da propria rota (form real, 1 campo visivel) no lugar do
   // link estatico antigo.
@@ -2105,21 +2130,17 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
       return "https://aonde.com.br";
     }
   })();
-  const ofertasPath = vm.id ? `/ofertas/${encodeURIComponent(vm.id)}` : "/ofertas";
-  // for-ssa: WhatsApp OG e a pagina da oferta, nunca /hoje e nunca o cartao do Rio.
-  const sharePath = vm.id === "for-ssa" ? ofertasPath : (vm.href || ofertasPath);
-  const shareUrl = vm.id === "for-ssa"
-    ? `${canonicalBase}${ofertasPath}?utm_source=wa`
-    : `${canonicalBase}${sharePath}?utm_source=wa&utm_medium=social&utm_campaign=${encodeURIComponent(vm.id)}`;
+  const shareUrl = offerShareUrl(canonicalBase, vm.id);
   const shareTitle = `${destinoLabel} por ${vm.preco} saindo de ${origemNome || vm.origem}`;
-  const waShare =
-    `<div class="det-share">` +
-    `<p class="det-share-title">Compartilhar oferta</p>` +
-    `<a class="det-share-btn" href="${escapeHtml(waShareLink(shareTitle, shareUrl))}" target="_blank" rel="noopener">` +
-    `<span aria-hidden="true">💬</span> WhatsApp` +
-    `</a>` +
-    `<p class="det-share-note">Envie para amigos que procuram passagem para ${escapeHtml(destinoLabel)}.</p>` +
-    `</div>`;
+  const waShare = shareUrl
+    ? `<div class="det-share">` +
+      `<p class="det-share-title">Compartilhar oferta</p>` +
+      `<a class="det-share-btn" href="${escapeHtml(waShareLink(shareTitle, shareUrl))}" target="_blank" rel="noopener">` +
+      `<span aria-hidden="true">💬</span> WhatsApp` +
+      `</a>` +
+      `<p class="det-share-note">Envie para amigos que procuram passagem para ${escapeHtml(destinoLabel)}.</p>` +
+      `</div>`
+    : "";
   
   // Seletor de origem: ofertas com aviasalesUrl permitem trocar origem (outras
   // cidades brasileiras reservam a mesma rota, trocando IATA na URL do parceiro).
@@ -2195,66 +2216,79 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     fallbackText: `Ver ${destinoLabel} no Google Maps`,
   });
 
+  const isLock = Boolean(offer.semana);
+  const isOriginSpecificPrice = offer.aviasalesUrl && vm.origem;
+  const priceDataAttr = isOriginSpecificPrice ? ` data-origin-price="${escapeHtml(vm.origem)}"` : "";
+  const fonteHero = (offer.aviasalesUrl || vm.affiliateUrl)
+    ? fontePrecoHtml(vm.fontePreco, vm.fontePrecoEm, "det-fonte-preco", isOriginSpecificPrice ? vm.origem : "")
+    : "";
+  // Consulta ao lado do Reservar, nao como rodape depois dos perks.
+  const fonteBuy = (offer.aviasalesUrl || vm.affiliateUrl)
+    ? fontePrecoHtml(
+        vm.fontePreco,
+        vm.fontePrecoEm,
+        "det-fonte-preco det-buy-fonte",
+        isOriginSpecificPrice ? vm.origem : ""
+      )
+    : "";
+  const provaBlock =
+    `<div class="det-prova">${provaImg}<span class="det-prova-tag">${provaTag}</span></div>`;
+  const weekHtml = isLock
+    ? editorialWeekHtml(offer.semana, {
+        cidade: destinoLabel,
+        showFare: true,
+        originIata: vm.origem,
+        embedded: true,
+      })
+    : "";
+  // Com fontePreco a data da consulta e a honestidade. Nao imprimir
+  // "publicado há 2h" — parece countdown.
+  const pubBadge = vm.publicado && !vm.fontePreco
+    ? `<span class="det-pub">publicado ${escapeHtml(vm.publicado)}</span>`
+    : "";
+  const buyBox =
+    `<div class="det-buy">` +
+    `<span class="det-buy-label">a partir de</span>` +
+    `<p class="det-buy-preco"${priceDataAttr}>${escapeHtml(vm.preco)}</p>` +
+    `<p class="det-buy-sub">ida e volta${vm.datas ? ` · ${escapeHtml(vm.datas)}` : ""}</p>` +
+    `<div class="det-buy-cta-row">` +
+    `<a class="btn btn-green det-buy-cta" href="${escapeHtml(ctaHref)}">${ctaLabel}</a>` +
+    fonteBuy +
+    `</div>` +
+    `<p class="det-buy-perks">Parcelamento e desconto no Pix variam conforme o parceiro — o valor final aparece no site dele, antes de você pagar.</p>` +
+    `<p class="det-buy-fine">${escapeHtml(ctaFine)}</p>` +
+    trustMini +
+    `</div>`;
+  const extrasAside = histBloco + alertForm + waShare + originSelector;
+
   const body =
     `<main id="conteudo" tabindex="-1">` +
     `<section class="wrap det">` +
     `<p class="breadcrumb"><a href="/">Início</a> · <a href="/ofertas">Ofertas</a> · <span>${escapeHtml(destinoLabel)}</span></p>` +
-    `<div class="det-grid">` +
+    `<div class="det-grid${isLock ? " det-grid--lock" : ""}">` +
     `<div class="det-main">` +
-    `<div class="det-badges">${badge}${vm.publicado ? `<span class="det-pub">publicado ${escapeHtml(vm.publicado)}</span>` : ""}</div>` +
+    `<div class="det-badges">${badge}${pubBadge}</div>` +
     (vm.origem && vm.destino
       ? `<span class="det-rota"><span data-origin-iata-label>${escapeHtml(vm.origem)}</span> · <span data-origin-city-label>${escapeHtml(origemNome || vm.origem)}</span> → ${escapeHtml(rotuloAeroporto(vm.destino))}</span>`
       : "") +
     `<h1 class="det-cidade">${escapeHtml(destinoLabel)}${origemNome ? `<span class="det-cidade-origem"> saindo de <span data-origin-city-label>${escapeHtml(origemNome)}</span></span>` : ""}</h1>` +
     (vm.local || vm.cia ? `<p class="det-local">${[vm.local, vm.cia].filter(Boolean).map(escapeHtml).join(" · ")}</p>` : "") +
-    (() => {
-      // Marca preco especifico da origem: GRU-EZE tem preco de GRU, GIG-SSA tem preco de GIG.
-      // Se a oferta tem aviasalesUrl E o preco é para a origem original, marca para esconder
-      // quando a pessoa trocar de cidade no seletor.
-      const isOriginSpecificPrice = offer.aviasalesUrl && vm.origem;
-      const dataAttr = isOriginSpecificPrice ? ` data-origin-price="${escapeHtml(vm.origem)}"` : '';
-      const fonte = (offer.aviasalesUrl || vm.affiliateUrl)
-        ? fontePrecoHtml(vm.fontePreco, vm.fontePrecoEm, "det-fonte-preco", isOriginSpecificPrice ? vm.origem : "")
-        : "";
-      return `<div class="det-preco-row"${dataAttr}><span class="det-preco">${escapeHtml(vm.preco)}</span>${media}</div>${fonte}`;
-    })() +
+    `<div class="det-preco-row"${priceDataAttr}><span class="det-preco">${escapeHtml(vm.preco)}</span>${media}</div>${fonteHero}` +
     economia +
     fareErrorNote +
-    texto +
-    `<div class="det-prova">${provaImg}<span class="det-prova-tag">${provaTag}</span></div>` +
-    flex +
-    dicas +
+    (isLock ? "" : texto) +
+    provaBlock +
+    (isLock ? "" : flex + dicas) +
     `</div>` +
     `<aside class="det-aside">` +
-    `<div class="det-buy">` +
-    `<span class="det-buy-label">a partir de</span>` +
-    (() => {
-      const isOriginSpecificPrice = offer.aviasalesUrl && vm.origem;
-      const dataAttr = isOriginSpecificPrice ? ` data-origin-price="${escapeHtml(vm.origem)}"` : '';
-      const fonte = (offer.aviasalesUrl || vm.affiliateUrl)
-        ? fontePrecoHtml(vm.fontePreco, vm.fontePrecoEm, "det-fonte-preco", isOriginSpecificPrice ? vm.origem : "")
-        : "";
-      return `<p class="det-buy-preco"${dataAttr}>${escapeHtml(vm.preco)}</p>${fonte}`;
-    })() +
-    `<p class="det-buy-sub">ida e volta${vm.datas ? ` · ${escapeHtml(vm.datas)}` : ""}</p>` +
-    `<a class="btn btn-green det-buy-cta" href="${escapeHtml(ctaHref)}">${ctaLabel}</a>` +
-    `<p class="det-buy-perks">Parcelamento e desconto no Pix variam conforme o parceiro — o valor final aparece no site dele, antes de você pagar.</p>` +
-    `<p class="det-buy-fine">${escapeHtml(ctaFine)}</p>` +
-    trustMini +
-    `</div>` +
-    histBloco +
-    alertForm +
-    waShare +
-    originSelector +
+    buyBox +
+    (isLock ? "" : extrasAside) +
     `</aside>` +
+    (isLock
+      ? weekHtml + `<div class="det-lock-more">${texto}${flex}${dicas}</div>` + `<div class="det-lock-extras">${extrasAside}</div>`
+      : "") +
     `</div>` +
     `</section>` +
-    (vm.id === "for-ssa"
-      ? editorialWeekHtml(offer.semana || FOR_SSA_SEMANA, {
-          cidade: destinoLabel,
-          showFare: true,
-        })
-      : "") +
     offerMap.html +
     relatedBlock +
     `</main>` +
@@ -2269,12 +2303,13 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     ]),
   ].filter(Boolean);
 
-  // O titulo leva a ORIGEM: "gig-ssa" (Rio->Salvador) e "for-ssa"
-  // (Fortaleza->Salvador) tinham titulo, h1 e description identicos, porque o
-  // codigo usava so o destino. Duas paginas diferentes competindo entre si.
-  const tituloOferta = origemNome
-    ? `${origemNome} → ${destinoLabel}${vm.preco ? ` por ${vm.preco}` : ""} · Aonde`
-    : `${destinoLabel} — oferta de viagem · Aonde`;
+  // Titulo editorial (pageTitle) quando a oferta traz um; senao origem no
+  // <title> para gig-ssa e for-ssa nao competirem pelo mesmo destino.
+  const tituloOferta = offer.pageTitle
+    ? offer.pageTitle
+    : origemNome
+      ? `${origemNome} → ${destinoLabel}${vm.preco ? ` por ${vm.preco}` : ""} · Aonde`
+      : `${destinoLabel} — oferta de viagem · Aonde`;
   let doc = htmlDocument({
     title: tituloOferta,
     description: metaDescricao(vm.texto) || undefined,
@@ -2322,43 +2357,76 @@ function diaArticleHtml(d, cidade) {
 }
 
 /**
- * Semana editorial FOR-SSA (3–10 out 2026). Texto conferido em 28 ago 2026.
- * Tarifa do voo e a consulta Aviasales daquela data (USD); nao e "ao vivo".
- * Preco de restaurante e editorial. Nao mistura o R$ 874 de GRU do otimizador
- * nem o R$ 287 velho do catalogo.
+ * Semana editorial de um lock (FOR-SSA, GRU-FLN, …). id da secao e por oferta
+ * (`semana-for-ssa`, `semana-gru-fln`). Tarifa e consulta da data citada,
+ * nunca "ao vivo". Preco de restaurante, quando existe, e editorial.
+ * A tarifa do lock fica marcada com data-origin-price para o seletor nao
+ * implicar o mesmo valor saindo de outra cidade.
  */
-function editorialWeekHtml(semana, { cidade = "Salvador", ctaHref = "", ctaLabel = "", showFare = true } = {}) {
+function editorialWeekHtml(semana, { cidade = "", ctaHref = "", ctaLabel = "", showFare = true, originIata = "", embedded = false } = {}) {
   if (!semana) return "";
+  const sectionId = semana.offerId ? `semana-${semana.offerId}` : "semana-lock";
+  const cidadeNome = cidade || semana.cidade || "";
   const dias = (Array.isArray(semana.dias) ? semana.dias : []).map(normalizeGuideDia);
-  const artigos = dias.map((d) => diaArticleHtml(d, cidade)).join("");
+  const artigos = dias.map((d) => diaArticleHtml(d, cidadeNome)).join("");
   const fonteNome = String(semana.tarifaFonte || "").trim();
   const quandoLonga = formatFontePrecoDataLonga(semana.tarifaFonteEm);
+  const origemLock = String(semana.origem || originIata || "").trim();
+  const originAttr = origemLock ? ` data-origin-price="${escapeHtml(origemLock)}"` : "";
   let fareFrase = "";
   if (fonteNome && quandoLonga) fareFrase = `Tarifa vista no ${fonteNome} em ${quandoLonga}`;
   else if (fonteNome) fareFrase = `Tarifa vista no ${fonteNome}`;
   else if (quandoLonga) fareFrase = `Tarifa vista em ${quandoLonga}`;
+  if (origemLock && fareFrase) fareFrase += `, saindo de ${origemLock}`;
   const tarifa = semana.tarifa;
-  const fare = showFare && tarifa
-    ? `<p class="semana-lock-fare">${escapeHtml(fareFrase || "Tarifa")}: <strong>${escapeHtml(tarifa)}</strong>. Não é preço em reais.</p>`
+  const tarifaTxt = String(tarifa || "");
+  const naoReais = tarifaTxt.includes("$") || /USD/i.test(tarifaTxt)
+    ? " Não é preço em reais."
     : "";
-  const fareNote = showFare
-    ? `<p class="semana-lock-fare-note">O valor do voo é a tarifa vista no Aviasales${quandoLonga ? ` em ${escapeHtml(quandoLonga)}` : ""}. Preços de restaurante (Senac, Origem) são editoriais: o que o site da casa cobrava na data citada.</p>`
+  const fare = showFare && tarifa
+    ? `<p class="semana-lock-fare"${originAttr}>${escapeHtml(fareFrase || "Tarifa")}: <strong>${escapeHtml(tarifa)}</strong>.${naoReais}</p>`
+    : "";
+  const fareNoteTxt = String(semana.fareNote || "").trim()
+    || (showFare && (fonteNome || quandoLonga)
+      ? `O valor do voo é a tarifa vista no ${fonteNome || "parceiro"}${quandoLonga ? ` em ${quandoLonga}` : ""}.`
+      : "");
+  const fareNote = showFare && fareNoteTxt
+    ? `<p class="semana-lock-fare-note"${originAttr}>${escapeHtml(fareNoteTxt)}</p>`
+    : "";
+  const voo = semana.voo
+    ? `<p class="semana-lock-meta"${originAttr}>${escapeHtml(semana.voo)}</p>`
+    : "";
+  const horarios = Array.isArray(semana.horarios) && semana.horarios.length
+    ? `<div class="semana-lock-horarios">` +
+      `<p class="semana-lock-meta">${escapeHtml(semana.horariosTitulo || "Horários conferidos")}</p>` +
+      `<ul>${semana.horarios.map((h) => `<li>${escapeHtml(h)}</li>`).join("")}</ul>` +
+      `</div>`
     : "";
   const cta = ctaHref
     ? `<p class="semana-lock-cta"><a class="btn btn-green" href="${escapeHtml(ctaHref)}">${escapeHtml(ctaLabel || "Ver a passagem →")}</a></p>`
     : "";
+  const guia = semana.guiaHref
+    ? `<p class="semana-lock-guia"><a href="${escapeHtml(semana.guiaHref)}">${escapeHtml(semana.guiaLabel || "Roteiro de 5 dias")}</a></p>`
+    : "";
+  const conferencia = semana.conferencia
+    ? `<p class="semana-lock-meta">${escapeHtml(semana.conferencia)}</p>`
+    : "";
+  const weekClass = embedded ? "semana-lock semana-lock--embedded" : "wrap section semana-lock";
   return (
-    `<section class="wrap section semana-lock" id="semana-for-ssa">` +
-    `<h2 class="guia-h2">${escapeHtml(semana.titulo || "Salvador, 3 a 10 de outubro de 2026")}</h2>` +
+    `<section class="${weekClass}" id="${escapeHtml(sectionId)}">` +
+    (semana.titulo ? `<h2 class="guia-h2">${escapeHtml(semana.titulo)}</h2>` : "") +
     (semana.rota ? `<p class="semana-lock-meta">${escapeHtml(semana.rota)}</p>` : "") +
     (semana.aviso ? `<p class="semana-lock-aviso">${escapeHtml(semana.aviso)}</p>` : "") +
-    (semana.voo ? `<p class="semana-lock-meta">${escapeHtml(semana.voo)}</p>` : "") +
+    voo +
     fare +
     fareNote +
     (semana.hospedagem ? `<p class="semana-lock-meta">${escapeHtml(semana.hospedagem)}</p>` : "") +
     (semana.reservas ? `<p class="semana-lock-meta">${escapeHtml(semana.reservas)}</p>` : "") +
+    horarios +
     cta +
     `<div class="dias">${artigos}</div>` +
+    conferencia +
+    guia +
     `</section>`
   );
 }
@@ -2552,17 +2620,15 @@ export function renderTodayPage(pacote) {
           return "https://aonde.com.br";
         }
       })();
-      // WhatsApp share: GRU-EZE pode usar /hoje; GRU-FLN e GIG-SSA usam /ofertas/{id}
-      // para que cada um tenha sua propria OG image (nao a de Buenos Aires).
-      const useOfertasUrl = o.id === "gru-fln" || o.id === "gig-ssa";
-      const shareUrl = useOfertasUrl
-        ? `${hojeBase}/ofertas/${o.id}?utm_source=wa&utm_medium=social&utm_campaign=ofertas`
-        : `${hojeBase}/hoje?utm_source=wa&utm_medium=social&utm_campaign=hoje`;
+      // Cada card compartilha AQUELA oferta. Nunca /hoje: dois cards com o
+      // mesmo /hoje fazem o preview do WhatsApp virar Buenos Aires.
+      const shareUrl = offerShareUrl(hojeBase, o.id);
       const shareTitle = `${r.titulo} - ${o.preco} saindo de ${o.origemCidade}`;
-      const waShareBtn =
-        `<a class="btn btn-ghost btn-ghost--claro" href="${escapeHtml(waShareLink(shareTitle, shareUrl))}" target="_blank" rel="noopener">` +
-        `💬 Compartilhar` +
-        `</a>`;
+      const waShareBtn = shareUrl
+        ? `<a class="btn btn-ghost btn-ghost--claro" href="${escapeHtml(waShareLink(shareTitle, shareUrl))}" target="_blank" rel="noopener">` +
+          `💬 Compartilhar` +
+          `</a>`
+        : "";
       return (
         `<article class="hoje-card">` +
         `<div class="hoje-media">${foto}${credito}` +
@@ -3427,7 +3493,7 @@ function enhancementScript() {
   document.querySelectorAll('[data-origin-selector]').forEach(function(select){
     var offerId=select.getAttribute('data-offer-id');
     var origemOriginal=select.value;
-    var root=select.closest('.hoje-card, .det, main')||document;
+    var root=select.closest('.hoje-card')||select.closest('main')||document;
     select.addEventListener('change',function(){
       var novaOrigem=select.value;
       var opt=select.options[select.selectedIndex];

@@ -195,15 +195,21 @@ export const OFFERS = [
     aviasalesUrl: "https://www.aviasales.com/search/GRU1209BUE19091",
     fontePreco: "Google Flights",
     fontePrecoEm: "2026-08-21" },
-  { id: "gru-fln", origem: "GRU", destino: "FLN", cidade: "Florianópolis", local: "Santa Catarina", preco: "R$ 770", preco_usd: "$149", cia: "LATAM", datas: "27 set–3 out", tipo: "Nacional", publicadoEm: "2026-08-21T00:15:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "Direto · 1h15",
+  { id: "gru-fln", origem: "GRU", destino: "FLN", cidade: "Florianópolis", local: "Santa Catarina", preco: "R$ 770", preco_usd: "$153", cia: "LATAM", datas: "27 set–3 out", tipo: "Nacional", publicadoEm: "2026-08-21T00:15:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "Direto · 1h15",
+    pageTitle: "São Paulo–Florianópolis em setembro: voo direto e 5 dias na ilha",
     thumbUrl: wiki("Barra da Lagoa, Florianópolis - SC (2).JPG"), credit: "Florianópolis — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Lagoa_da_Conceição",
-    texto: "São Paulo–Florianópolis por R$ 770 ida e volta em setembro/outubro, voo direto pela LATAM. Preço visto no Google Flights em 21 de agosto de 2026 (a partir de R$ 768). Aviasales mostra USD $149 para a mesma rota.",
-    dicas: ["Voo direto LATAM, 1h15 de duração", "Alta temporada em Floripa: setembro ainda é ombro de temporada, preços mais baixos que no verão", "Clima em setembro/outubro: 16–23°C, ainda frio para banho de mar (água ~18°C)", "Praias do norte (Jurerê, Canasvieiras) são mais calmas; do leste (Joaquina, Mole) têm ondas"],
+    texto: "São Paulo–Florianópolis, 27 de setembro a 3 de outubro de 2026, LATAM direto. Duas consultas, duas datas: R$ 770 no Google Flights em 21 de agosto de 2026; USD $153 no Aviasales em 28 de agosto de 2026, com botão Buy, saindo de GRU. O dólar não é o real.",
+    dicas: [
+      "LATAM direto. Ida domingo 27 set, 9h50 GRU → 11h05 FLN. Volta sábado 3 out, 10h35 FLN → 11h55 GRU.",
+      "USD $153 no Aviasales, 28 de agosto de 2026, saindo de GRU. Não vale para outra origem.",
+      "R$ 770 é consulta no Google Flights de 21 de agosto de 2026. Não é o $153 em reais.",
+    ],
     flex: [{ d: "27 set–3 out", p: "R$ 770" }, { d: "30 set–6 out", p: "R$ 814" }, { d: "4–11 out", p: "R$ 856" }],
     aviasalesUrl: "https://www.aviasales.com/search/GRU2709FLN03101",
     fontePreco: "Google Flights",
     fontePrecoEm: "2026-08-21" },
   { id: "gig-ssa", origem: "GIG", destino: "SSA", cidade: "Salvador", local: "Bahia", preco: "R$ 1.320", preco_usd: "$273", cia: "LATAM", datas: "7–14 nov", tipo: "Nacional", publicadoEm: "2026-08-21T00:30:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "Direto · 2h",
+    pageTitle: "Rio–Salvador em novembro: voo direto, Pelourinho e praia",
     thumbUrl: wiki("Pelourinho, Salvador, Bahia.jpg"), credit: "Pelourinho — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Pelourinho",
     texto: "Rio de Janeiro–Salvador por R$ 1.320 ida e volta em novembro, voo direto pela LATAM. Preço visto no Google Flights em 21 de agosto de 2026 (a partir de R$ 1.253). Aviasales mostra USD $273 para o mesmo voo direto.",
     dicas: ["Voo direto LATAM, 2h de duração", "Novembro tem sol e menos chuva em Salvador", "Pelourinho, praia e acarajé com voo direto do Rio", "Tarifa leve: bagagem de mão inclusa, despachada paga à parte"],
@@ -250,6 +256,7 @@ export const OFFERS = [
     dicas: ["Cerca de 2h de voo direto", "Agosto é seco em Minas, bom para estrada", "Dá para emendar Ouro Preto e Tiradentes de carro"],
     flex: [{ d: "20–27 ago", p: "R$ 341" }, { d: "24–31 ago", p: "R$ 368" }, { d: "27 ago–3 set", p: "R$ 389" }] },
   { id: "for-ssa", origem: "FOR", destino: "SSA", cidade: "Salvador", local: "Bahia", preco: "USD $242", preco_usd: "$242", cia: "LATAM", datas: "3–10 out", tipo: "Nacional", publicadoEm: "2026-07-24T18:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "Direto · 1h50",
+    pageTitle: "Fortaleza–Salvador em outubro: voo direto, base no Rio Vermelho.",
     thumbUrl: wiki("Pelourinho, Salvador, Bahia.jpg"), credit: "Pelourinho — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Pelourinho",
     texto: "Fortaleza–Salvador, 3 a 10 de outubro de 2026. LATAM direto, 1h50 nos dois sentidos. USD $242 no Aviasales em 28 de agosto de 2026.",
     dicas: [
@@ -732,6 +739,9 @@ export const FOR_SSA_SEMANA = {
   tarifa: "USD $242",
   tarifaFonte: "Aviasales",
   tarifaFonteEm: "2026-08-28",
+  fareNote: "O valor do voo é a tarifa vista no Aviasales em 28 de agosto de 2026. Preços de restaurante (Senac, Origem) são editoriais: o que o site da casa cobrava na data citada.",
+  guiaHref: "/guias/salvador",
+  guiaLabel: "Roteiro de 5 dias em Salvador, sem as datas desta passagem →",
   hospedagem: "Rio Vermelho. Casa de Tereza, Dona Mariquita e o acarajé da Dinha ficam a pé. Pelourinho e Barra são Uber (20–30 min). Santo Antônio Além do Carmo é a alternativa mais quieta, ainda no centro histórico. Evita dormir no Largo do Pelourinho se for a primeira vez.",
   reservas: "Casa de Tereza (jantar) e Origem (terça a sábado, 19h, só com reserva). Origem é menu degustação; em maio de 2026 o Recôncavo 2.0 saía a R$ 420 por pessoa no site da casa.",
   dias: [
@@ -790,10 +800,86 @@ export const FOR_SSA_SEMANA = {
   ],
 };
 
-{
-  const forSsa = OFFERS.find((o) => o.id === "for-ssa");
-  if (forSsa) forSsa.semana = FOR_SSA_SEMANA;
+// Semana editorial da janela GRU-FLN (27 set–3 out 2026). Texto conferido em
+// 28 de agosto de 2026; nao e voz de quem mora em Floripa. Vive na oferta
+// /ofertas/gru-fln — nao no guia de 5 dias /guias/florianopolis, nem em /hoje.
+export const GRU_FLN_SEMANA = {
+  offerId: "gru-fln",
+  titulo: "Florianópolis, 27 de setembro a 3 de outubro de 2026",
+  janela: "27 de setembro a 3 de outubro de 2026",
+  origem: "GRU",
+  destino: "FLN",
+  cidade: "Florianópolis",
+  escritoEm: "2026-08-28",
+  aviso: "Editorial, escrito em 28 de agosto de 2026. Não é um texto de quem mora aí. Cada restaurante abaixo existia nessa data, conferido em fonte pública.",
+  rota: "São Paulo (GRU) → Florianópolis (FLN).",
+  voo: "LATAM direto. Ida domingo 27 set, 9h50 GRU → 11h05 FLN. Volta sábado 3 out, 10h35 FLN → 11h55 GRU.",
+  tarifa: "USD $153",
+  tarifaFonte: "Aviasales",
+  tarifaFonteEm: "2026-08-28",
+  fareNote: "O USD $153 é a tarifa vista no Aviasales em 28 de agosto de 2026, saindo de GRU. O R$ 770 é outra consulta, no Google Flights em 21 de agosto de 2026. Não misture: o dólar não é o real.",
+  hospedagem: "Lagoa da Conceição. Barra da Lagoa e Joaquina ficam perto. Centro, norte e sul pedem carro ou app.",
+  conferencia: "Restaurantes conferidos em 28 de agosto de 2026 nos sites das casas (Box 32, Ostradamus, Ammo Beach) e em páginas públicas (Oliveira, Bar do Arante).",
+  guiaHref: "/guias/florianopolis",
+  guiaLabel: "Roteiro de 5 dias em Florianópolis, sem as datas desta passagem →",
+  dias: [
+    { n: 1, titulo: "Domingo 27, chegada", desc: "Voo 11h05. Check-in na Lagoa. Box 32 fecha domingo. Tarde: dunas da Joaquina ou caiaque na lagoa.",
+      pontos: [{ nome: "Lagoa da Conceição" }, { nome: "Dunas da Joaquina", nota: "ou caiaque na lagoa" }],
+      restaurante: "Restaurante Oliveira",
+      restauranteNota: "Rua Henrique Veras do Nascimento 57, Lagoa da Conceição (desde 1961). Aberto domingo até o fim da tarde.",
+      restauranteEndereco: "Rua Henrique Veras do Nascimento 57, Lagoa da Conceição" },
+    { n: 2, titulo: "Segunda 28, Centro", desc: "Mercado Público (1898), Praça XV, Ponte Hercílio Luz.",
+      pontos: [
+        { nome: "Mercado Público de Florianópolis", nota: "de 1898" },
+        { nome: "Praça XV de Novembro" },
+        { nome: "Ponte Hercílio Luz" },
+      ],
+      restaurante: "Box 32",
+      restauranteNota: "Ala Sul do Mercado, box 04S. Pastel de camarão. Segunda 10h–20h. box32.com.br.",
+      restauranteEndereco: "Ala Sul do Mercado Público, box 04S" },
+    { n: 3, titulo: "Terça 29, Costa Oeste", desc: "Santo Antônio de Lisboa, Ribeirão da Ilha, fazendas de ostra.",
+      pontos: [
+        { nome: "Santo Antônio de Lisboa" },
+        { nome: "Ribeirão da Ilha", nota: "fazendas de ostra" },
+      ],
+      restaurante: "Ostradamus",
+      restauranteNota: "Rod. Baldicero Filomeno 7640. Terça aberto até 23h. ostradamus.com.br, (48) 3337-5711.",
+      restauranteEndereco: "Rod. Baldicero Filomeno 7640" },
+    { n: 4, titulo: "Quarta 30, Norte", desc: "Jurerê Internacional, Fortaleza São José da Ponta Grossa.",
+      pontos: [
+        { nome: "Jurerê Internacional" },
+        { nome: "Fortaleza São José da Ponta Grossa" },
+      ],
+      restaurante: "Ammo Beach",
+      restauranteNota: "Av. das Lagostas, Posto 1D. Quarta a domingo 11h–18h. Fecha 18h; não é jantar. ammobeach.com.br, (48) 3365-9099.",
+      restauranteEndereco: "Av. das Lagostas, Posto 1D, Jurerê Internacional" },
+    { n: 5, titulo: "Quinta 1º out, Sul", desc: "Pântano do Sul, trilha da Lagoinha do Leste se der (~1h30).",
+      pontos: [
+        { nome: "Pântano do Sul" },
+        { nome: "Trilha da Lagoinha do Leste", nota: "cerca de 1h30, se der" },
+      ],
+      restaurante: "Bar do Arante",
+      restauranteNota: "Rua Abelardo Otacílio Gomes 254, desde 1958. Abre por volta das 11h30; horário de fechamento instável. Confirme (48) 3237-7022.",
+      restauranteEndereco: "Rua Abelardo Otacílio Gomes 254" },
+    { n: 6, titulo: "Sexta 2, Lagoa e Mole", desc: "Barra da Lagoa, Praia Mole. Sem restaurante novo: jantar de novo no Oliveira (sexta costuma ir mais tarde) ou voltar cedo.",
+      pontos: [
+        { nome: "Barra da Lagoa" },
+        { nome: "Praia Mole" },
+      ],
+      restaurante: "Restaurante Oliveira",
+      restauranteNota: "de novo. Sexta costuma ir mais tarde.",
+      restauranteEndereco: "Rua Henrique Veras do Nascimento 57, Lagoa da Conceição" },
+    { n: 7, titulo: "Sábado 3, saída", desc: "Voo 10h35. Saia da Lagoa de manhã cedo. Sem restaurante.",
+      pontos: [] },
+  ],
+};
+
+function attachLockWeek(semana) {
+  const offer = OFFERS.find((o) => o.id === semana.offerId);
+  if (offer) offer.semana = semana;
 }
+attachLockWeek(FOR_SSA_SEMANA);
+attachLockWeek(GRU_FLN_SEMANA);
 
 // Todos os guias: os 10 editoriais-base + os 12 escritos pelos agentes de
 // turismo (um por regiao). Ver src/render/moreGuides.js.

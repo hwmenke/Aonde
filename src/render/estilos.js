@@ -419,6 +419,13 @@ export function pageStyles() {
   /* Oferta detalhe */
   .det{padding-top:32px;}
   .det-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:40px;align-items:start;}
+  .det-grid--lock .semana-lock,
+  .det-grid--lock .det-lock-more,
+  .det-grid--lock .det-lock-extras{grid-column:1/-1;}
+  .det-grid--lock .det-aside{position:static;}
+  .semana-lock--embedded{margin-top:8px;scroll-margin-top:92px;}
+  .semana-lock--embedded .guia-h2{font-size:clamp(28px,4vw,36px);margin-bottom:16px;}
+  .det-lock-extras{display:flex;flex-direction:column;gap:16px;max-width:420px;}
   .det-badges{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
   .det-badge{font-size:13px;font-weight:700;padding:5px 14px;border-radius:var(--pill);}
   .det-pub{font-size:13px;color:var(--muted-2);}
@@ -447,6 +454,9 @@ export function pageStyles() {
   .det-buy-preco{margin:2px 0 0;font-size:36px;font-weight:700;color:var(--green-2);letter-spacing:-1px;}
   .det-buy-sub{margin:2px 0 16px;font-size:14px;color:var(--muted);}
   .det-buy-cta{width:100%;font-size:16px;}
+  .det-buy-cta-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:0;}
+  .det-buy-cta-row .det-buy-cta{width:auto;flex:0 1 auto;}
+  .det-buy-cta-row .det-buy-fonte{margin:0;font-size:13px;color:var(--muted);line-height:1.45;}
   .det-buy-fine{margin:12px 0 0;font-size:12px;color:var(--muted);line-height:1.5;text-align:center;}
   /* Historico de preco (sparkline). Fica no mesmo cartao claro do aside. */
   .det-hist{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:16px;}
@@ -511,6 +521,8 @@ export function pageStyles() {
   .semana-lock-fare{margin:0 0 6px;font-size:16px;line-height:1.55;color:var(--text);}
   .semana-lock-fare-note{margin:0 0 18px;font-size:13px;line-height:1.55;color:var(--muted);}
   .semana-lock-cta{margin:0 0 24px;}
+  .semana-lock-guia{margin:18px 0 0;font-size:15px;line-height:1.55;}
+  .semana-lock-guia a{color:var(--green-2);}
   .dias{display:flex;flex-direction:column;gap:20px;max-width:860px;}
   .dia{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px;display:grid;grid-template-columns:64px 1fr;gap:24px;}
   .dia-num{width:56px;height:56px;border-radius:14px;background:#18181b;color:var(--lime-2);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;}
