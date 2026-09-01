@@ -24,14 +24,12 @@ const FOR_SSA_URL = "https://www.aviasales.com/search/FOR0310SSA10101";
 
 const UNWRAPPED_IDS = [
   "gru-lis",
-  "gru-rec",
   "vcp-bue",
   "cnf-fln",
   "gig-mia",
   "gru-mco",
   "rec-gru",
   "ssa-cnf",
-  "gru-cuz",
   "cnf-mao",
   "gig-cnf-op",
   "bsb-cgr",

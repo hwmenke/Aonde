@@ -177,11 +177,36 @@ export const OFFERS = [
     texto: "Tarifa cheia São Paulo–Lisboa raramente cai abaixo de R$ 2.500 na alta. Achamos assentos em outubro por menos de R$ 1.900 ida e volta, com uma escala curta em algumas datas.",
     dicas: ["Inclui 1 bagagem de mão; despachada é paga à parte na TAP", "Datas de terça e quarta são as mais baratas do período"],
     flex: [{ d: "12–24 out", p: "R$ 1.847" }, { d: "15–27 out", p: "R$ 1.912" }, { d: "19–31 out", p: "R$ 2.045" }] },
-  { id: "gru-rec", origem: "GRU", destino: "REC", cidade: "Recife", local: "Pernambuco", preco: "R$ 587", media: "R$ 1.180", economia: "R$ 593", cia: "Azul", datas: "9–16 set", tipo: "Nacional", publicadoEm: "2026-07-25T12:29:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: true, badge: "Erro de tarifa",
+  { id: "gru-rec", origem: "GRU", destino: "REC", cidade: "Recife", local: "Pernambuco", preco: "USD $235", preco_usd: "$235", cia: "LATAM", datas: "17–24 out", tipo: "Nacional", publicadoEm: "2026-09-01T12:00:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "Direto · LATAM",
+    origemCidade: "Guarulhos",
+    pageTitle: "São Paulo–Recife em outubro: voo direto, Recife e Porto de Galinhas",
     thumbUrl: wiki("Marco Zero Recife.jpg"), credit: "Marco Zero, Recife — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Marco_Zero_(Recife)",
-    texto: "Possível erro de tarifa: São Paulo–Recife ida e volta por menos de R$ 600, menos da metade da média histórica. Erros de tarifa costumam ser corrigidos rápido — se for viajar, compre já e só marque hotel depois da confirmação por e-mail.",
-    dicas: ["Erros de tarifa podem ser cancelados pela cia; espere a confirmação antes de reservar hotel", "Voo direto de 3h05 pela Azul", "Não some datas ao carrinho: reserve exatamente as que aparecem"],
-    flex: [{ d: "9–16 set", p: "R$ 587" }, { d: "11–18 set", p: "R$ 612" }, { d: "16–23 set", p: "R$ 634" }] },
+    ogCredit: "Marco Zero, Recife Antigo — Simone C Vitor, CC BY-SA 4.0",
+    ogCreditHref: "https://commons.wikimedia.org/wiki/File:Marco_Zero_-_Recife_Antigo.jpg",
+    texto: "São Paulo (Guarulhos)–Recife, 17 a 24 de outubro de 2026. LATAM direto, GRU nos dois sentidos. USD $235 no Aviasales em 1º de setembro de 2026, botão Buy. Não é preço em reais.",
+    dicas: [
+      "LATAM direto. Ida sábado 17 out, 17h30 GRU → 20h30 REC (3h00). Volta sábado 24 out, 2h45 REC → 6h00 GRU (3h15).",
+      "A volta às 2h45: precisa estar no REC por volta da 1h. Sexta à noite em Porto perde o voo. É o horário do voo, não um cronômetro.",
+      "USD $235 no Aviasales, 1º de setembro de 2026, saindo de GRU. Wrap https://www.aviasales.com/search/GRU1710REC24101. Bagagem de mão 1×26lb; despachada +US$84 nessa consulta. Não é preço em reais.",
+    ],
+    flex: [{ d: "17–24 out", p: "USD $235" }],
+    aviasalesUrl: "https://www.aviasales.com/search/GRU1710REC24101",
+    fontePreco: "Aviasales",
+    fontePrecoEm: "2026-09-01" },
+  { id: "gru-mcz", origem: "GRU", destino: "MCZ", cidade: "Maceió", local: "Alagoas", preco: "USD $372", preco_usd: "$372", cia: "GOL", datas: "17–24 out", tipo: "Nacional", publicadoEm: "2026-09-01T12:10:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "Direto · GOL",
+    origemCidade: "Guarulhos",
+    pageTitle: "São Paulo–Maceió em outubro: voo direto, Ponta Verde e Maragogi",
+    thumbUrl: wiki("Maceió, estado Alagoas.jpg"), credit: "Maceió — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Maceió",
+    texto: "São Paulo (Guarulhos)–Maceió, 17 a 24 de outubro de 2026. GOL direto, GRU nos dois sentidos. USD $372 no Aviasales em 1º de setembro de 2026, botão Buy. Não é preço em reais.",
+    dicas: [
+      "GOL direto. Ida sábado 17 out, 22h25 GRU → 1h15 MCZ (já domingo 18), 2h50. Volta sábado 24 out, 4h00 MCZ → 7h20 GRU, 3h20.",
+      "Chegada 1h15 de domingo: sábado 17 não é um dia em Maceió. A volta às 4h: sexta termina cedo, despertador às 2h. É o horário do voo, não um cronômetro.",
+      "USD $372 no Aviasales, 1º de setembro de 2026, saindo de GRU. Wrap https://www.aviasales.com/search/GRU1710MCZ24101. Bagagem de mão inclusa; despachada +US$75 nessa consulta. Não é preço em reais.",
+    ],
+    flex: [{ d: "17–24 out", p: "USD $372" }],
+    aviasalesUrl: "https://www.aviasales.com/search/GRU1710MCZ24101",
+    fontePreco: "Aviasales",
+    fontePrecoEm: "2026-09-01" },
   { id: "vcp-bue", origem: "VCP", destino: "BUE", cidade: "Buenos Aires", local: "Argentina", preco: "R$ 989", media: "R$ 1.520", economia: "R$ 531", cia: "GOL", datas: "3–10 set", tipo: "Internacional", publicadoEm: "2026-07-25T11:49:29Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "35% abaixo da média",
     thumbUrl: wiki("Caminito, La Boca, Buenos Aires.jpg"), credit: "Buenos Aires — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Caminito",
     texto: "Saindo de Campinas (VCP), Buenos Aires por menos de mil reais ida e volta. Ótimo para um fim de semana esticado de tango, parrilla e compras, com o câmbio jogando a favor.",
@@ -309,11 +334,20 @@ export const OFFERS = [
   // roteiro mostra o proprio destino da oferta (ja conferida no Commons);
   // Montevideu ganhou foto propria porque a foto do roteiro e de Colonia del
   // Sacramento, outra cidade do Uruguai.
-  { id: "gru-cuz", origem: "GRU", destino: "CUZ", cidade: "Cusco", local: "Peru", preco: "R$ 2.100", media: "R$ 3.200", economia: "R$ 1.100", cia: "LATAM", datas: "10–20 ago", tipo: "Internacional", publicadoEm: "2026-07-29T08:15:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "34% abaixo da média",
+  { id: "gru-cuz", origem: "GRU", destino: "CUZ", cidade: "Cusco", local: "Peru", preco: "USD $533", preco_usd: "$533", cia: "LATAM", datas: "1–8 nov", tipo: "Internacional", publicadoEm: "2026-09-01T12:20:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "1 parada · LIM",
+    origemCidade: "Guarulhos",
+    pageTitle: "São Paulo–Cusco em novembro: 1 parada em Lima, San Blas e altitude",
     thumbUrl: wiki("Machu Picchu, Peru.jpg"), credit: "Machu Picchu — Wikimedia Commons", creditHref: "https://commons.wikimedia.org/wiki/Category:Machu_Picchu",
-    texto: "São Paulo–Cusco por R$ 2.100 ida e volta em agosto, dentro da estação seca. A rota tem uma escala em Lima (cerca de 7h de viagem no total) — dá tempo de aclimatar antes de subir a Machu Picchu.",
-    dicas: ["1 escala em Lima; confira o tempo de conexão antes de comprar", "Agosto é seca no Peru: céu mais limpo para as fotos da citadela", "Ingresso de Machu Picchu e trem esgotam semanas antes na alta temporada — compre à parte e com antecedência"],
-    flex: [{ d: "10–20 ago", p: "R$ 2.100" }, { d: "14–24 ago", p: "R$ 2.185" }, { d: "18–28 ago", p: "R$ 2.260" }] },
+    texto: "São Paulo (Guarulhos)–Cusco, 1 a 8 de novembro de 2026. LATAM, 1 parada em LIM, USD $533 no Aviasales em 1º de setembro de 2026, saindo de GRU. Sem direto. Não é preço em reais.",
+    dicas: [
+      "LATAM, 1 parada em LIM. Ida domingo 1 nov, 6h30 GRU → 9h40 LIM (5h10), conexão 2h40, LIM → CUZ 13h45. Total 9h15. Volta domingo 8, 22h40 CUZ → LIM → GRU segunda 9, 8h45. Total 8h05.",
+      "A ida sai às 6h30 de GRU. A volta é de madrugada e pousa em Guarulhos segunda 9 de manhã. Quem marca plano no domingo à noite em São Paulo perde o voo. É o horário do voo, não um cronômetro.",
+      "USD $533 no Aviasales, 1º de setembro de 2026, saindo de GRU. Wrap https://www.aviasales.com/search/GRU0111CUZ08111. Bagagem de mão 1×26lb; despachada +US$151 nessa consulta. Não é preço em reais.",
+    ],
+    flex: [{ d: "1–8 nov", p: "USD $533" }],
+    aviasalesUrl: "https://www.aviasales.com/search/GRU0111CUZ08111",
+    fontePreco: "Aviasales",
+    fontePrecoEm: "2026-09-01" },
   { id: "gru-brc", origem: "GRU", destino: "BRC", cidade: "Bariloche", local: "Argentina", preco: "USD $565", preco_usd: "$565", cia: "via AEP", datas: "11–18 out", tipo: "Internacional", publicadoEm: "2026-07-29T05:40:00Z", get publicado() { return formatRelativePublicado(this.publicadoEm); }, erro: false, badge: "1 parada · AEP",
     pageTitle: "São Paulo–Bariloche em outubro: 1 parada, chocolate e Circuito Chico",
     thumbUrl: HERO_SLIDES[1].src, credit: HERO_SLIDES[1].credit, creditHref: HERO_SLIDES[1].creditHref,
@@ -389,6 +423,7 @@ export const OFFER_ORIGINS = ["Todas", ...[...new Set(OFFERS.map((o) => o.origem
 export const OFFER_COORDS = {
   "gru-lis": { lat: 38.7223, lng: -9.1393 }, // Lisboa
   "gru-rec": { lat: -8.0476, lng: -34.877 }, // Recife
+  "gru-mcz": { lat: -9.6498, lng: -35.7089 }, // Maceió
   "vcp-bue": { lat: -34.6037, lng: -58.3816 }, // Buenos Aires
   "gru-eze": { lat: -34.6037, lng: -58.3816 }, // Buenos Aires
   "gru-fln": { lat: -27.5935, lng: -48.5582 }, // Florianópolis
@@ -1322,6 +1357,215 @@ export const GRU_BRC_SEMANA = {
   ],
 };
 
+// Semana editorial GRU-REC (17–24 out 2026). Vive so em /ofertas/gru-rec.
+// Nao entra em /hoje, nao substitui o guia de 5 dias Recife/Porto.
+// Casas ja estavam no guia; horarios nao conferidos nesta passagem.
+export const GRU_REC_SEMANA = {
+  offerId: "gru-rec",
+  titulo: "Recife e Porto de Galinhas, 17 a 24 de outubro de 2026",
+  janela: "17 a 24 de outubro de 2026",
+  origem: "GRU",
+  destino: "REC",
+  cidade: "Recife",
+  escritoEm: "2026-09-01",
+  aviso: "Editorial, escrito em 1º de setembro de 2026. Não é um texto de quem mora em Pernambuco. Cada restaurante abaixo já estava no guia Recife/Porto; horários não conferidos nesta passagem, ligar no dia.",
+  rota: "São Paulo (GRU) → Recife (REC). Guarulhos nos dois sentidos.",
+  voo: "LATAM direto. Ida sábado 17 out, 17h30 GRU → 20h30 REC (3h00). Volta sábado 24 out, 2h45 REC → 6h00 GRU (3h15).",
+  horaArmadilha: "A volta do dia 24 de outubro sai às 2h45 de REC (chega 6h GRU). Precisa estar no REC por volta da 1h. Sexta à noite em Porto perde o voo. É o horário do voo, não um cronômetro.",
+  tarifa: "USD $235",
+  tarifaFonte: "Aviasales",
+  tarifaFonteEm: "2026-09-01",
+  fareNote: "O USD $235 é a tarifa LATAM direto vista no Aviasales em 1 de setembro de 2026, wrap https://www.aviasales.com/search/GRU1710REC24101, saindo de GRU. Guarulhos nos dois sentidos. Bagagem de mão 1×26lb; despachada +US$84 nessa consulta. Não é preço em reais.",
+  hospedagem: "Duas noites no bairro do Recife (a pé do Marco Zero). Quarta a sexta em Porto de Galinhas, na vila. Sexta à noite de volta a Recife, hotel perto do aeroporto: o voo é 2h45 da madrugada. Quem fica em Porto até a sexta à noite perde o voo. Transfer Recife–Porto ~1h.",
+  reservas: "Bora Bora é clube de praia, confirmar. Leite fecha cedo — sábado de chegada sem casa marcada.",
+  conferencia: "Cada restaurante já estava no guia Recife/Porto. Horários não conferidos nesta passagem, ligar no dia.",
+  guiaHref: "/guias/portodegalinhas",
+  guiaLabel: "Roteiro de 5 dias em Recife e Porto de Galinhas, sem as datas desta passagem →",
+  dias: [
+    { n: 1, titulo: "Sábado 17, chegada", desc: "Chegada 20h30. Check-in no Recife. Jantar simples perto do hotel. Leite já terá fechado.",
+      pontos: [{ nome: "Bairro do Recife" }] },
+    { n: 2, titulo: "Domingo 18, Recife Antigo",
+      pontos: [
+        { nome: "Marco Zero" },
+        { nome: "Paço do Frevo" },
+        { nome: "Rua do Bom Jesus" },
+        { nome: "Kahal Zur Israel" },
+      ],
+      restaurante: "Leite",
+      restauranteNota: "Praça Joaquim Nabuco 147, desde 1882. Cartola. restauranteleite.com.br",
+      restauranteEndereco: "Praça Joaquim Nabuco 147" },
+    { n: 3, titulo: "Segunda 19, Olinda",
+      pontos: [
+        { nome: "Alto da Sé" },
+        { nome: "Mosteiro de São Bento" },
+        { nome: "Ateliês da Rua do Amparo" },
+      ],
+      restaurante: "Oficina do Sabor",
+      restauranteNota: "Rua do Amparo 335. Jerimum recheado com camarão. oficinadosabor.com",
+      restauranteEndereco: "Rua do Amparo 335" },
+    { n: 4, titulo: "Terça 20, Porto de Galinhas", desc: "Transfer cedo. Piscinas naturais na maré baixa (tábua na véspera). Tarde na vila.",
+      pontos: [
+        { nome: "Piscinas naturais", nota: "na maré baixa; tábua na véspera" },
+        { nome: "Vila de Porto de Galinhas" },
+      ],
+      restaurante: "Beijupirá",
+      restauranteNota: "Rua Beijupirá. Peixe com tamarindo. beijupira.com.br",
+      restauranteEndereco: "Rua Beijupirá" },
+    { n: 5, titulo: "Quarta 21, Muro Alto e Cupe", desc: "Buggy pela associação da vila.",
+      pontos: [{ nome: "Muro Alto" }, { nome: "Praia do Cupe" }],
+      restaurante: "Barcaxeira",
+      restauranteNota: "Macaxeira na carta. barcaxeira.com.br" },
+    { n: 6, titulo: "Quinta 22, Carneiros", desc: "Carneiros ~40 min ao sul. Igrejinha de São Benedito na areia.",
+      pontos: [
+        { nome: "Praia dos Carneiros", nota: "~40 min ao sul" },
+        { nome: "Igrejinha de São Benedito", nota: "na areia" },
+      ],
+      restaurante: "Bora Bora Beach",
+      restauranteNota: "Mesas na água. Confirmar reserva; clube de praia, não restaurante de vila." },
+    { n: 7, titulo: "Sexta 23, volta a Recife", desc: "Porto de manhã, Recife à tarde. Sem casa nova. Transfer depois do almoço. Check-in perto do aeroporto. Dormir cedo. Despertador meia-noite.",
+      pontos: [{ nome: "Porto de Galinhas", nota: "de manhã" }, { nome: "Hotel perto do aeroporto", nota: "check-in à tarde" }] },
+    { n: 8, titulo: "Sábado 24, saída", desc: "2h45. Sem refeição. Voo 2h45 REC → 6h GRU.",
+      pontos: [] },
+  ],
+};
+
+// Semana editorial GRU-MCZ (17–24 out 2026). Vive so em /ofertas/gru-mcz.
+// Nao entra em /hoje, nao substitui o guia de 5 dias Maceio/Maragogi.
+// Barraca do Frances sem nome — nao inventar restaurante.
+export const GRU_MCZ_SEMANA = {
+  offerId: "gru-mcz",
+  titulo: "Maceió e Maragogi, 17 a 24 de outubro de 2026",
+  janela: "17 a 24 de outubro de 2026",
+  origem: "GRU",
+  destino: "MCZ",
+  cidade: "Maceió",
+  escritoEm: "2026-09-01",
+  aviso: "Editorial, escrito em 1º de setembro de 2026. Não é um texto de quem mora em Alagoas. Cada restaurante abaixo já estava no guia Maceió/Maragogi; horários não conferidos nesta passagem, ligar no dia. A barraca da orla do Francês não tem nome nesta página.",
+  rota: "São Paulo (GRU) → Maceió (MCZ). Guarulhos nos dois sentidos.",
+  voo: "GOL direto. Ida sábado 17 out, 22h25 GRU → 1h15 MCZ (já domingo 18), 2h50. Volta sábado 24 out, 4h00 MCZ → 7h20 GRU, 3h20.",
+  horaArmadilha: "Chegada 1h15 de domingo: sábado 17 não é um dia em Maceió. A volta do sábado 24 sai às 4h de MCZ (chega 7h20 GRU). Sexta termina cedo; despertador às 2h. É o horário do voo, não um cronômetro.",
+  tarifa: "USD $372",
+  tarifaFonte: "Aviasales",
+  tarifaFonteEm: "2026-09-01",
+  fareNote: "O USD $372 é a tarifa GOL direto vista no Aviasales em 1 de setembro de 2026, wrap https://www.aviasales.com/search/GRU1710MCZ24101, saindo de GRU. Guarulhos nos dois sentidos. Bagagem de mão inclusa; despachada +US$75 nessa consulta. Na mesma busca há um GOL diurno a USD $434 (14h05→16h55 / 12h40→15h45) — outro par, não o preço desta página. Esta semana segue o $372 da madrugada. Não é preço em reais.",
+  hospedagem: "Ponta Verde ou Jatiúca. Francês e Maragogi pedem van ou carro naquele dia.",
+  reservas: "Burgalhau é beach club, confirmar walk-in. Janga Praia: fila no fim de semana.",
+  conferencia: "Cada restaurante já estava no guia Maceió/Maragogi. Horários não conferidos nesta passagem, ligar no dia. Sem nome de casa na orla do Francês.",
+  guiaHref: "/guias/maceio",
+  guiaLabel: "Roteiro de 5 dias em Maceió e Maragogi, sem as datas desta passagem →",
+  dias: [
+    { n: 1, titulo: "Sábado 17, voo noturno", desc: "Voo 22h25 GRU. Sem dia no destino. Chegada só domingo 1h15.",
+      pontos: [] },
+    { n: 2, titulo: "Domingo 18, Pajuçara", desc: "Chegada 1h15. Dormir. Tarde: jangada se a maré permitir, caminhada em Ponta Verde.",
+      pontos: [
+        { nome: "Praia de Pajuçara", nota: "jangada se a maré permitir" },
+        { nome: "Praia de Ponta Verde" },
+      ],
+      restaurante: "Janga Praia",
+      restauranteNota: "Camarão jangadeiro. Fila no fim de semana." },
+    { n: 3, titulo: "Segunda 19, Francês", desc: "Francês ~40 min ao sul. Peixe frito na orla, sem casa nomeada. Barra de São Miguel se ainda houver luz.",
+      pontos: [
+        { nome: "Praia do Francês", nota: "~40 min ao sul; peixe frito na orla, sem casa nomeada" },
+        { nome: "Barra de São Miguel", nota: "se ainda houver luz" },
+      ] },
+    { n: 4, titulo: "Terça 20, Maragogi", desc: "Saída cedo. Piscinas de Galés. Beach club, confirmar walk-in.",
+      pontos: [
+        { nome: "Piscinas naturais de Galés" },
+        { nome: "Praia de Barra Grande" },
+      ],
+      restaurante: "Burgalhau",
+      restauranteNota: "Barra Grande. Chiclete de camarão. Beach club, confirmar walk-in." },
+    { n: 5, titulo: "Quarta 21, Mundaú", desc: "Lagoa Mundaú, Pontal da Barra, renda filé.",
+      pontos: [
+        { nome: "Lagoa Mundaú" },
+        { nome: "Pontal da Barra", nota: "renda filé" },
+      ],
+      restaurante: "Tapioca Maria Bonita",
+      restauranteNota: "Jatiúca." },
+    { n: 6, titulo: "Quinta 22, Jatiúca",
+      pontos: [{ nome: "Praia da Jatiúca" }],
+      restaurante: "Wanchako",
+      restauranteNota: "Ceviche desde 1996. wanchako.com.br" },
+    { n: 7, titulo: "Sexta 23, descanso", desc: "Descanso, dormir cedo. Sem casa nova. Voo 4h no sábado. Despertador 2h.",
+      pontos: [{ nome: "Ponta Verde ou Jatiúca" }] },
+    { n: 8, titulo: "Sábado 24, saída", desc: "4h. Sem refeição. Voo 4h MCZ → 7h20 GRU.",
+      pontos: [] },
+  ],
+};
+
+// Semana editorial GRU-CUZ (1–8 nov 2026). Vive so em /ofertas/gru-cuz.
+// 1 parada LIM, sem direto. Machu Picchu so se o ingresso existir —
+// esta semana nao reserva ingresso nem trem.
+export const GRU_CUZ_SEMANA = {
+  offerId: "gru-cuz",
+  titulo: "Cusco, 1 a 8 de novembro de 2026",
+  janela: "1 a 8 de novembro de 2026",
+  origem: "GRU",
+  destino: "CUZ",
+  cidade: "Cusco",
+  escritoEm: "2026-09-01",
+  aviso: "Editorial, escrito em 1º de setembro de 2026. Não é um texto de quem mora no Peru. Cada restaurante abaixo já estava no guia de Cusco; horários não conferidos nesta passagem, ligar no dia.",
+  rota: "São Paulo (GRU) → Cusco (CUZ). 1 parada em Lima (LIM). Sem direto.",
+  voo: "LATAM, 1 parada em LIM. Ida domingo 1 nov, 6h30 GRU → 9h40 LIM (5h10), conexão 2h40, LIM → CUZ 13h45. Total 9h15. Volta domingo 8, 22h40 CUZ → LIM → GRU segunda 9, 8h45. Total 8h05.",
+  horaArmadilha: "A ida do domingo 1º de novembro sai às 6h30 de GRU. A volta sai domingo 8 às 22h40 de CUZ e pousa em Guarulhos segunda 9 às 8h45. Quem marca plano no domingo à noite em São Paulo perde o voo. É o horário do voo, não um cronômetro.",
+  tarifa: "USD $533",
+  tarifaFonte: "Aviasales",
+  tarifaFonteEm: "2026-09-01",
+  fareNote: "O USD $533 é a tarifa LATAM 1 parada em LIM vista no Aviasales em 1 de setembro de 2026, wrap https://www.aviasales.com/search/GRU0111CUZ08111, saindo de GRU. Sem direto. Bagagem de mão 1×26lb; despachada +US$151 nessa consulta. Não é preço em reais.",
+  hospedagem: "San Blas, perto da Plaza de Armas. Poucas escadas nos primeiros dias (3.400 m). Quarta em Águas Calientes só se o ingresso de Machu Picchu já existir.",
+  reservas: "Ingresso de Machu Picchu e trem NÃO estão na passagem. O Ministério da Cultura vende o ingresso com meses de antecedência. Esta semana não reserva nada. Não fingimos que há ingresso.",
+  conferencia: "Cada restaurante já estava no guia de Cusco. Horários não conferidos nesta passagem, ligar no dia.",
+  guiaHref: "/guias/cusco",
+  guiaLabel: "Roteiro de 5 dias em Cusco, sem as datas desta passagem →",
+  dias: [
+    { n: 1, titulo: "Domingo 1, chegada", desc: "Chegada 13h45. San Blas. Plaza, Catedral, caminhada curta. Sem subir neste dia. Jantar leve no MAP Café, no Museo de Arte Precolombino, se ainda estiver aberto; senão, hotel.",
+      pontos: [
+        { nome: "Bairro de San Blas" },
+        { nome: "Plaza de Armas" },
+        { nome: "Catedral del Cusco" },
+      ],
+      restaurante: "MAP Café",
+      restauranteNota: "No Museo de Arte Precolombino, se ainda estiver aberto; senão, hotel.",
+      restauranteEndereco: "Museo de Arte Precolombino, Cusco" },
+    { n: 2, titulo: "Segunda 2, ruínas", desc: "Sacsayhuamán, Q'enqo, Tambomachay, devagar.",
+      pontos: [
+        { nome: "Sacsayhuamán" },
+        { nome: "Q'enqo" },
+        { nome: "Tambomachay" },
+      ],
+      restaurante: "Cicciolina",
+      restauranteNota: "Calle Triunfo. Tapas andinas, alpaca.",
+      restauranteEndereco: "Calle Triunfo" },
+    { n: 3, titulo: "Terça 3, Valle Sagrado", desc: "Pisac, Maras, Ollantaytambo.",
+      pontos: [
+        { nome: "Pisac" },
+        { nome: "Maras" },
+        { nome: "Ollantaytambo" },
+      ],
+      restaurante: "El Albergue",
+      restauranteNota: "Ao lado da estação de Ollanta. Horta própria.",
+      restauranteEndereco: "Estação de Ollantaytambo" },
+    { n: 4, titulo: "Quarta 4, Machu Picchu se houver ingresso", desc: "Machu Picchu só se o ingresso existir. Trem cedo para Águas Calientes. Sem ingresso, este dia é Valle ou Cusco — não inventamos disponibilidade. Jantar no Indio Feliz só se você estiver lá.",
+      pontos: [
+        { nome: "Machu Picchu", nota: "só com ingresso já comprado; esta semana não reserva" },
+      ] },
+    { n: 5, titulo: "Quinta 5, volta a Cusco", desc: "Trem de manhã de volta. Mercado San Pedro, Qorikancha.",
+      pontos: [
+        { nome: "Mercado San Pedro" },
+        { nome: "Qorikancha" },
+      ],
+      restaurante: "Chicha",
+      restauranteNota: "Gastón Acurio.",
+      restauranteEndereco: "Cusco" },
+    { n: 6, titulo: "Sexta 6, descanso", desc: "Descanso em Cusco. Sem casa nova. Ateliês de San Blas. A altitude ainda pesa.",
+      pontos: [{ nome: "Ateliês de San Blas" }] },
+    { n: 7, titulo: "Sábado 7, descanso", desc: "Descanso. Sem casa nova. Machu Picchu, na prática, já é tarde se a quarta passou sem ingresso.",
+      pontos: [{ nome: "Cusco" }] },
+    { n: 8, titulo: "Domingo 8, saída", desc: "Voo 22h40. Jantar cedo perto do hotel. Pousa em GRU segunda 9, 8h45. Sem refeição no avião marcada.",
+      pontos: [] },
+  ],
+};
+
 function attachLockWeek(semana) {
   const offer = OFFERS.find((o) => o.id === semana.offerId);
   if (offer) offer.semana = semana;
@@ -1335,6 +1579,9 @@ attachLockWeek(REC_GIG_SEMANA);
 attachLockWeek(POA_MVD_SEMANA);
 attachLockWeek(CGH_IGU_SEMANA);
 attachLockWeek(GRU_BRC_SEMANA);
+attachLockWeek(GRU_REC_SEMANA);
+attachLockWeek(GRU_MCZ_SEMANA);
+attachLockWeek(GRU_CUZ_SEMANA);
 
 // Todos os guias: os 10 editoriais-base + os 12 escritos pelos agentes de
 // turismo (um por regiao). Ver src/render/moreGuides.js.

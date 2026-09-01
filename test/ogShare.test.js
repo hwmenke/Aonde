@@ -50,7 +50,7 @@ test("ogSharePathForOffer aponta para o jpg maiusculo quando o ficheiro existe",
   assert.equal(ogSharePathForOffer("gru-eze"), "/og/GRU-EZE.jpg");
   assert.equal(ogSharePathForOffer("gru-lis"), "/og/GRU-LIS.jpg");
   assert.equal(ogSharePathForOffer("vcp-bue"), "/og/VCP-BUE.jpg");
-  assert.equal(ogSharePathForOffer("gru-rec"), "", "sem cartao, nao inventa caminho");
+  assert.equal(ogSharePathForOffer("gru-rec"), "/og/GRU-REC.jpg");
   const forSsaJpg = existsSync(path.join(process.cwd(), "public", "og", "FOR-SSA.jpg"));
   assert.equal(
     ogSharePathForOffer("for-ssa"),

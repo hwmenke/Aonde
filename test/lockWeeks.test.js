@@ -285,6 +285,9 @@ test("/hoje nao cresce estas semanas; rotacao fica nos tres locks antigos", () =
     assert.doesNotMatch(html, /id="semana-rec-gig"/);
     assert.doesNotMatch(html, /id="semana-poa-mvd"/);
     assert.doesNotMatch(html, /id="semana-gru-brc"/);
+    assert.doesNotMatch(html, /id="semana-gru-rec"/);
+    assert.doesNotMatch(html, /id="semana-gru-mcz"/);
+    assert.doesNotMatch(html, /id="semana-gru-cuz"/);
     assert.doesNotMatch(html, /Cabaña Las Lilas/);
     assert.doesNotMatch(html, /Bar Liguria/);
     assert.doesNotMatch(html, /Editorial, escrito em 28 de agosto/);
@@ -306,6 +309,9 @@ test("GET serve cada /ofertas/{id} com a semana e sem vazar para o guia", async 
   const hoje = await (await fetch(`${base}/hoje`)).text();
   assert.doesNotMatch(hoje, /id="semana-cgh-igu"/);
   assert.doesNotMatch(hoje, /id="semana-gru-brc"/);
+  assert.doesNotMatch(hoje, /id="semana-gru-rec"/);
+  assert.doesNotMatch(hoje, /id="semana-gru-mcz"/);
+  assert.doesNotMatch(hoje, /id="semana-gru-cuz"/);
 });
 
 test("este PR nao adiciona *-story.jpg nem *-ig.jpg", () => {
@@ -328,6 +334,8 @@ test("credito OG esta no README (Omnespsx, nao Gueldem)", async () => {
   assert.match(readme, /Emesbe, CC BY-SA 3\.0/);
   assert.match(readme, /Phil Whitehouse, CC BY 2\.0/);
   assert.match(readme, /Paul R\. Burley, CC BY-SA 4\.0/);
+  assert.match(readme, /Simone C Vitor, CC BY-SA 4\.0/);
+  assert.match(readme, /Marco Zero - Recife Antigo\.jpg/);
   assert.match(readme, /\/ofertas\/cgh-igu/);
   assert.match(readme, /Congonhas/);
 });
@@ -339,6 +347,7 @@ const OG_PAIRS = [
   { name: "POA-MVD.jpg", min: 10_000 },
   { name: "CGH-IGU.jpg", min: 10_000 },
   { name: "GRU-BRC.jpg", min: 10_000 },
+  { name: "GRU-REC.jpg", min: 10_000 },
 ];
 
 for (const card of OG_PAIRS) {
