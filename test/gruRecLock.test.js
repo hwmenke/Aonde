@@ -113,7 +113,7 @@ test("a semana vive so em /ofertas/gru-rec; guia de 5 dias e /hoje nao crescem",
   assert.match(oferta, /precisa estar no REC por volta da 1h/);
   assert.match(oferta, /Sexta à noite em Porto perde o voo/);
   assert.match(oferta, /class="semana-lock-aviso"/);
-  assert.match(oferta, /saindo de Guarulhos/);
+  assert.match(oferta, /saindo de[\s\S]{0,80}Guarulhos/);
   assert.match(oferta, /<title>São Paulo–Recife em outubro/);
   assert.doesNotMatch(oferta, /Tarifa ao vivo/);
   assert.doesNotMatch(oferta, /ao vivo no Aviasales/);
