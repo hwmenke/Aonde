@@ -362,8 +362,26 @@ for (const card of OG_PAIRS) {
       assert.ok(buf.length > card.min);
       assert.equal(buf[0], 0xff);
       assert.equal(buf[1], 0xd8);
+      const dims = jpegDimensions(buf);
+      assert.ok(dims, `${card.name} precisa ter SOF JPEG`);
+      assert.equal(dims.width, 1200, `${card.name} width`);
+      assert.equal(dims.height, 630, `${card.name} height`);
     }
   );
+}
+
+function jpegDimensions(buf) {
+  let i = 2;
+  while (i < buf.length - 8) {
+    if (buf[i] !== 0xff) return null;
+    const marker = buf[i + 1];
+    const len = buf.readUInt16BE(i + 2);
+    if (marker >= 0xc0 && marker <= 0xc3) {
+      return { height: buf.readUInt16BE(i + 5), width: buf.readUInt16BE(i + 7) };
+    }
+    i += 2 + len;
+  }
+  return null;
 }
 
 test("hora armadilha e linha de texto, sem countdown", () => {
