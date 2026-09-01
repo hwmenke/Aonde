@@ -30,7 +30,6 @@ const UNWRAPPED_IDS = [
   "gru-mco",
   "rec-gru",
   "ssa-cnf",
-  "gru-cuz",
   "cnf-mao",
   "gig-cnf-op",
   "bsb-cgr",

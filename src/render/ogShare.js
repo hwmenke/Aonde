@@ -36,6 +36,8 @@ export function ogSharePathForOffer(offerId) {
   if (lower === "cgh-igu" && /GRU-/i.test(path)) return "";
   if (lower === "rec-gig" && /GIG-SSA|GRU-EZE|HOJE/i.test(path)) return "";
   if (lower === "gru-rec" && /REC-GIG|GIG-SSA|HOJE|CGH-/i.test(path)) return "";
+  if (lower === "gru-mcz" && /GRU-REC|REC-GIG|GIG-SSA|HOJE|CGH-/i.test(path)) return "";
+  if (lower === "gru-cuz" && /GRU-REC|GRU-MCZ|GIG-SSA|HOJE|CGH-/i.test(path)) return "";
   return path;
 }
 

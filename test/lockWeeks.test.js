@@ -286,6 +286,8 @@ test("/hoje nao cresce estas semanas; rotacao fica nos tres locks antigos", () =
     assert.doesNotMatch(html, /id="semana-poa-mvd"/);
     assert.doesNotMatch(html, /id="semana-gru-brc"/);
     assert.doesNotMatch(html, /id="semana-gru-rec"/);
+    assert.doesNotMatch(html, /id="semana-gru-mcz"/);
+    assert.doesNotMatch(html, /id="semana-gru-cuz"/);
     assert.doesNotMatch(html, /Cabaña Las Lilas/);
     assert.doesNotMatch(html, /Bar Liguria/);
     assert.doesNotMatch(html, /Editorial, escrito em 28 de agosto/);
@@ -308,6 +310,8 @@ test("GET serve cada /ofertas/{id} com a semana e sem vazar para o guia", async 
   assert.doesNotMatch(hoje, /id="semana-cgh-igu"/);
   assert.doesNotMatch(hoje, /id="semana-gru-brc"/);
   assert.doesNotMatch(hoje, /id="semana-gru-rec"/);
+  assert.doesNotMatch(hoje, /id="semana-gru-mcz"/);
+  assert.doesNotMatch(hoje, /id="semana-gru-cuz"/);
 });
 
 test("este PR nao adiciona *-story.jpg nem *-ig.jpg", () => {
