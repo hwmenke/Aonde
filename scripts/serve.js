@@ -4,16 +4,20 @@
 // Uso:
 //   node scripts/serve.js
 //   AONDE_PORT=8080 node scripts/serve.js
+//   PORT=10000 node scripts/serve.js   # PaaS (Render/Railway) injeta PORT
 //
-// Porta: AONDE_PORT (default 3333). CORS: AONDE_CORS_ORIGIN (ausente = sem CORS).
+// Porta: PORT || AONDE_PORT || 3333. Host: 0.0.0.0 (obrigatorio em PaaS;
+// localhost continua funcionando no desenvolvimento local).
+// CORS: AONDE_CORS_ORIGIN (ausente = sem CORS).
 
 import { createServer } from "../src/server.js";
 
-const port = Number(process.env.AONDE_PORT) || 3333;
+const port = Number(process.env.PORT || process.env.AONDE_PORT) || 3333;
+const host = "0.0.0.0";
 const server = createServer();
 
-server.listen(port, () => {
-  console.log(`API de curadoria Aonde no ar em http://localhost:${port}`);
+server.listen(port, host, () => {
+  console.log(`API de curadoria Aonde no ar em http://${host}:${port}`);
   console.log("Endpoints:");
   console.log(`  GET  http://localhost:${port}/api/health`);
   console.log(`  GET  http://localhost:${port}/api/offers?status=rascunho`);

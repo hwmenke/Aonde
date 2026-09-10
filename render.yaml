@@ -1,0 +1,18 @@
+# Aonde staging Blueprint — https://test.aonde.com.br
+# Secrets are prompted in the Render Dashboard (sync: false). Never commit real values.
+services:
+  - type: web
+    name: aonde-staging
+    runtime: node
+    buildCommand: "true"
+    startCommand: node scripts/serve.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: AONDE_SITE_URL
+        value: https://test.aonde.com.br
+      - key: TRAVELPAYOUTS_MARKER
+        sync: false
+      - key: TRAVELPAYOUTS_TOKEN
+        sync: false

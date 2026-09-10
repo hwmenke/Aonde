@@ -13,6 +13,7 @@
     ".": "./src/index.js"
   },
   "scripts": {
+    "start": "node scripts/serve.js",
     "test": "node --test"
   }
 }

@@ -124,6 +124,10 @@ samples/       páginas de amostra pré-renderizadas (abra direto no navegador)
 docs/          pesquisa de parceiros, Google Places, handoff do protótipo
 ```
 
+## Staging
+
+Deploy one-click no Render (preferido) ou Railway: [`docs/DEPLOY-STAGING.md`](./docs/DEPLOY-STAGING.md). Depois, CNAME `test` → o host gerado (`*.onrender.com` ou Railway).
+
 ## Testes
 
 ```bash
