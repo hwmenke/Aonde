@@ -260,7 +260,7 @@ export function buildOfferProduct(vm) {
   const usd = parseUSDToNumber(vm.preco);
   const brl = parseBRLToNumber(vm.preco);
   const price = usd !== null ? usd : brl;
-  const precoGarantido = price !== null && !vm.erro && !!vm.affiliateUrl;
+  const precoGarantido = price !== null && !vm.erro && !!vm.affiliateUrl && vm.aviasalesBuy !== false;
   if (precoGarantido) {
     product.offers = {
       "@type": "Offer",

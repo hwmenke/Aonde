@@ -435,6 +435,7 @@ function normalizeLiveOffer(offer) {
     href,
     fontePreco: offer.fontePreco || offer.fonte_preco || "",
     fontePrecoEm: offer.fontePrecoEm || offer.fonte_preco_em || "",
+    aviasalesBuy: offer.aviasalesBuy !== false,
   };
 }
 
@@ -483,7 +484,19 @@ function normalizeContentOffer(o) {
     origemCidade: o.origemCidade || "",
     ogCredit: o.ogCredit || "",
     ogCreditHref: o.ogCreditHref || "",
+    aviasalesBuy: o.aviasalesBuy !== false,
+    ctaLabel: o.ctaLabel || "",
+    ctaFine: o.ctaFine || "",
+    shareTitulo: o.shareTitulo || "",
+    exitSub: o.exitSub || "",
   };
+}
+
+function aviasalesCtaLabel(offerOrVm) {
+  const custom = offerOrVm && offerOrVm.ctaLabel;
+  if (custom) return String(custom);
+  if (offerOrVm && offerOrVm.aviasalesBuy === false) return "Ver busca no Aviasales →";
+  return "Reservar no Aviasales →";
 }
 
 const badgeClass = (vm) => (vm.erro ? "badge-erro" : "badge-desconto");
@@ -2071,11 +2084,14 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
   // (agregador) e nao pra SWISS e enganoso. A cia pode ficar na linha do voo
   // ("SWISS, 12-24 out"), mas o CTA nomeia o destino real: Aviasales.
   const ctaLabel = vm.affiliateUrl
-    ? `Reservar no Aviasales →`
+    ? aviasalesCtaLabel(vm)
     : `Ver voos ${escapeHtml(vm.origem || "")} → ${escapeHtml(vm.destino || destinoLabel)} →`;
   // Subtexto HONESTO conforme o destino real do CTA (parceiro externo vs busca
   // interna de voos). Nunca prometer "site do parceiro" quando vai para /resultados.
-  const ctaFine = vm.affiliateUrl
+  // aviasalesBuy:false / ctaFine: wrap existe, mas nao ha Buy — nao inventar reserva.
+  const ctaFine = vm.ctaFine
+    ? vm.ctaFine
+    : vm.affiliateUrl
     ? "Você será levado ao site do parceiro. O Aonde pode receber comissão, sem custo extra para você."
     : "Você vai ver os voos desta rota (tarifas de exemplo por enquanto). A busca e a compra acontecem no site do parceiro — o Aonde pode receber comissão, sem custo extra para você.";
 
@@ -2138,7 +2154,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
     }
   })();
   const shareUrl = offerShareUrl(canonicalBase, vm.id);
-  const shareTitle = `${destinoLabel} por ${vm.preco} saindo de ${origemNome || vm.origem}`;
+  const shareTitle = vm.shareTitulo || `${destinoLabel} por ${vm.preco} saindo de ${origemNome || vm.origem}`;
   const waShare = shareUrl
     ? `<div class="det-share">` +
       `<p class="det-share-title">Compartilhar oferta</p>` +
@@ -2633,7 +2649,8 @@ export function renderTodayPage(pacote) {
       // Cada card compartilha AQUELA oferta. Nunca /hoje: dois cards com o
       // mesmo /hoje fazem o preview do WhatsApp virar Buenos Aires.
       const shareUrl = offerShareUrl(hojeBase, o.id);
-      const shareTitle = `${r.titulo} - ${o.preco} saindo de ${o.origemCidade}`;
+      const shareTitle = (offerFull && offerFull.shareTitulo)
+        || `${r.titulo} - ${o.preco} saindo de ${o.origemCidade}`;
       const waShareBtn = shareUrl
         ? `<a class="btn btn-ghost btn-ghost--claro" href="${escapeHtml(waShareLink(shareTitle, shareUrl))}" target="_blank" rel="noopener">` +
           `💬 Compartilhar` +
@@ -2664,7 +2681,7 @@ export function renderTodayPage(pacote) {
           // Ofertas RESERVAVEIS (com aviasalesUrl ou affiliateUrl real) usam copy honesto:
           // "Reservar no Aviasales →" em vez de "Ver a oferta →", porque vao direto para o parceiro.
           const isBookable = !!(o.__source && (o.__source.aviasalesUrl || o.__source.affiliate_url || o.__source.affiliateUrl));
-          const ctaText = isBookable ? "Reservar no Aviasales →" : "Ver a oferta →";
+          const ctaText = isBookable ? aviasalesCtaLabel(o.__source) : "Ver a oferta →";
           return `<a class="btn btn-green" href="${escapeHtml(o.href)}">${escapeHtml(ctaText)}</a>`;
         })() +
         (r.href ? `<a class="btn btn-ghost btn-ghost--claro" href="${escapeHtml(r.href)}">Roteiro completo, dia a dia</a>` : "") +
@@ -2901,6 +2918,9 @@ export function renderExitPage(offer, { affiliateUrl, notaExtra = "" } = {}) {
   // 3–10 set"), mas o CTA e o titulo da interstitial devem dizer para ONDE a
   // pessoa realmente vai.
   const parceiro = "Aviasales";
+  const exitSub = vm.exitSub
+    ? escapeHtml(vm.exitSub)
+    : `A reserva de <strong>${escapeHtml(destinoLabel)}</strong> é feita e paga direto no site deles — o Aonde não processa pagamento nem emite passagem.`;
 
   const body =
     `<main id="conteudo" tabindex="-1"><section class="wrap exit">` +
@@ -2908,7 +2928,7 @@ export function renderExitPage(offer, { affiliateUrl, notaExtra = "" } = {}) {
     `<div class="exit-card">` +
     `<p class="eyebrow eyebrow--lime">Redirecionando</p>` +
     `<h1>Você está indo para ${escapeHtml(parceiro)}</h1>` +
-    `<p class="exit-sub">A reserva de <strong>${escapeHtml(destinoLabel)}</strong> é feita e paga direto no site deles — o Aonde não processa pagamento nem emite passagem.</p>` +
+    `<p class="exit-sub">${exitSub}</p>` +
     `<a class="btn btn-green exit-cta" href="${escapeHtml(affiliateUrl)}" target="_blank" rel="noopener sponsored">Continuar para ${escapeHtml(parceiro)} →</a>` +
     `<p class="exit-fine">Preço e disponibilidade podem mudar no site do parceiro — as vagas e as tarifas são controladas por eles, não pelo Aonde.</p>` +
     `</div>` +
