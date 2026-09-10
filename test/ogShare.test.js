@@ -258,7 +258,7 @@ test("seletor Saindo de atualiza o rotulo da origem e esconde o preco; foto do d
 
 test("oferta reservavel com fonte/data imprime o visto honesto; sem fonte nao inventa data", () => {
   const fln = renderOfferPage(offerById("gru-fln"), { related: [] });
-  assert.match(fln, /Visto no Google Flights, 21 ago 2026/);
+  assert.match(fln, /Visto no Google Flights, 10 set 2026/);
   const ssa = renderOfferPage(offerById("gig-ssa"), { related: [] });
   assert.match(ssa, /Visto no Google Flights, 21 ago 2026/);
   const eze = renderOfferPage(offerById("gru-eze"), { related: [] });
@@ -275,7 +275,7 @@ test("oferta reservavel com fonte/data imprime o visto honesto; sem fonte nao in
   assert.doesNotMatch(lis, /preço ao vivo|preco ao vivo/i);
 
   const hojeFln = renderTodayPage(pacoteDoDia("2026-08-22"));
-  assert.match(hojeFln, /Visto no Google Flights, 21 ago 2026/);
+  assert.match(hojeFln, /Visto no Google Flights, 10 set 2026/);
   assert.match(hojeFln, /data-dest-photo/);
 });
 

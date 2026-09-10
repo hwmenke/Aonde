@@ -47,25 +47,29 @@ test("GET /saida/gru-fln COM marker constroi tp.media com aviasalesUrl exato", a
   assert.ok(html.includes("GRU2709FLN03101"), "deve ter a URL exata do Aviasales");
   assert.ok(html.includes("marker=test-marker-fln.gru-fln"), "deve ter marker com sub_id");
   assert.ok(html.includes("p=4114"), "deve ter program ID 4114");
+  assert.match(html, /bloqueada, sem botão Buy/, "leave path diz que nao ha Buy");
+  assert.doesNotMatch(html, /A reserva de/, "nao finge que da para reservar");
 });
 
-test("GET /ofertas/gru-fln mostra duas etiquetas de preco: Google Flights e Aviasales", async (t) => {
+test("GET /ofertas/gru-fln mostra consulta Google Flights 10 set, sem Buy inventado", async (t) => {
   const { baseUrl } = await withServer(t);
   const res = await fetch(`${baseUrl}/ofertas/gru-fln`);
   assert.strictEqual(res.status, 200, "deve devolver 200 OK");
   const html = await res.text();
 
-  assert.ok(html.includes("R$ 770"), "deve mostrar R$ 770");
-  assert.match(html, /Visto no Google Flights, 21 ago 2026/, "R$ 770 e consulta Google Flights 21 ago");
+  assert.ok(html.includes("R$ 1.566"), "deve mostrar R$ 1.566");
+  assert.match(html, /Visto no Google Flights, 10 set 2026/, "R$ 1.566 e consulta Google Flights 10 set");
+  assert.match(html, /10 de setembro de 2026/, "consulta vigente e 10 set");
+  assert.match(html, /consulta, não preço de reserva|Não é preço de reserva/);
 
-  assert.ok(html.includes("$158"), "deve mostrar USD $158 do Aviasales (reconsulta 1 set)");
-  assert.ok(html.includes("Aviasales"), "deve mencionar Aviasales para o preco USD");
-  assert.match(html, /1 de setembro de 2026/, "consulta Aviasales vigente e 1 set");
-  assert.match(html, /21 de agosto de 2026|21 ago 2026/, "R$ 770 continua rotulado 21 ago");
-
+  assert.doesNotMatch(html, /R\$\s*770\b/, "R$ 770 da consulta 21 ago sai da pagina");
+  assert.doesNotMatch(html, /21 de agosto de 2026|21 ago 2026/, "nao cita a consulta velha de 21 ago");
+  assert.doesNotMatch(html, /com botão Buy/);
+  assert.doesNotMatch(html, /\$158/, "nao imprime dolar Aviasales antigo");
   assert.doesNotMatch(html, /R\$\s*158\b/, "nao imprime $158 como reais");
   assert.doesNotMatch(html, /R\$\s*153\b/, "nao imprime o $153 antigo como reais");
-  assert.doesNotMatch(html, /\$149/, "consulta Aviasales desta janela nao e $149");
+  assert.doesNotMatch(html, /Reservar no Aviasales/, "sem Buy, CTA nao finge reserva");
+  assert.match(html, /Ver busca no Aviasales/, "leave path honesto: wrap existe, sem Buy");
   assert.doesNotMatch(html, /Tarifa ao vivo/);
   assert.doesNotMatch(html, /ao vivo no Aviasales/);
   assert.doesNotMatch(html, /encontramos (hoje|esta manhã|esta manha)/i);
@@ -104,7 +108,7 @@ test("GET /hoje para 2026-08-22 mostra GRU-FLN com roteiro de Florianópolis", a
   const html = await res.text();
 
   assert.ok(html.includes("Florianópolis"), "deve mostrar Florianópolis");
-  assert.ok(html.includes("R$ 770"), "deve mostrar o preco");
+  assert.ok(html.includes("R$ 1.566"), "deve mostrar o preco da consulta 10 set");
   assert.ok(html.includes("27 set"), "deve mostrar as datas");
 
   assert.ok(html.includes("data-origin-selector"), "deve ter seletor de origem");
@@ -153,7 +157,7 @@ test("a semana editorial GRU-FLN vive so em /ofertas/gru-fln, nao no guia de Flo
   assert.equal(GUIDES.florianopolis.semana, undefined);
   assert.ok(GRU_FLN_SEMANA);
   assert.equal(GRU_FLN_SEMANA.offerId, "gru-fln");
-  assert.equal(GRU_FLN_SEMANA.tarifa, "USD $158");
+  assert.equal(GRU_FLN_SEMANA.tarifa, "R$ 1.566");
   assert.equal(offerById("gru-fln").semana, GRU_FLN_SEMANA);
   assert.notEqual(offerById("for-ssa").semana, GRU_FLN_SEMANA);
   assert.equal(offerById("for-ssa").semana, FOR_SSA_SEMANA);
@@ -179,12 +183,15 @@ test("a semana editorial GRU-FLN vive so em /ofertas/gru-fln, nao no guia de Flo
   assert.match(oferta, /id="semana-gru-fln"/);
   assert.doesNotMatch(oferta, /id="semana-for-ssa"/);
   assert.match(oferta, /São Paulo \(GRU\) → Florianópolis \(FLN\)/);
-  assert.match(oferta, /USD \$158/);
-  assert.match(oferta, /Tarifa vista no Aviasales em 1 de setembro de 2026/);
-  assert.match(oferta, /Visto no Google Flights, 21 ago 2026/);
-  assert.match(oferta, /9h50 GRU/);
-  assert.match(oferta, /10h35 FLN/);
-  assert.match(oferta, /Horários reconsultados em 1 de setembro de 2026/);
+  assert.match(oferta, /R\$ 1\.566/);
+  assert.match(oferta, /Tarifa vista no Google Flights em 10 de setembro de 2026/);
+  assert.match(oferta, /Visto no Google Flights, 10 set 2026/);
+  assert.match(oferta, /16h50 GRU/);
+  assert.match(oferta, /19h30 FLN/);
+  assert.match(oferta, /Horários da consulta no Google Flights em 10 de setembro de 2026/);
+  assert.doesNotMatch(oferta, /USD \$158/);
+  assert.doesNotMatch(oferta, /9h50 GRU/);
+  assert.doesNotMatch(oferta, /10h35 FLN/);
   assert.match(oferta, /href="\/guias\/florianopolis"/);
   assert.doesNotMatch(oferta, /Tarifa ao vivo/);
   assert.doesNotMatch(oferta, /ao vivo no Aviasales/);
@@ -251,8 +258,8 @@ test("GET /guias/florianopolis nao tem a semana lock; GET /ofertas/gru-fln tem, 
 
   assert.match(oferta, /Editorial, escrito em 28 de agosto de 2026/);
   assert.match(oferta, /id="semana-gru-fln"/);
-  assert.match(oferta, /Tarifa vista no Aviasales em 1 de setembro de 2026/);
-  assert.match(oferta, /Visto no Google Flights, 21 ago 2026/);
+  assert.match(oferta, /Tarifa vista no Google Flights em 10 de setembro de 2026/);
+  assert.match(oferta, /Visto no Google Flights, 10 set 2026/);
   assert.doesNotMatch(oferta, /Tarifa ao vivo/);
   assert.doesNotMatch(oferta, /R\$\s*158\b/);
   assert.doesNotMatch(oferta, /R\$\s*153\b/);
@@ -284,17 +291,37 @@ test("lock GRU-FLN abre na semana datada, consulta ao lado de Reservar, sem coun
   assert.doesNotMatch(html, /há 2h|há 2 horas/);
 
   const buy = (html.match(/<div class="det-buy">([\s\S]*?)<p class="det-buy-perks">/) || [])[1] || "";
-  const ctaAt = buy.indexOf("Reservar no Aviasales");
-  const fonteAt = buy.indexOf("Visto no Google Flights, 21 ago 2026");
-  assert.ok(ctaAt > -1 && fonteAt > ctaAt, "fontePreco fica ao lado de Reservar, nao acima");
+  const ctaAt = buy.indexOf("Ver busca no Aviasales");
+  const fonteAt = buy.indexOf("Visto no Google Flights, 10 set 2026");
+  assert.ok(ctaAt > -1 && fonteAt > ctaAt, "fontePreco fica ao lado do CTA, nao acima");
   assert.match(html, /class="det-fonte-preco det-buy-fonte"/);
+  assert.doesNotMatch(html, /Reservar no Aviasales/);
 
   assert.match(html, /href="\/guias\/florianopolis"/);
   assert.doesNotMatch(html, /Centro Histórico e Mercado Público/);
   assert.doesNotMatch(html, /R\$\s*153\b/);
   assert.doesNotMatch(html, /R\$\s*158\b/);
-  assert.match(html, /R\$ 770/);
-  assert.match(html, /USD \$158/);
+  assert.doesNotMatch(html, /R\$\s*770\b/);
+  assert.match(html, /R\$ 1\.566/);
+});
+
+test("WhatsApp share da oferta GRU-FLN usa R$ 1.566 consulta 10 set", () => {
+  const html = renderOfferPage(offerById("gru-fln"), { related: [] });
+  const encoded = (html.match(/wa\.me\/\?text=([^"&]+)/) || [])[1] || "";
+  const text = decodeURIComponent(encoded);
+  assert.match(text, /R\$ 1\.566/);
+  assert.match(text, /consulta 10 set/);
+  assert.doesNotMatch(text, /770/);
+  const hoje = renderTodayPage(pacoteDoDia("2026-08-22"));
+  const hojeText = decodeURIComponent((hoje.match(/wa\.me\/\?text=([^"&]+)/) || [])[1] || "");
+  assert.match(hojeText, /R\$ 1\.566/);
+  assert.match(hojeText, /consulta 10 set/);
+  assert.doesNotMatch(hojeText, /770/);
+});
+
+test("JSON-LD de gru-fln nao anuncia InStock — consulta, nao reserva", () => {
+  const html = renderOfferPage(offerById("gru-fln"), { related: [] });
+  assert.doesNotMatch(html, /InStock/);
 });
 
 test("FOR-SSA continua com a semana propria; guia de 5 dias e link irmao", () => {
