@@ -326,7 +326,17 @@ function fotoLargura(url, largura) {
   return `${u}${u.includes("?") ? "&" : "?"}width=${largura}`;
 }
 
-function resilientImg(url, alt, label, className, largura = 900, destPhoto = false) {
+// "alta": imagem acima da dobra (candidata a LCP) — carrega ja e na frente.
+// "baixa": camada empilhada que ja esta na area visivel mas nao aparece
+// (slides do carrossel depois do primeiro) — nao pode brigar por banda com a
+// foto que a pessoa realmente ve. Sem prioridade: lazy padrao.
+function atributosDeCarga(prioridade) {
+  if (prioridade === "alta") return 'loading="eager" fetchpriority="high"';
+  if (prioridade === "baixa") return 'loading="lazy" fetchpriority="low"';
+  return 'loading="lazy"';
+}
+
+function resilientImg(url, alt, label, className, largura = 900, destPhoto = false, prioridade = "") {
   const dataUri = placeholderDataUri(label);
   const cls = className ? ` class="${escapeHtml(className)}"` : "";
   const src = fotoLargura(url, largura);
@@ -340,15 +350,15 @@ function resilientImg(url, alt, label, className, largura = 900, destPhoto = fal
     ? ` data-dest-photo data-dest-src="${escapeHtml(src)}"`
     : "";
   return (
-    `<img${cls} src="${escapeHtml(src)}" alt="${escapeHtml(alt)}"${srcset}${destAttrs} loading="lazy" decoding="async" ` +
+    `<img${cls} src="${escapeHtml(src)}" alt="${escapeHtml(alt)}"${srcset}${destAttrs} ${atributosDeCarga(prioridade)} decoding="async" ` +
     `onerror="this.onerror=0;this.srcset='';this.src='${dataUri}'">`
   );
 }
 
 // Bloco de media: <img> resiliente quando ha URL; senao SVG placeholder inline.
-function imageBlock(url, alt, label, wrapperClass, destPhoto = false) {
+function imageBlock(url, alt, label, wrapperClass, destPhoto = false, prioridade = "") {
   const inner = url
-    ? resilientImg(url, alt, label, "media-img", 900, destPhoto)
+    ? resilientImg(url, alt, label, "media-img", 900, destPhoto, prioridade)
     : `<div class="media-placeholder">${placeholderSvgMarkup(label)}</div>`;
   return `<div class="${escapeHtml(wrapperClass)}">${inner}</div>`;
 }
@@ -1353,7 +1363,7 @@ function fontePrecoHtml(fonte, isoDate, className, originIata) {
   return `<p class="${escapeHtml(className)}"${originAttr}>${escapeHtml(linha)}</p>`;
 }
 
-function htmlDocument({ title, body, script, description, jsonld, canonical, image }) {
+function htmlDocument({ title, body, script, description, jsonld, canonical, image, noindex = false }) {
   const desc = description || DEFAULT_DESCRIPTION;
   const t = escapeHtml(title);
   const d = escapeHtml(desc);
@@ -1369,7 +1379,7 @@ function htmlDocument({ title, body, script, description, jsonld, canonical, ima
 <script>${THEME_INIT_SCRIPT}</script>
 <title>${t}</title>
 <meta name="description" content="${d}">
-<link rel="icon" href="${FAVICON_SVG}">
+${noindex ? '<meta name="robots" content="noindex, nofollow">\n' : ""}<link rel="icon" href="${FAVICON_SVG}">
 ${canonicalTag}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Aonde">
@@ -1418,7 +1428,7 @@ function heroHtml(slides) {
       (s, i) =>
         `<div class="hero-bg${i === 0 ? " is-active" : ""}" data-hero="${i}">` +
         (s.src
-          ? resilientImg(s.src, s.legenda || s.label, s.foto, "media-img")
+          ? resilientImg(s.src, s.legenda || s.label, s.foto, "media-img", 900, false, i === 0 ? "alta" : "baixa")
           : `<div class="media-placeholder">${placeholderSvgMarkup(s.foto)}</div>`) +
         `</div>`
     )
@@ -1831,7 +1841,7 @@ function mapExploreHtml() {
     `<h2>Todos os roteiros no mapa</h2>` +
     `<p>Navegue o mapa e clique num destino para abrir o roteiro de 5 dias, dia a dia, com onde comer.</p>` +
     `<a class="btn btn-green" href="/mapa">Abrir o mapa de destinos →</a></div>` +
-    `<a class="explore-map" href="/mapa" aria-label="Abrir o mapa de destinos">` +
+    `<a class="explore-map" href="/mapa" aria-label="22 destinos: abrir o mapa de destinos">` +
     `<div class="media-placeholder">${placeholderSvgMarkup("Mapa dos destinos")}</div>` +
     `<span class="explore-map-badge">📍 22 destinos</span></a>` +
     `</div>` +
@@ -1893,7 +1903,7 @@ export function renderHomePage(opts = {}) {
 
 // Opcoes de origem alinhadas ao feed real (OFFER_ORIGINS, menos "Todas"), com
 // rotulo por cidade. Fonte unica de verdade — nao duplicar a lista.
-const ORIGIN_CITIES = { GRU: "São Paulo (GRU)", VCP: "Campinas (VCP)", GIG: "Rio de Janeiro (GIG)", CNF: "Belo Horizonte (CNF)" };
+const ORIGIN_CITIES = Object.fromEntries(BRAZILIAN_ORIGINS.map((o) => [o.iata, o.nome]));
 function originOptionsHtml(active) {
   return OFFER_ORIGINS.filter((o) => o !== "Todas")
     .map((o) => `<option value="${o}"${active === o ? " selected" : ""}>${escapeHtml(ORIGIN_CITIES[o] || o)}</option>`)
@@ -2114,7 +2124,8 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
         : `Foto de ${destinoLabel}`,
     destinoLabel,
     "det-prova-media",
-    !temProva
+    !temProva,
+    "alta"
   );
   const provaTag = temProva
     ? "Prova do preço · captura de tela"
@@ -2254,7 +2265,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
       )
     : "";
   const provaBlock =
-    `<div class="det-prova">${provaImg}${heroCredit}<span class="det-prova-tag">${provaTag}</span></div>`;
+    `<div class="det-prova${usaCartaoOg ? " det-prova--cartao" : ""}">${provaImg}${heroCredit}<span class="det-prova-tag">${provaTag}</span></div>`;
   const weekHtml = isLock
     ? editorialWeekHtml(offer.semana, {
         cidade: destinoLabel,
@@ -2461,7 +2472,7 @@ function renderGuideVM(g, apiKey) {
   const map = guideMiniMap(g, apiKey);
   const hero = g.hero || {};
   const heroMedia = hero.url
-    ? resilientImg(hero.url, g.titulo, hero.foto || g.titulo, "media-img")
+    ? resilientImg(hero.url, g.titulo, hero.foto || g.titulo, "media-img", 900, false, "alta")
     : `<div class="media-placeholder">${placeholderSvgMarkup(hero.foto || g.titulo)}</div>`;
 
   const meta = (g.meta || [])
@@ -2607,11 +2618,11 @@ export function renderTodayPage(pacote) {
   })();
 
   const cards = itens
-    .map((it) => {
+    .map((it, idx) => {
       const o = it.oferta;
       const r = it.roteiro;
       const foto = r.foto && r.foto.url
-        ? resilientImg(r.foto.url, r.destino, r.destino, "media-img", 900, true)
+        ? resilientImg(r.foto.url, `Foto de ${r.destino}`, r.destino, "media-img", 900, true, idx === 0 ? "alta" : "")
         : `<div class="media-placeholder">${placeholderSvgMarkup(r.destino)}</div>`;
       const credito = r.foto && r.foto.credito
         ? `<span class="media-credit-overlay">${
@@ -2663,7 +2674,7 @@ export function renderTodayPage(pacote) {
         `</div>` +
         `<div class="hoje-body">` +
         `<p class="of-rota"><span data-origin-city-label>${escapeHtml(o.origemCidade)}</span> → ${escapeHtml(o.cidade)}</p>` +
-        `<h3 class="hoje-titulo">${escapeHtml(r.titulo)}</h3>` +
+        `<h2 class="hoje-titulo">${escapeHtml(r.titulo)}</h2>` +
         (r.resumo ? `<p class="hoje-resumo">${escapeHtml(r.resumo)}</p>` : "") +
         `<div class="hoje-preco-row"${precoDataAttr}><span class="of-preco">${escapeHtml(o.preco)}</span>` +
         `<span class="of-iv">ida e volta, por pessoa · ${escapeHtml(o.datas)}</span></div>` +
@@ -2891,7 +2902,16 @@ export function renderResultsPage(opts = {}) {
     `</main>` +
     siteFooter();
 
-  return htmlDocument({ title: `Voos ${rota.origem} ⇄ ${rota.destino} · Aonde`, body, script: enhancementScript(), canonical: "/resultados" });
+  const descricaoRota = voosReais
+    ? `Voos encontrados de ${rota.origem} para ${rota.destino}, com horário, paradas e duração. A compra acontece no site do parceiro.`
+    : `Exemplos de voo de ${rota.origem} para ${rota.destino}, com horário, paradas e duração. O preço real você confere no site do parceiro.`;
+  return htmlDocument({
+    title: `Voos ${rota.origem} ⇄ ${rota.destino} · Aonde`,
+    description: descricaoRota,
+    body,
+    script: enhancementScript(),
+    canonical: "/resultados",
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -2948,7 +2968,12 @@ export function renderExitPage(offer, { affiliateUrl, notaExtra = "" } = {}) {
     `</section></main>` +
     siteFooter();
 
-  return htmlDocument({ title: `Indo para ${parceiro} — ${destinoLabel} · Aonde`, body });
+  return htmlDocument({
+    title: `Indo para ${parceiro} — ${destinoLabel} · Aonde`,
+    description: `Você está saindo do Aonde para ${parceiro}, onde a compra de ${destinoLabel} é concluída com as condições do parceiro.`,
+    body,
+    noindex: true,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -3072,6 +3097,7 @@ export function renderNotFoundPage({ caminho = "" } = {}) {
     description: "Este endereço não existe no Aonde. Veja os achados de passagem do dia ou escolha um roteiro de 5 dias.",
     body,
     script: enhancementScript(),
+    noindex: true,
   });
 }
 
@@ -3090,7 +3116,12 @@ export function renderServerErrorPage() {
     `<p class="nf-saidas"><a class="btn btn-green" href="/">Voltar para o início</a></p>` +
     `</section></main>` +
     siteFooter();
-  return htmlDocument({ title: "Erro no servidor · Aonde", body });
+  return htmlDocument({
+    title: "Erro no servidor · Aonde",
+    description: "Algo falhou do nosso lado. Tente de novo em alguns instantes ou fale com a Central de ajuda.",
+    body,
+    noindex: true,
+  });
 }
 
 export function renderUnsubscribePage({ email = "" } = {}) {
@@ -3110,9 +3141,10 @@ export function renderUnsubscribePage({ email = "" } = {}) {
     siteFooter();
   return htmlDocument({
     title: "Cancelar inscrição · Aonde",
+    description: "Cancele o recebimento dos alertas de preço do Aonde. Sem perguntas e sem pedir para você repensar.",
     body,
     script: enhancementScript(),
-    canonical: "/api/newsletter/unsubscribe",
+    noindex: true,
   });
 }
 
@@ -3139,7 +3171,12 @@ export function renderNewsletterStatusPage({ ok, error, pendente, descadastrado 
         `<p><a class="btn btn-green" href="/ofertas">Voltar às ofertas →</a></p>`) +
     `</section></main>` +
     siteFooter();
-  return htmlDocument({ title: ok ? "Inscrição confirmada · Aonde" : "Confirmação · Aonde", body });
+  return htmlDocument({
+    title: ok ? "Inscrição confirmada · Aonde" : "Confirmação · Aonde",
+    description: "Situação da sua inscrição nos alertas de preço do Aonde.",
+    body,
+    noindex: true,
+  });
 }
 
 // ---------------------------------------------------------------------------
