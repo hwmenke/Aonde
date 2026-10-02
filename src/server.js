@@ -36,7 +36,7 @@
 //     "javascript:") sao rejeitados com 409.
 
 import http from "node:http";
-import { gzipSync, brotliCompressSync } from "node:zlib";
+import { gzipSync, brotliCompressSync, constants as zlibConstants } from "node:zlib";
 import path from "node:path";
 import { appendFileSync, readFileSync, existsSync } from "node:fs";
 
@@ -144,6 +144,12 @@ function querHtml(req, pathname) {
   return aceita.includes("text/html");
 }
 
+// Brotli no nivel padrao (11) leva dezenas de ms por pagina de ~70 KB e roda a
+// cada requisicao, empurrando o TTFB. 5 mantem quase toda a economia de bytes.
+// Conteudo imutavel (CSS com hash) usa 11, mas comprime so uma vez.
+const BROTLI_NIVEL_DINAMICO = 5;
+const BROTLI_NIVEL_MAXIMO = 11;
+
 /**
  * Compressao de resposta. HTML e CSS deste site sao texto puro e comprimem
  * MUITO bem; sem isto cada visita em 4G baixa varias vezes mais bytes do que
@@ -153,13 +159,16 @@ function querHtml(req, pathname) {
  * Sincrono de proposito: as respostas aqui sao pequenas (dezenas de KB) e o
  * caminho assincrono complicaria o Content-Length, que varios testes conferem.
  */
-function comprimir(res, corpo) {
+function comprimir(res, corpo, nivelBrotli = BROTLI_NIVEL_DINAMICO) {
   const aceita = String((res && res.aceitaEncoding) || "");
   const buf = Buffer.isBuffer(corpo) ? corpo : Buffer.from(corpo, "utf-8");
   // Abaixo de ~1 KB o cabecalho de compressao custa mais do que economiza.
   if (buf.length < 1024) return { buf, encoding: null };
   try {
-    if (/\bbr\b/.test(aceita)) return { buf: brotliCompressSync(buf), encoding: "br" };
+    if (/\bbr\b/.test(aceita)) {
+      const params = { [zlibConstants.BROTLI_PARAM_QUALITY]: nivelBrotli };
+      return { buf: brotliCompressSync(buf, { params }), encoding: "br" };
+    }
     if (/\bgzip\b/.test(aceita)) return { buf: gzipSync(buf), encoding: "gzip" };
   } catch {
     // Falha de compressao nunca pode derrubar a resposta: manda cru.
@@ -536,6 +545,22 @@ function siteBaseUrl() {
   return getConfig().siteUrl;
 }
 
+// O CSS nao muda enquanto o hash do nome nao mudar: comprime uma vez por
+// codificacao e reaproveita os bytes em todas as requisicoes.
+const cssComprimidoCache = new Map();
+function cssComprimido(res, assetPath) {
+  const aceita = String((res && res.aceitaEncoding) || "");
+  const encoding = /\bbr\b/.test(aceita) ? "br" : /\bgzip\b/.test(aceita) ? "gzip" : "";
+  const chave = `${assetPath}|${encoding}`;
+  let entrada = cssComprimidoCache.get(chave);
+  if (!entrada) {
+    if (cssComprimidoCache.size > 8) cssComprimidoCache.clear();
+    entrada = comprimir(res, pageStylesCss(), BROTLI_NIVEL_MAXIMO);
+    cssComprimidoCache.set(chave, entrada);
+  }
+  return entrada;
+}
+
 // CSS servido como arquivo, com hash no nome. O hash muda quando o CSS muda,
 // entao pode ser cacheado para sempre sem risco de versao velha.
 function handleStyleAsset(res, pathname) {
@@ -545,15 +570,17 @@ function handleStyleAsset(res, pathname) {
     sendText(res, 404, "/* asset nao encontrado */", "text/css; charset=utf-8");
     return;
   }
-  const css = pageStylesCss();
+  const { buf, encoding } = cssComprimido(res, pathname);
   res.writeHead(200, {
     "Content-Type": "text/css; charset=utf-8",
-    "Content-Length": Buffer.byteLength(css),
+    "Content-Length": buf.length,
+    ...(encoding ? { "Content-Encoding": encoding } : {}),
+    Vary: "Accept-Encoding",
     "Cache-Control": "public, max-age=31536000, immutable",
     ...securityHeaders(),
     ...corsHeaders(),
   });
-  res.end(css);
+  res.end(buf);
 }
 
 // Serve OG images para social sharing de public/og/. Permite apenas arquivos
