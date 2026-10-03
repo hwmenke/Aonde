@@ -2103,7 +2103,7 @@ export function renderOffersPage(offers = [], { title = "Ofertas de viagem — A
 // ---------------------------------------------------------------------------
 
 /** Pagina de detalhe de uma oferta — porta fiel da tela "oferta". */
-export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
+export function renderOfferPage(offer, { related = [], apiKey = "", noindex = false } = {}) {
   const vm =
     offer && typeof offer === "object" && ("preco_centavos" in offer || "is_erro_tarifa" in offer)
       ? normalizeLiveOffer(offer)
@@ -2421,6 +2421,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
       : vm.href || (vm.id ? `/ofertas/${vm.id}` : "/ofertas"),
     image: ogImageForOfferPage(vm.id, vm.thumbUrl),
     jsonld: offerJsonld,
+    noindex,
   });
   if (offerMap.loader) doc = doc.replace("</body>", `${offerMap.loader}</body>`);
   return doc;
