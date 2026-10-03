@@ -65,7 +65,7 @@ test("GET /ofertas/gru-fln mostra consulta Google Flights 10 set, sem Buy invent
   assert.doesNotMatch(html, /R\$\s*770\b/, "R$ 770 da consulta 21 ago sai da pagina");
   assert.doesNotMatch(html, /21 de agosto de 2026|21 ago 2026/, "nao cita a consulta velha de 21 ago");
   assert.doesNotMatch(html, /com botão Buy/);
-  assert.doesNotMatch(html, /\$158/, "nao imprime dolar Aviasales antigo");
+  assert.doesNotMatch(html, /\$\s?158/, "nao imprime dolar Aviasales antigo");
   assert.doesNotMatch(html, /R\$\s*158\b/, "nao imprime $158 como reais");
   assert.doesNotMatch(html, /R\$\s*153\b/, "nao imprime o $153 antigo como reais");
   assert.doesNotMatch(html, /Reservar no Aviasales/, "sem Buy, CTA nao finge reserva");
@@ -189,7 +189,7 @@ test("a semana editorial GRU-FLN vive so em /ofertas/gru-fln, nao no guia de Flo
   assert.match(oferta, /16h50 GRU/);
   assert.match(oferta, /19h30 FLN/);
   assert.match(oferta, /Horários da consulta no Google Flights em 10 de setembro de 2026/);
-  assert.doesNotMatch(oferta, /USD \$158/);
+  assert.doesNotMatch(oferta, /(USD|US)\$\s?158/);
   assert.doesNotMatch(oferta, /9h50 GRU/);
   assert.doesNotMatch(oferta, /10h35 FLN/);
   assert.match(oferta, /href="\/guias\/florianopolis"/);
