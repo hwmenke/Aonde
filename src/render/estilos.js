@@ -36,7 +36,7 @@ export function pageStyles() {
     --bg:#f7f7f5;--text:#18181b;--muted:#4f4f48;--muted-2:#50504a;
     --border:#e7e7e3;--border-2:#c9c9c2;--tint:#f1f8e4;--tint-border:#d9edb8;--dark:#18181b;
     --green:#4d7c0f;--green-2:#3f6212;--lime:#84cc16;--lime-2:#a3e635;--on-green:#fff;
-    --erro-bg:#fde3cf;--erro-text:#9a3412;
+    --erro-bg:#fde3cf;--erro-text:#9a3412;--risk-line-text:#9a3412;--erro-campo:#b91c1c;
     /* Superficies (cartoes/inputs) e o par "inverso" (chip solido de maximo
        contraste, usado em botao escuro/estado ativo) — em modo claro e
        quase-preto sobre quase-branco; em escuro, invertemos os dois. */
@@ -64,7 +64,7 @@ export function pageStyles() {
       --bg:#131315;--text:#f2f2ef;--muted:#b9b9b0;--muted-2:#c9c9c0;
       --border:#303034;--border-2:#46464b;--tint:#16210c;--tint-border:#2f4a1a;
       --green:#84cc16;--green-2:#a3e635;--on-green:#18181b;
-      --erro-bg:#fde3cf;--erro-text:#9a3412;
+      --erro-bg:#fde3cf;--erro-text:#9a3412;--risk-line-text:#fdba74;--erro-campo:#fca5a5;
       --surface:#1c1c1f;--input-bg:#232326;--bg-rgb:19,19,21;
       --invert-bg:#f2f2ef;--invert-bg-hover:#e2e2dc;--invert-text:#18181b;
       --veil-rgb:10,10,9;--veil-a1:.55;--veil-a2:.70;--veil-a3:.62;
@@ -78,13 +78,14 @@ export function pageStyles() {
     /* Estavam so no bloco do @media: quem escolhia escuro NO BOTAO ficava com
        o selo de "Erro de tarifa" nas cores do tema claro. Os dois caminhos
        para o escuro tem de dar exatamente no mesmo lugar. */
-    --erro-bg:#fde3cf;--erro-text:#9a3412;
+    --erro-bg:#fde3cf;--erro-text:#9a3412;--risk-line-text:#fdba74;--erro-campo:#fca5a5;
     --surface:#1c1c1f;--input-bg:#232326;--bg-rgb:19,19,21;
     --invert-bg:#f2f2ef;--invert-bg-hover:#e2e2dc;--invert-text:#18181b;
     --veil-rgb:10,10,9;--veil-a1:.55;--veil-a2:.70;--veil-a3:.62;
     --risk-bg:#2a1608;--risk-border:#7c3a12;--risk-note-bg:#341507;--risk-text:#ffd9b3;--risk-line:#fb923c;
   }
   :root[data-tema="claro"]{
+    --risk-line-text:#9a3412;--erro-campo:#b91c1c;
     --bg:#f7f7f5;--text:#18181b;--muted:#4f4f48;--muted-2:#50504a;
     --border:#e7e7e3;--border-2:#c9c9c2;--tint:#f1f8e4;--tint-border:#d9edb8;
     --green:#4d7c0f;--green-2:#3f6212;--on-green:#fff;
@@ -749,7 +750,41 @@ export function pageStyles() {
   .news-form--strip{display:flex;gap:10px;flex-wrap:wrap;flex:1;min-width:280px;max-width:440px;}
   .news-form--strip input,.news-form--strip select{border:1px solid #3f3f42;background:#26262a;border-radius:10px;padding:11px 14px;font-family:var(--sans);font-size:14px;color:#f7f7f5;flex:1;min-width:150px;}
   .news-form--strip .btn{flex-basis:100%;}
-  .news-fine--strip{display:block;text-align:right;padding:6px 32px 0;font-size:12px;color:var(--muted-2);}
+  .news-fine--strip{display:block;text-align:left;padding:10px 4px 0;font-size:13px;line-height:1.5;color:var(--muted);}
+  .news-fine--strip p{margin:0;max-width:760px;}
+  .news-fine--strip a{color:var(--green-2);text-decoration:underline;}
+  .news-label{flex-basis:100%;font-size:12px;font-weight:600;color:#d4d4d8;margin:2px 0 -4px;}
+  .news-form input[aria-invalid="true"],.news-form select[aria-invalid="true"]{border-color:#fca5a5;outline:2px solid #fca5a5;outline-offset:1px;}
+  .news-form button[disabled]{opacity:.7;cursor:progress;}
+  .news-msg--info{color:#d4d4d8;}
+  .news-msg--ok{color:var(--lime-2);}
+  .news-msg--erro{color:#fca5a5;}
+  .news-msg--aviso{color:#fcd34d;}
+  .news-form--strip .news-msg{flex-basis:100%;text-align:left;line-height:1.5;}
+  .news-msg--claro.news-msg--info{color:var(--muted);}
+  .news-msg--claro.news-msg--ok{color:var(--green-2);}
+  .news-msg--claro.news-msg--erro{color:var(--erro-campo);}
+  .alerts-form{max-width:420px;}
+  .alerts-form input[aria-invalid="true"]{border-color:var(--erro-campo);outline:2px solid var(--erro-campo);outline-offset:1px;}
+  .alerts-form .news-msg{text-align:left;}
+  .hoje-aviso{margin:14px 0 0;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r);background:var(--tint);font-size:14px;line-height:1.5;}
+  .hoje-confianca{padding-top:8px;padding-bottom:0;}
+  .hoje-confianca ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:12px;}
+  .hoje-confianca li{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;font-size:14px;line-height:1.5;color:var(--muted);}
+  .hoje-confianca strong{display:block;color:var(--text);font-size:14px;margin-bottom:2px;}
+  .hoje-preco-idade{margin:2px 0 0;font-size:13px;line-height:1.45;color:var(--muted);}
+  .hoje-preco-idade.is-velho{color:var(--risk-line-text);font-weight:600;}
+  .hoje-origem-aviso{margin:4px 0 0;font-size:13px;line-height:1.45;color:var(--risk-line-text);font-weight:600;}
+  .hoje-cta-nota{margin:2px 0 0;font-size:13px;line-height:1.5;color:var(--muted);}
+  .hoje-vazio{grid-column:1/-1;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:28px 28px 24px;}
+  .hoje-vazio h2{font-size:24px;line-height:1.2;margin:0 0 8px;}
+  .hoje-vazio p{margin:0 0 12px;font-size:15px;line-height:1.55;color:var(--muted);max-width:640px;}
+  .hoje-vazio .hoje-ctas{padding-top:4px;}
+  .status-passos{margin:10px 0 14px;padding-left:20px;font-size:15px;line-height:1.6;color:var(--muted);max-width:620px;}
+  .status-detalhes{margin:8px 0 16px;max-width:420px;}
+  .status-detalhes summary{cursor:pointer;font-weight:600;font-size:14px;padding:10px 0;}
+  .status-retry{display:flex;flex-direction:column;gap:8px;max-width:380px;margin:12px 0 16px;}
+  .status-links{margin:18px 0 0;font-size:14px;color:var(--muted);}
 
   /* Resultados: transparencia + captura */
   .res-fine{margin-top:4px;font-size:12px;color:var(--muted-2);text-align:center;}

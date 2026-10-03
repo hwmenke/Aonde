@@ -95,8 +95,8 @@ test("só a foto acima da dobra carrega com prioridade; as demais seguem lazy", 
 test("/hoje: título do cartão é h2 (sem pular de h1 para h3)", async (t) => {
   const base = await withServer(t);
   const hoje = await (await fetch(`${base}/hoje?dia=2026-10-02`)).text();
-  assert.match(hoje, /<h2 class="hoje-titulo">/);
-  assert.ok(!/<h3 class="hoje-titulo">/.test(hoje));
+  assert.match(hoje, /<h2 class="hoje-titulo"[ >]/);
+  assert.ok(!/<h3 class="hoje-titulo"/.test(hoje));
   assert.match(hoje, /alt="Foto de /, "alt descreve o que é a imagem");
 });
 
