@@ -87,8 +87,8 @@ test("só a foto acima da dobra carrega com prioridade; as demais seguem lazy", 
   assert.ok(slides.length > 1, "o carrossel tem mais de um slide");
   assert.match(slides[0], /fetchpriority="high"/);
   for (const s of slides.slice(1)) {
-    assert.match(s, /loading="lazy"/);
-    assert.match(s, /fetchpriority="low"/);
+    assert.match(s, /data-lazy/, "slides depois do primeiro só baixam na vez deles (ver heroLazy.test.js)");
+    assert.doesNotMatch(s, /fetchpriority="high"/);
   }
 });
 
