@@ -286,11 +286,12 @@ test("as fotos do Commons sao pedidas redimensionadas", () => {
   // para exibir num container de 160-620px. Em 4G isso decide se a foto
   // aparece ou se a pessoa desiste.
   const h = renderOffersPage();
-  const imgs = [...h.matchAll(/<img[^>]*commons\.wikimedia\.org[^>]*>/g)].map((m) => m[0]);
+  const imgs = [...h.matchAll(/<img[^>]*(?:commons\.wikimedia\.org|upload\.wikimedia\.org)[^>]*>/g)].map((m) => m[0]);
   assert.ok(imgs.length > 0, "nenhuma foto do Commons na pagina");
   for (const img of imgs) {
-    const src = (/src="([^"]+)"/.exec(img) || [])[1] || "";
-    assert.match(src, /[?&]width=\d+/, `foto sem largura pedida: ${src.slice(0, 80)}`);
+    const src = (/\ssrc="([^"]+)"/.exec(img) || [])[1] || "";
+    // Miniatura direta (/960px-Arquivo.jpg) ou Special:FilePath?width=.
+    assert.match(src, /[?&]width=\d+|\/\d+px-[^/]+$/, `foto sem largura pedida: ${src.slice(0, 80)}`);
     assert.match(img, /srcset="/, "sem srcset: o celular baixa a versao grande");
   }
 });

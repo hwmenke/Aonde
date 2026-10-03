@@ -15,6 +15,21 @@ let _pageStylesCache = null;
 export function pageStyles() {
   if (_pageStylesCache !== null) return _pageStylesCache;
   _pageStylesCache = `
+  /* Fontes de reserva com metricas ajustadas as das fontes web (Instrument
+     Serif e Archivo): quando o Google Fonts termina de carregar, o texto
+     troca de fonte sem mudar de largura nem de altura (CLS ~0 no titulo). */
+  @font-face{font-family:"Instrument Serif Fallback";font-style:normal;font-weight:400;
+    src:local("Times New Roman"),local("Tinos"),local("Liberation Serif");
+    size-adjust:82.9%;ascent-override:119.4%;descent-override:37.4%;line-gap-override:0%;}
+  @font-face{font-family:"Instrument Serif Fallback";font-style:italic;font-weight:400;
+    src:local("Times New Roman Italic"),local("TimesNewRoman-Italic"),local("Tinos Italic"),local("Liberation Serif Italic");
+    size-adjust:87%;ascent-override:113.8%;descent-override:35.6%;line-gap-override:0%;}
+  @font-face{font-family:"Archivo Fallback";font-weight:400;
+    src:local("Arial"),local("Arimo"),local("Liberation Sans");
+    size-adjust:98.6%;ascent-override:89%;descent-override:21.3%;line-gap-override:0%;}
+  @font-face{font-family:"Archivo Fallback";font-weight:700;
+    src:local("Arial Bold"),local("Arial-BoldMT"),local("Arimo Bold"),local("Liberation Sans Bold");
+    size-adjust:98.6%;ascent-override:89%;descent-override:21.3%;line-gap-override:0%;}
   :root{
     /* Cinzas escurecidos de proposito: dao folga de contraste para o cenario
        das estacoes aparecer no fundo sem derrubar a legibilidade (AA). */
@@ -33,8 +48,8 @@ export function pageStyles() {
     /* Tratamento de risco (erro de tarifa) — paleta laranja/marrom, deliberadamente
        fora do verde/lime da marca para não parecer "mais uma promoção". */
     --risk-bg:#fff7ed;--risk-border:#fed7aa;--risk-note-bg:#ffedd5;--risk-text:#9a3412;--risk-line:#f97316;
-    --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
-    --sans:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    --serif:"Instrument Serif","Instrument Serif Fallback",Georgia,"Times New Roman",serif;
+    --sans:"Archivo","Archivo Fallback",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
     --maxw:1200px;--r:16px;--r-lg:20px;--pill:999px;
   }
   /* --- Tema escuro ---------------------------------------------------------

@@ -326,6 +326,34 @@ function fotoLargura(url, largura) {
   return `${u}${u.includes("?") ? "&" : "?"}width=${largura}`;
 }
 
+// Larguras que o Wikimedia aceita em miniaturas: qualquer outra devolve 400.
+// `Special:FilePath?width=` arredonda para uma destas, mas so depois de DUAS
+// redirecoes (commons -> index.php -> thumb.wikimedia.org), cada uma com
+// conexao nova. Apontando direto para a miniatura a foto comeca a baixar na
+// hora.
+const LARGURAS_COMMONS = [330, 500, 960, 1280];
+
+/**
+ * URL direta da miniatura (upload.wikimedia.org) de uma foto do Commons, ou
+ * "" quando nao da para montar com seguranca (outro host, formato que nao e
+ * JPG/PNG, URL ja com query). Quem chama cai no Special:FilePath nesses casos.
+ */
+export function miniaturaCommons(url, largura) {
+  const m = /^https:\/\/commons\.wikimedia\.org\/wiki\/Special:FilePath\/([^?#]+)$/.exec(String(url || ""));
+  if (!m) return "";
+  let nome;
+  try {
+    nome = decodeURIComponent(m[1]).replace(/ /g, "_");
+  } catch {
+    return "";
+  }
+  if (!/\.(jpe?g|png)$/i.test(nome)) return "";
+  const w = LARGURAS_COMMONS.find((x) => x >= largura) || LARGURAS_COMMONS[LARGURAS_COMMONS.length - 1];
+  const md5 = createHash("md5").update(nome).digest("hex");
+  const arq = encodeURIComponent(nome).replace(/%2C/g, ",").replace(/%28/g, "(").replace(/%29/g, ")");
+  return `https://upload.wikimedia.org/wikipedia/commons/thumb/${md5[0]}/${md5.slice(0, 2)}/${arq}/${w}px-${arq}`;
+}
+
 // "alta": imagem acima da dobra (candidata a LCP) — carrega ja e na frente.
 // "baixa": camada empilhada que ja esta na area visivel mas nao aparece
 // (slides do carrossel depois do primeiro) — nao pode brigar por banda com a
@@ -336,29 +364,69 @@ function atributosDeCarga(prioridade) {
   return 'loading="lazy"';
 }
 
-function resilientImg(url, alt, label, className, largura = 900, destPhoto = false, prioridade = "") {
+// GIF transparente 1x1: ocupa o <img> dos slides adiados sem baixar nada e sem
+// mostrar o texto alternativo enquanto a foto de verdade nao chega.
+const PIXEL_VAZIO = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+
+// `sizes` do <img>: largura real do cartao no desktop (medida), para o
+// navegador nao baixar 960 px de foto num cartao de 270 px.
+const TAMANHOS_PADRAO = "(max-width:860px) 100vw, 620px";
+const TAMANHOS_CARTAO_OFERTA = "(max-width:860px) 100vw, 300px";
+const TAMANHOS_CARTAO_ROTEIRO = "(max-width:860px) 100vw, 400px";
+
+// Tamanho intrinseco declarado no <img>: o CSS manda no tamanho exibido, mas o
+// navegador reserva a proporcao certa antes da foto chegar (sem pulo de layout).
+function dimensoesDaImagem(className) {
+  return /\bdia-ponto-thumb\b/.test(String(className || "")) ? { w: 76, h: 56 } : { w: 900, h: 600 };
+}
+
+function resilientImg(url, alt, label, className, largura = 900, destPhoto = false, prioridade = "", adiar = false, tamanhos = TAMANHOS_PADRAO) {
   const dataUri = placeholderDataUri(label);
   const cls = className ? ` class="${escapeHtml(className)}"` : "";
-  const src = fotoLargura(url, largura);
+  const direto = miniaturaCommons(url, largura);
+  const src = direto || fotoLargura(url, largura);
   // srcset deixa o navegador escolher: em celular baixa a versao pequena.
-  const srcset = src !== url
-    ? ` srcset="${escapeHtml(fotoLargura(url, 480))} 480w, ${escapeHtml(fotoLargura(url, 900))} 900w, ${escapeHtml(fotoLargura(url, 1400))} 1400w" sizes="(max-width:860px) 100vw, 620px"`
-    : "";
+  let srcset = "";
+  if (direto) {
+    const candidatos = LARGURAS_COMMONS.map((w) => `${escapeHtml(miniaturaCommons(url, w))} ${w}w`).join(", ");
+    srcset = `${candidatos}`;
+  } else if (src !== url) {
+    srcset = `${escapeHtml(fotoLargura(url, 480))} 480w, ${escapeHtml(fotoLargura(url, 900))} 900w, ${escapeHtml(fotoLargura(url, 1400))} 1400w`;
+  }
+  const sizes = srcset ? ` sizes="${tamanhos}"` : "";
   // dest-photo: a foto e do DESTINO. Trocar origem no seletor nao pode
   // meter a foto da cidade de saida no lugar.
   const destAttrs = destPhoto && url
     ? ` data-dest-photo data-dest-src="${escapeHtml(src)}"`
     : "";
+  // Miniatura direta que falhar (ex.: pedido maior que o original) cai no
+  // Special:FilePath, que sempre responde; so se esse tambem falhar vem o
+  // placeholder.
+  const fallbackAttr = direto ? ` data-fb="${escapeHtml(fotoLargura(url, 900))}"` : "";
+  const onerror = direto
+    ? `var f=this.getAttribute('data-fb');this.srcset='';this.onerror=function(){this.onerror=0;this.src='${dataUri}'};this.src=f`
+    : `this.onerror=0;this.srcset='';this.src='${dataUri}'`;
+  const { w, h } = dimensoesDaImagem(className);
+  const tam = ` width="${w}" height="${h}"`;
+  const comum = `alt="${escapeHtml(alt)}"${tam}${sizes}${destAttrs}${fallbackAttr}`;
+  if (adiar) {
+    // Slide que ainda nao aparece: so o script do carrossel troca data-src por
+    // src, pouco antes da vez dele. Sem JS ele nunca seria exibido mesmo.
+    return (
+      `<img${cls} src="${PIXEL_VAZIO}" data-src="${escapeHtml(src)}"` +
+      `${srcset ? ` data-srcset="${srcset}"` : ""} data-lazy ${comum} decoding="async" onerror="${onerror}">`
+    );
+  }
   return (
-    `<img${cls} src="${escapeHtml(src)}" alt="${escapeHtml(alt)}"${srcset}${destAttrs} ${atributosDeCarga(prioridade)} decoding="async" ` +
-    `onerror="this.onerror=0;this.srcset='';this.src='${dataUri}'">`
+    `<img${cls} src="${escapeHtml(src)}"${srcset ? ` srcset="${srcset}"` : ""} ${comum} ${atributosDeCarga(prioridade)} decoding="async" ` +
+    `onerror="${onerror}">`
   );
 }
 
 // Bloco de media: <img> resiliente quando ha URL; senao SVG placeholder inline.
-function imageBlock(url, alt, label, wrapperClass, destPhoto = false, prioridade = "") {
+function imageBlock(url, alt, label, wrapperClass, destPhoto = false, prioridade = "", tamanhos = TAMANHOS_PADRAO) {
   const inner = url
-    ? resilientImg(url, alt, label, "media-img", 900, destPhoto, prioridade)
+    ? resilientImg(url, alt, label, "media-img", 900, destPhoto, prioridade, false, tamanhos)
     : `<div class="media-placeholder">${placeholderSvgMarkup(label)}</div>`;
   return `<div class="${escapeHtml(wrapperClass)}">${inner}</div>`;
 }
@@ -555,7 +623,7 @@ function offerCardVM(vm) {
   return (
     `<${wrapTag} class="of-card${vm.erro ? " of-card--erro" : ""}"${hrefAttr}>` +
     `<div class="of-media">` +
-    imageBlock(vm.thumbUrl, alt, destinoLabel, "of-media-inner") +
+    imageBlock(vm.thumbUrl, alt, destinoLabel, "of-media-inner", false, "", TAMANHOS_CARTAO_OFERTA) +
     badge +
     publicado +
     `</div>` +
@@ -1428,7 +1496,7 @@ function heroHtml(slides) {
       (s, i) =>
         `<div class="hero-bg${i === 0 ? " is-active" : ""}" data-hero="${i}">` +
         (s.src
-          ? resilientImg(s.src, s.legenda || s.label, s.foto, "media-img", 900, false, i === 0 ? "alta" : "baixa")
+          ? resilientImg(s.src, s.legenda || s.label, s.foto, "media-img", 900, false, i === 0 ? "alta" : "", i > 0)
           : `<div class="media-placeholder">${placeholderSvgMarkup(s.foto)}</div>`) +
         `</div>`
     )
@@ -1536,7 +1604,7 @@ function homeOffersHtml(offers) {
       return (
         `<a class="of-card${vm.erro ? " of-card--erro" : ""}" href="${escapeHtml(vm.href || "/ofertas")}">` +
         `<div class="of-media">` +
-        imageBlock(vm.thumbUrl, `Oferta para ${destinoLabel}`, destinoLabel, "of-media-inner") +
+        imageBlock(vm.thumbUrl, `Oferta para ${destinoLabel}`, destinoLabel, "of-media-inner", false, "", TAMANHOS_CARTAO_OFERTA) +
         badge +
         `</div>` +
         `<div class="of-body">` +
@@ -1768,7 +1836,7 @@ function roteirosSectionHtml(guides) {
     .map((g) => {
       const melhor = melhorMesDoGuia(g);
       const media = g.heroSrc
-        ? resilientImg(g.heroSrc, g.titulo, g.heroFoto, "media-img")
+        ? resilientImg(g.heroSrc, g.titulo, g.heroFoto, "media-img", 900, false, "", false, TAMANHOS_CARTAO_ROTEIRO)
         : `<div class="media-placeholder">${placeholderSvgMarkup(g.heroFoto || g.titulo)}</div>`;
       // Palheiro de busca montado no servidor (sem acento) para o filtro do
       // /guias nao precisar remexer no DOM para descobrir o que cada cartao diz.
@@ -3300,9 +3368,43 @@ function enhancementScript() {
   var leg=document.querySelector('[data-hero-legenda]');
   if(bgs.length>1){
     var i=0;
+    var adianta=0;
+    // Slides depois do primeiro vem com data-src (sem download). A foto comeca
+    // a baixar pouco antes da vez dela, ou na hora se a pessoa clicou na aba.
+    function carregada(im){return !!im.currentSrc&&im.currentSrc.indexOf('data:image/gif')!==0;}
+    function carrega(k){
+      var im=bgs[k].querySelector('img[data-src]');
+      if(!im)return;
+      var ss=im.getAttribute('data-srcset');
+      var s=im.getAttribute('data-src');
+      im.removeAttribute('data-src');
+      im.removeAttribute('data-srcset');
+      im.addEventListener('load',function(){if(carregada(im))im.setAttribute('data-ok','1');});
+      if(ss)im.srcset=ss;
+      im.src=s;
+    }
+    // So troca o slide visivel depois que a foto dele chegou: sem camada vazia.
+    // O limite de 3 s evita travar o carrossel se o servidor de fotos sumir.
+    function pronto(k,cb){
+      var im=bgs[k].querySelector('img[data-lazy]');
+      if(!im||im.hasAttribute('data-ok')){cb();return;}
+      var fim=0;
+      function ok(){if(!fim){fim=1;cb();}}
+      im.addEventListener('load',function(){if(carregada(im))ok();});
+      setTimeout(ok,3000);
+      carrega(k);
+    }
+    function prepara(n){
+      clearTimeout(adianta);
+      if(timer!==0){adianta=setTimeout(function(){carrega((n+1)%bgs.length);},2500);}
+    }
     function show(n){
       i=n;
-      bgs.forEach(function(b,k){b.classList.toggle('is-active',k===n);});
+      pronto(n,function(){
+        if(i!==n)return;
+        bgs.forEach(function(b,k){b.classList.toggle('is-active',k===n);});
+        prepara(n);
+      });
       // aria-pressed acompanha a classe: sem isso, quem usa leitor de tela nao
       // tem como saber qual aba esta selecionada (WCAG 4.1.2).
       tabs.forEach(function(t,k){
@@ -3327,7 +3429,7 @@ function enhancementScript() {
       pausa.setAttribute('aria-label',rodando()?'Pausar troca automática de fotos':'Retomar troca automática de fotos');
       pausa.textContent=rodando()?'Pausar':'Retomar';
     }
-    function liga(){ if(timer===0){timer=setInterval(function(){show((i+1)%bgs.length);},5500);} sinaliza(); }
+    function liga(){ if(timer===0){timer=setInterval(function(){show((i+1)%bgs.length);},5500);prepara(i);} sinaliza(); }
     function para(){ if(timer!==0){clearInterval(timer);timer=0;} sinaliza(); }
     // Escolha manual manda: para o carrossel em vez de brigar com a pessoa.
     tabs.forEach(function(t,k){t.addEventListener('click',function(){para();show(k);});});
