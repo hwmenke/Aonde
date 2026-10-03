@@ -33,7 +33,7 @@ pontos, os dois inegociáveis:
 git clone https://github.com/hwmenke/aonde.git
 cd aonde
 cp .env.example .env   # opcional — o site funciona sem nenhuma credencial
-node --test             # 583 testes, sem rede real
+node --test             # 713 testes, sem rede real
 node scripts/serve.js   # sobe o servidor (padrão: http://localhost:3333)
 ```
 
@@ -119,7 +119,7 @@ src/
   store/       persistência local (histórico de preço, ofertas, cliques)
   server.js    servidor HTTP (node:http, zero framework)
 scripts/       CLIs: render-samples, daily-pick, enviar-alertas, roteiro, serve
-test/          node:test — 583 casos
+test/          node:test — 713 casos
 samples/       páginas de amostra pré-renderizadas (abra direto no navegador)
 docs/          pesquisa de parceiros, Google Places, handoff do protótipo
 ```
@@ -134,8 +134,9 @@ Deploy one-click no Render (preferido) ou Railway: [`docs/DEPLOY-STAGING.md`](./
 node --test
 ```
 
-583 testes, sem chamada de rede real (tudo mockado via `setFetchImpl` em
-`src/http.js` ou servidor local em porta efêmera).
+713 testes (14 pulados quando faltam Playwright ou os JPEGs de `public/og/` no checkout), sem
+chamada de rede real (tudo mockado via `setFetchImpl` em `src/http.js` ou servidor local em
+porta efêmera). A contagem vem do total de `node --test`; atualize-a quando ela mudar.
 
 ## Configuração
 
