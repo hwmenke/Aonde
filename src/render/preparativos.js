@@ -29,7 +29,7 @@ export const FONTES = {
   },
   saude: {
     nome: "Anvisa — Certificado Internacional de Vacinação",
-    url: "https://www.gov.br/anvisa/pt-br/assuntos/viajante",
+    url: "https://www.gov.br/anvisa/pt-br/assuntos/paf/certificado-internacional-de-vacinacao",
   },
   consular: {
     nome: "Portal Consular — Itamaraty",

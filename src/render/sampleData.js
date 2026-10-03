@@ -248,7 +248,7 @@ export const sampleOffers = [
     is_erro_tarifa: false,
     datas_sugeridas: "03–08 dez",
     affiliate_url: "https://tp.media/r?marker=demo&p=rec-fen",
-    thumb_url: img("Baía do Sancho, Fernando de Noronha.jpg"),
+    thumb_url: img("Baia do Sancho Fernando de Noronha.JPG"),
     thumb_attribution: {
       author: "Wikimedia Commons",
       license: "CC BY-SA 3.0",
