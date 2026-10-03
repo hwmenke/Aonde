@@ -368,13 +368,19 @@ function atributosDeCarga(prioridade) {
 // mostrar o texto alternativo enquanto a foto de verdade nao chega.
 const PIXEL_VAZIO = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
 
+// `sizes` do <img>: largura real do cartao no desktop (medida), para o
+// navegador nao baixar 960 px de foto num cartao de 270 px.
+const TAMANHOS_PADRAO = "(max-width:860px) 100vw, 620px";
+const TAMANHOS_CARTAO_OFERTA = "(max-width:860px) 100vw, 300px";
+const TAMANHOS_CARTAO_ROTEIRO = "(max-width:860px) 100vw, 400px";
+
 // Tamanho intrinseco declarado no <img>: o CSS manda no tamanho exibido, mas o
 // navegador reserva a proporcao certa antes da foto chegar (sem pulo de layout).
 function dimensoesDaImagem(className) {
   return /\bdia-ponto-thumb\b/.test(String(className || "")) ? { w: 76, h: 56 } : { w: 900, h: 600 };
 }
 
-function resilientImg(url, alt, label, className, largura = 900, destPhoto = false, prioridade = "", adiar = false) {
+function resilientImg(url, alt, label, className, largura = 900, destPhoto = false, prioridade = "", adiar = false, tamanhos = TAMANHOS_PADRAO) {
   const dataUri = placeholderDataUri(label);
   const cls = className ? ` class="${escapeHtml(className)}"` : "";
   const direto = miniaturaCommons(url, largura);
@@ -387,7 +393,7 @@ function resilientImg(url, alt, label, className, largura = 900, destPhoto = fal
   } else if (src !== url) {
     srcset = `${escapeHtml(fotoLargura(url, 480))} 480w, ${escapeHtml(fotoLargura(url, 900))} 900w, ${escapeHtml(fotoLargura(url, 1400))} 1400w`;
   }
-  const sizes = srcset ? ` sizes="(max-width:860px) 100vw, 620px"` : "";
+  const sizes = srcset ? ` sizes="${tamanhos}"` : "";
   // dest-photo: a foto e do DESTINO. Trocar origem no seletor nao pode
   // meter a foto da cidade de saida no lugar.
   const destAttrs = destPhoto && url
@@ -418,9 +424,9 @@ function resilientImg(url, alt, label, className, largura = 900, destPhoto = fal
 }
 
 // Bloco de media: <img> resiliente quando ha URL; senao SVG placeholder inline.
-function imageBlock(url, alt, label, wrapperClass, destPhoto = false, prioridade = "") {
+function imageBlock(url, alt, label, wrapperClass, destPhoto = false, prioridade = "", tamanhos = TAMANHOS_PADRAO) {
   const inner = url
-    ? resilientImg(url, alt, label, "media-img", 900, destPhoto, prioridade)
+    ? resilientImg(url, alt, label, "media-img", 900, destPhoto, prioridade, false, tamanhos)
     : `<div class="media-placeholder">${placeholderSvgMarkup(label)}</div>`;
   return `<div class="${escapeHtml(wrapperClass)}">${inner}</div>`;
 }
@@ -617,7 +623,7 @@ function offerCardVM(vm) {
   return (
     `<${wrapTag} class="of-card${vm.erro ? " of-card--erro" : ""}"${hrefAttr}>` +
     `<div class="of-media">` +
-    imageBlock(vm.thumbUrl, alt, destinoLabel, "of-media-inner") +
+    imageBlock(vm.thumbUrl, alt, destinoLabel, "of-media-inner", false, "", TAMANHOS_CARTAO_OFERTA) +
     badge +
     publicado +
     `</div>` +
@@ -1598,7 +1604,7 @@ function homeOffersHtml(offers) {
       return (
         `<a class="of-card${vm.erro ? " of-card--erro" : ""}" href="${escapeHtml(vm.href || "/ofertas")}">` +
         `<div class="of-media">` +
-        imageBlock(vm.thumbUrl, `Oferta para ${destinoLabel}`, destinoLabel, "of-media-inner") +
+        imageBlock(vm.thumbUrl, `Oferta para ${destinoLabel}`, destinoLabel, "of-media-inner", false, "", TAMANHOS_CARTAO_OFERTA) +
         badge +
         `</div>` +
         `<div class="of-body">` +
@@ -1830,7 +1836,7 @@ function roteirosSectionHtml(guides) {
     .map((g) => {
       const melhor = melhorMesDoGuia(g);
       const media = g.heroSrc
-        ? resilientImg(g.heroSrc, g.titulo, g.heroFoto, "media-img")
+        ? resilientImg(g.heroSrc, g.titulo, g.heroFoto, "media-img", 900, false, "", false, TAMANHOS_CARTAO_ROTEIRO)
         : `<div class="media-placeholder">${placeholderSvgMarkup(g.heroFoto || g.titulo)}</div>`;
       // Palheiro de busca montado no servidor (sem acento) para o filtro do
       // /guias nao precisar remexer no DOM para descobrir o que cada cartao diz.

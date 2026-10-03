@@ -215,3 +215,11 @@ test("miniaturaCommons: URL direta em larguras padrão do Wikimedia, só para JP
   assert.equal(miniaturaCommons("https://exemplo.com/a.jpg", 900), "");
   assert.equal(miniaturaCommons(`${u}?width=500`, 900), "");
 });
+
+test("cartões pedem foto do tamanho em que aparecem (sizes), não 620 px para todos", async () => {
+  const { renderOffersPage } = await import("../src/render/htmlRenderer.js");
+  const h = renderOffersPage();
+  const ofertas = (h.match(/<img\b[^>]*class="media-img"[^>]*>/g) || []).filter((i) => /upload\.wikimedia/.test(i));
+  assert.ok(ofertas.length > 0);
+  for (const img of ofertas) assert.match(img, /sizes="\(max-width:860px\) 100vw, 300px"/);
+});
