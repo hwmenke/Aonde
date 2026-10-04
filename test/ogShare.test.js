@@ -265,7 +265,7 @@ test("oferta reservavel com fonte/data imprime o visto honesto; sem fonte nao in
   assert.match(eze, /Visto no Google Flights, 21 ago 2026/);
   const forSsa = renderOfferPage(offerById("for-ssa"), { related: [] });
   assert.match(forSsa, /Visto no Aviasales, 28 ago 2026/);
-  assert.match(forSsa, /USD \$242/);
+  assert.match(forSsa, /US\$ 242/);
   assert.doesNotMatch(forSsa, /R\$\s*287/);
   assert.doesNotMatch(forSsa, /R\$\s*242/);
 

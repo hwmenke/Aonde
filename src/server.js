@@ -538,7 +538,9 @@ function handleHome(res) {
 
 function handleOffersHtml(res, url) {
   const origem = url.searchParams.get("origem") || undefined;
-  sendHtml(res, 200, renderOffersPage(publishedLiveOffers(), { origem }));
+  const q = url.searchParams.get("q") || "";
+  const tipo = url.searchParams.get("tipo") || "";
+  sendHtml(res, 200, renderOffersPage(publishedLiveOffers(), { origem, q, tipo }));
 }
 
 // Ofertas semelhantes: mesmo `tipo`, exceto a propria, no maximo 3.
@@ -561,7 +563,7 @@ function handleOfferHtml(res, id) {
     return;
   }
   // Nao encontrada: devolve o feed de ofertas com 404 (pagina util, nao um JSON seco).
-  sendHtml(res, 404, renderOffersPage(publishedLiveOffers(), {}));
+  sendHtml(res, 404, renderOffersPage(publishedLiveOffers(), { naoEncontrada: id }));
 }
 
 function handleGuideHtml(res, id) {

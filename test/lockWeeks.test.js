@@ -135,6 +135,9 @@ async function withServer(t) {
   return `http://127.0.0.1:${port}`;
 }
 
+// Na tela o marcador de dolar e um so: "USD $322" nos dados vira "US$ 322".
+const emTela = (txt) => txt.replace(/USD \$/g, "US$ ");
+
 test("as sete semanas lock existem, com wrap Aviasales e offerId da secao", () => {
   for (const lock of LOCKS) {
     const offer = offerById(lock.id);
@@ -157,8 +160,8 @@ test("cada semana vive so em /ofertas/{id}; guias de 5 dias nao crescem", () => 
     assert.match(oferta, new RegExp(`id="semana-${lock.id}"`));
     assert.match(oferta, /Editorial, escrito em 28 de agosto de 2026/);
     assert.match(oferta, /Não é um texto de quem mora aí/);
-    assert.ok(oferta.includes(lock.usd), `${lock.id} mostra ${lock.usd}`);
-    assert.ok(oferta.includes(lock.marker), `${lock.id} mostra ${lock.marker}`);
+    assert.ok(oferta.includes(emTela(lock.usd)), `${lock.id} mostra ${emTela(lock.usd)}`);
+    assert.ok(oferta.includes(emTela(lock.marker)), `${lock.id} mostra ${emTela(lock.marker)}`);
     assert.match(oferta, /Tarifa vista no Aviasales em 28 de agosto de 2026/);
     assert.doesNotMatch(oferta, /Tarifa ao vivo/);
     assert.doesNotMatch(oferta, /ao vivo no Aviasales/);
@@ -189,7 +192,7 @@ test("Foz e Congonhas (CGH), nunca GRU; BRC e POA-MVD sao 1 parada", () => {
   assert.match(igu, /Congonhas/);
   assert.match(igu, /CGH1010IGU17101|Congonhas \(CGH\)/);
   assert.doesNotMatch(igu, /GRU1010IGU/);
-  assert.doesNotMatch(igu, /\$260/);
+  assert.doesNotMatch(igu, /\$\s?260/);
   assert.doesNotMatch(igu, /saindo de São Paulo/);
   assert.match(igu, /saindo de Congonhas/);
   assert.match(igu, /<title>Congonhas–Foz do Iguaçu/);
@@ -207,20 +210,20 @@ test("Foz e Congonhas (CGH), nunca GRU; BRC e POA-MVD sao 1 parada", () => {
 
   const mvd = renderOfferPage(offerById("poa-mvd"), { related: [] });
   assert.match(mvd, /1 parada/);
-  assert.doesNotMatch(mvd, /\$438/);
+  assert.doesNotMatch(mvd, /\$\s?438/);
   assert.doesNotMatch(mvd, /Charco/);
-  assert.match(mvd, /USD \$532/);
+  assert.match(mvd, /US\$ 532/);
   assert.match(mvd, /ótimo|18h40/);
 
   const rec = renderOfferPage(offerById("rec-gig"), { related: [] });
-  assert.doesNotMatch(rec, /\$222/);
+  assert.doesNotMatch(rec, /\$\s?222/);
   assert.doesNotMatch(rec, /Barraca na Prainha/);
   assert.doesNotMatch(rec, /12–19 jul/);
 
   const scl = renderOfferPage(offerById("gru-scl"), { related: [] });
   assert.match(scl, /2–9 nov/);
   assert.doesNotMatch(scl, /2–12 nov/);
-  assert.match(scl, /\$299/);
+  assert.match(scl, /US\$ 299/);
 });
 
 test("USD nao vira reais; consulta fica ao lado de Reservar", () => {

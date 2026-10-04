@@ -986,6 +986,34 @@ export function pageStyles() {
     .map-canvas{height:380px;}
     .map-list{max-height:none;}
   }
+
+  /* Ofertas: CTA claro nos cards, busca/filtros, estados vazio e de erro */
+  .feed-resumo{margin:0;}
+  .feed-total{font-size:14px;color:var(--muted-2);}
+  .of-fonte{font-size:12px;color:var(--muted);line-height:1.4;}
+  .of-card .of-cta{align-self:flex-start;margin-top:10px;background:var(--green);color:var(--on-green);border-radius:var(--pill);padding:9px 16px;font-size:14px;font-weight:700;}
+  .of-card:hover .of-cta{background:var(--green-2);color:var(--on-green);}
+  .of-cta-nota{font-size:12px;color:var(--muted);line-height:1.4;}
+  .feed-filtros{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 16px;margin:0 0 4px;}
+  .feed-campo{display:flex;flex-direction:column;gap:6px;min-width:0;}
+  .feed-campo--busca{flex:1 1 260px;}
+  .feed-campo span{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);}
+  .feed-campo input,.feed-campo select{border:1px solid var(--border-2);background:var(--input-bg);color:var(--text);border-radius:12px;padding:11px 14px;font-family:var(--sans);font-size:15px;min-height:44px;}
+  .feed-filtros .btn-dark{min-height:44px;padding:10px 22px;border:1px solid var(--border-2);}
+  .feed-limpar{font-size:14px;font-weight:600;text-decoration:underline;align-self:center;padding:10px 4px;}
+  .feed-aviso-wrap{padding-top:20px;}
+  .feed-aviso{background:#fff7ed;border:1px solid #fed7aa;border-radius:var(--r);padding:14px 18px;font-size:15px;line-height:1.55;color:#7c2d12;}
+  .feed-aviso strong{color:#9a3412;}
+  .feed-aviso code{font-size:13px;word-break:break-all;}
+  .feed-vazio a{text-decoration:underline;}
+  .det-buy-passo{margin:0 0 12px;font-size:14px;line-height:1.5;font-weight:600;color:var(--text);}
+  .det-preco-info{margin:14px 0 0;border:1px solid var(--border);border-radius:12px;background:var(--bg);font-size:13px;line-height:1.55;color:var(--muted);}
+  .det-preco-info summary{cursor:pointer;padding:12px 14px;font-weight:700;color:var(--text);}
+  .det-preco-info ul{margin:0;padding:0 14px 12px 32px;display:grid;gap:6px;}
+  @media (max-width:560px){
+    .feed-filtros .btn-dark{width:100%;}
+    .feed-campo,.feed-campo--busca{flex:1 1 100%;}
+  }
   `;
   return _pageStylesCache;
 }

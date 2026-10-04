@@ -52,6 +52,21 @@ export function formatBRL(centavos) {
 }
 
 /**
+ * Marcador de dolar SO PARA EXIBICAO. Os dados guardam "USD $268" (codigo ISO
+ * e simbolo juntos); na tela isso vira "US$ 268", a forma usada em pt-BR, com
+ * um unico marcador de moeda. O "$" solto antes de numero ("o $513") tambem
+ * vira "US$": no conteudo de oferta ele sempre e dolar, e "R$" fica intacto.
+ * Nao converte valor nenhum — so reescreve o rotulo.
+ */
+export function formatMoedaExibicao(txt) {
+  if (txt === null || txt === undefined) return "";
+  return String(txt)
+    .replace(/\bUSD\s*\$\s*(?=\d)/g, "US$ ")
+    .replace(/\bUSD\s+(?=\d)/g, "US$ ")
+    .replace(/(?<![A-Za-z$\d])\$\s*(?=\d)/g, "US$ ");
+}
+
+/**
  * Texto sem acento e sem caixa, para comparar/buscar: quem digita
  * "florianopolis" precisa achar "Florianópolis".
  */

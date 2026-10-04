@@ -38,7 +38,7 @@ import {
   FLIGHTS,
   FLIGHT_FILTERS,
 } from "./aondeContent.js";
-import { escapeHtml, formatBRL, semAcento } from "./texto.js";
+import { escapeHtml, formatBRL, semAcento, formatMoedaExibicao } from "./texto.js";
 import { getRouteSeries } from "../store/priceHistory.js";
 import { renderRouteSparkline } from "./sparkline.js";
 import { preparativosDoGuia, FONTES } from "./preparativos.js";
@@ -465,6 +465,21 @@ function offerAttrCredit(attr) {
 // para o view model unico consumido pelos cards e pela pagina de detalhe.
 // ---------------------------------------------------------------------------
 
+// "Datas com o preco": so o rotulo da moeda muda na tela; datas e valores ficam.
+function moedaEmArvore(valor, chave = "") {
+  if (typeof valor === "string") return /(href|url|id)$/i.test(chave) ? valor : formatMoedaExibicao(valor);
+  if (Array.isArray(valor)) return valor.map((v) => moedaEmArvore(v, chave));
+  if (valor && typeof valor === "object") {
+    return Object.fromEntries(Object.entries(valor).map(([k, v]) => [k, moedaEmArvore(v, k)]));
+  }
+  return valor;
+}
+
+function flexParaExibicao(flex) {
+  if (!Array.isArray(flex)) return [];
+  return flex.map((f) => (f && typeof f === "object" ? { ...f, p: formatMoedaExibicao(f.p) } : f));
+}
+
 function normalizeLiveOffer(offer) {
   if (!offer || typeof offer !== "object") return null;
   const preco = formatBRL(offer.preco_centavos);
@@ -513,9 +528,9 @@ function normalizeLiveOffer(offer) {
     provaUrl: offer.prova_url || "",
     credit: attr.credit,
     creditHref: attr.href,
-    texto: offer.texto || "",
-    dicas: Array.isArray(offer.dicas) ? offer.dicas : [],
-    flex: Array.isArray(offer.flex) ? offer.flex : [],
+    texto: formatMoedaExibicao(offer.texto),
+    dicas: Array.isArray(offer.dicas) ? offer.dicas.map(formatMoedaExibicao) : [],
+    flex: flexParaExibicao(offer.flex),
     affiliateUrl,
     href,
     fontePreco: offer.fontePreco || offer.fonte_preco || "",
@@ -548,20 +563,20 @@ function normalizeContentOffer(o) {
     local: o.local || "",
     tipo: o.tipo || "",
     cia: o.cia || "",
-    preco: o.preco || "",
-    media: o.media || "",
-    economia: o.economia || "",
+    preco: formatMoedaExibicao(o.preco),
+    media: formatMoedaExibicao(o.media),
+    economia: formatMoedaExibicao(o.economia),
     erro: !!o.erro,
-    badge: o.badge || "",
+    badge: formatMoedaExibicao(o.badge),
     datas: o.datas || "",
     publicado: o.publicado || "",
     thumbUrl: o.thumbUrl || "",
     provaUrl: o.provaUrl || o.prova_url || "",
     credit: o.credit || "",
     creditHref: o.creditHref || "",
-    texto: o.texto || "",
-    dicas: Array.isArray(o.dicas) ? o.dicas : [],
-    flex: Array.isArray(o.flex) ? o.flex : [],
+    texto: formatMoedaExibicao(o.texto),
+    dicas: Array.isArray(o.dicas) ? o.dicas.map(formatMoedaExibicao) : [],
+    flex: flexParaExibicao(o.flex),
     affiliateUrl,
     href,
     fontePreco: o.fontePreco || o.fonte_preco || "",
@@ -570,10 +585,10 @@ function normalizeContentOffer(o) {
     ogCredit: o.ogCredit || "",
     ogCreditHref: o.ogCreditHref || "",
     aviasalesBuy: o.aviasalesBuy !== false,
-    ctaLabel: o.ctaLabel || "",
-    ctaFine: o.ctaFine || "",
-    shareTitulo: o.shareTitulo || "",
-    exitSub: o.exitSub || "",
+    ctaLabel: formatMoedaExibicao(o.ctaLabel),
+    ctaFine: formatMoedaExibicao(o.ctaFine),
+    shareTitulo: formatMoedaExibicao(o.shareTitulo),
+    exitSub: formatMoedaExibicao(o.exitSub),
   };
 }
 
@@ -589,6 +604,22 @@ const badgeClass = (vm) => (vm.erro ? "badge-erro" : "badge-desconto");
 // ---------------------------------------------------------------------------
 // Card de oferta (feed) — fiel ao card da tela "ofertas" do prototipo.
 // ---------------------------------------------------------------------------
+
+// CTA do card. O card inteiro e um link; o rotulo diz PARA ONDE ele leva:
+//  - oferta com link de parceiro -> /saida/{id}, que abre o Aviasales (a compra
+//    termina la). Sem botao Buy (aviasalesBuy:false) e so uma busca, e o rotulo
+//    nao finge reserva;
+//  - oferta sem link de parceiro -> pagina de detalhe do proprio Aonde.
+function cardCtaHtml(vm) {
+  if (vm.affiliateUrl) {
+    const rotulo = vm.aviasalesBuy === false ? vm.ctaLabel || "Ver busca no Aviasales →" : "Ver no Aviasales →";
+    return (
+      `<span class="of-cta">${escapeHtml(rotulo)}</span>` +
+      `<span class="of-cta-nota">A compra termina no site do parceiro</span>`
+    );
+  }
+  return `<span class="of-cta">Ver detalhes da oferta →</span>`;
+}
 
 function offerCardVM(vm) {
   if (!vm) return "";
@@ -618,6 +649,10 @@ function offerCardVM(vm) {
       : "";
   const ciaDatas = [vm.cia, vm.datas].filter(Boolean).map(escapeHtml).join(" · ");
   const ciaLinha = ciaDatas ? `<span class="of-cia">${ciaDatas}</span>` : "";
+  // Quando e onde o preco foi visto: so aparece se a oferta traz fonte e/ou
+  // data. Sem isso o card nao inventa frescor.
+  const fonteLinha = fontePrecoLinha(vm.fontePreco, vm.fontePrecoEm);
+  const fonteCard = fonteLinha ? `<span class="of-fonte">${escapeHtml(fonteLinha)}</span>` : "";
   // Dois avaliadores independentes travaram no termo "erro de tarifa" sem
   // saber o que significa. Texto reescrito para ser autoexplicativo no
   // proprio card (o card e um <a>, entao nao da para linkar a FAQ aqui dentro).
@@ -640,7 +675,8 @@ function offerCardVM(vm) {
     precoRow +
     ciaLinha +
     erroNote +
-    `<span class="of-cta">Ver oferta →</span>` +
+    fonteCard +
+    cardCtaHtml(vm) +
     `</div>` +
     `</${wrapTag}>`
   );
@@ -2042,18 +2078,70 @@ function newsletterStripHtml({ titulo, sub, origemDefault = "GRU", idSuffix = "f
   );
 }
 
-function originFilterHtml(active) {
+function ofertasHref(filtros = {}) {
+  const qs = new URLSearchParams();
+  if (filtros.origem && filtros.origem !== "Todas") qs.set("origem", filtros.origem);
+  if (filtros.q) qs.set("q", filtros.q);
+  if (filtros.tipo) qs.set("tipo", filtros.tipo);
+  const texto = qs.toString();
+  return texto ? `/ofertas?${texto}` : "/ofertas";
+}
+
+function originFilterHtml(active, filtros = {}) {
   const buttons = OFFER_ORIGINS.map((o) => {
     const on = (active || "Todas") === o;
     const label = o === "Todas" ? "Todas as origens" : rotuloAeroporto(o);
-    const href = o === "Todas" ? "/ofertas" : `/ofertas?origem=${encodeURIComponent(o)}`;
-    return `<a class="orig-pill${on ? " is-active" : ""}" href="${href}">${escapeHtml(label)}</a>`;
+    const href = ofertasHref({ ...filtros, origem: o });
+    return `<a class="orig-pill${on ? " is-active" : ""}" href="${escapeHtml(href)}"${on ? ' aria-current="true"' : ""}>${escapeHtml(label)}</a>`;
   }).join("");
   return (
     `<div class="orig-bar"><div class="wrap orig-in">` +
     `<span class="orig-label">Partindo de</span>` +
     `<div class="orig-pills">${buttons}</div>` +
     `</div></div>`
+  );
+}
+
+const BUSCA_MAX = 60;
+
+/** Texto livre da busca: sem espacos nas pontas, sem quebra de linha, limitado. */
+function limparBusca(q) {
+  return String(q || "").replace(/\s+/g, " ").trim().slice(0, BUSCA_MAX);
+}
+
+/** Busca por destino, cidade, pais/estado, origem (sigla ou cidade) e companhia. */
+function ofertaCombinaComBusca(vm, q) {
+  const alvo = semAcento(q);
+  if (!alvo) return true;
+  const campos = [
+    vm.cidade,
+    vm.destino,
+    vm.local,
+    vm.origem,
+    vm.origem ? cidadeDoIata(vm.origem) : "",
+    vm.origemCidade,
+    vm.cia,
+  ];
+  return campos.some((c) => semAcento(c).includes(alvo));
+}
+
+function filtrosOfertasHtml({ q, tipo, tipos, origem, ativo }) {
+  const seletorTipo =
+    tipos.length > 1
+      ? `<label class="feed-campo"><span>Tipo de viagem</span>` +
+        `<select name="tipo"><option value="">Todos</option>` +
+        tipos.map((t) => `<option value="${escapeHtml(t)}"${t === tipo ? " selected" : ""}>${escapeHtml(t)}</option>`).join("") +
+        `</select></label>`
+      : "";
+  return (
+    `<form class="feed-filtros" method="get" action="/ofertas" role="search" aria-label="Buscar nas ofertas">` +
+    `<label class="feed-campo feed-campo--busca"><span>Buscar destino</span>` +
+    `<input type="search" name="q" value="${escapeHtml(q)}" maxlength="${BUSCA_MAX}" autocomplete="off" placeholder="Ex.: Salvador, Lisboa, Azul"></label>` +
+    seletorTipo +
+    (origem ? `<input type="hidden" name="origem" value="${escapeHtml(origem)}">` : "") +
+    `<button class="btn btn-dark" type="submit">Buscar</button>` +
+    (ativo ? `<a class="feed-limpar" href="/ofertas">Limpar filtros</a>` : "") +
+    `</form>`
   );
 }
 
@@ -2074,25 +2162,94 @@ function comoFuncionaHtml() {
 }
 
 /**
+ * "O que significa este preco?" — resposta curta e verificavel, montada so com
+ * o que a oferta traz (datas, fonte, data da consulta, moeda, media). Nada de
+ * "por pessoa", "taxas incluidas" ou "bagagem" aqui: os dados nao dizem isso.
+ */
+function precoSignificadoHtml(vm) {
+  const itens = [];
+  itens.push(
+    vm.datas
+      ? `É o preço de <strong>ida e volta</strong> para as datas <strong>${escapeHtml(vm.datas)}</strong>, na rota mostrada nesta página.`
+      : `É o preço de <strong>ida e volta</strong> da rota mostrada nesta página.`
+  );
+  const linha = fontePrecoLinha(vm.fontePreco, vm.fontePrecoEm);
+  if (linha) itens.push(`${escapeHtml(linha)}. O preço pode ter mudado desde essa consulta.`);
+  if (/US\$/.test(vm.preco)) {
+    itens.push(`O valor está em <strong>dólares (US$)</strong>, não em reais. O Aonde não converte nem estima o valor em reais.`);
+  }
+  if (vm.media) {
+    itens.push(
+      `O valor riscado (${escapeHtml(vm.media)}) é a média de referência da rota informada na oferta` +
+        (vm.economia ? `; a economia de ${escapeHtml(vm.economia)} é a diferença entre ela e o preço.` : ".")
+    );
+  }
+  itens.push(`Tarifa e vagas mudam o tempo todo. O valor final e a disponibilidade só são confirmados no site do parceiro, antes de você pagar.`);
+  return (
+    `<details class="det-preco-info">` +
+    `<summary>O que significa este preço?</summary>` +
+    `<ul>${itens.map((i) => `<li>${i}</li>`).join("")}</ul>` +
+    `</details>`
+  );
+}
+
+/**
  * Pagina de OFERTAS (feed) — porta fiel da tela "ofertas" do prototipo.
  * `offers` no shape de producao (toOffer + enrichOfferWithImage); se vazio,
  * usa a curadoria editorial de aondeContent.
  */
-export function renderOffersPage(offers = [], { title = "Ofertas de viagem — Aonde", origem } = {}) {
+export function renderOffersPage(
+  offers = [],
+  { title = "Ofertas de viagem — Aonde", origem, q = "", tipo = "", naoEncontrada = "" } = {}
+) {
   const list = Array.isArray(offers) ? offers : [];
   const vms = (list.length ? list.map(normalizeLiveOffer) : CONTENT_OFFERS.map(normalizeContentOffer)).filter(Boolean);
-  const filtered = origem && origem !== "Todas" ? vms.filter((v) => v.origem === origem) : vms;
-  // Filtro sem resultado nao pode virar tela em branco: em vez do vazio, aponta
-  // o caminho (alerta da rota, que e recurso real) e devolve para o feed todo.
-  const cards = filtered.length
-    ? filtered.map(offerCardVM).join("\n")
-    : `<p class="feed-vazio">Nenhum achado saindo de <strong>${escapeHtml(
-        cidadeDoIata(origem) || origem
-      )}</strong> hoje. Os achados mudam todo dia — <a href="/alertas">crie um alerta grátis</a> e a gente avisa quando aparecer um, ou <a href="/ofertas">veja todas as origens</a>.</p>`;
+  const tipos = [...new Set(vms.map((v) => v.tipo).filter(Boolean))].sort();
+  const busca = limparBusca(q);
+  const tipoAtivo = tipos.includes(tipo) ? tipo : "";
+  const origemAtiva = origem && origem !== "Todas" ? origem : "";
+  const filtros = { origem: origemAtiva, q: busca, tipo: tipoAtivo };
+  const filtroAtivo = Boolean(origemAtiva || busca || tipoAtivo);
+
+  const filtered = vms.filter(
+    (v) =>
+      (!origemAtiva || v.origem === origemAtiva) &&
+      (!tipoAtivo || v.tipo === tipoAtivo) &&
+      ofertaCombinaComBusca(v, busca)
+  );
+
+  // Estado vazio nunca vira tela em branco: diz o que foi filtrado, oferece
+  // limpar e aponta o alerta (recurso real) para quando aparecer um achado.
+  let cards;
+  if (filtered.length) {
+    cards = filtered.map(offerCardVM).join("\n");
+  } else if (!vms.length) {
+    cards = `<p class="feed-vazio" role="status">Ainda não há achados publicados. Os achados mudam todo dia — <a href="/alertas">crie um alerta grátis</a> e a gente avisa quando aparecer um.</p>`;
+  } else {
+    const partes =
+      (origemAtiva ? ` saindo de <strong>${escapeHtml(cidadeDoIata(origemAtiva) || origemAtiva)}</strong>` : "") +
+      (busca ? ` para <strong>“${escapeHtml(busca)}”</strong>` : "") +
+      (tipoAtivo ? ` do tipo <strong>${escapeHtml(tipoAtivo)}</strong>` : "");
+    cards =
+      `<p class="feed-vazio" role="status">Nenhum achado${partes} hoje. ` +
+      `<a href="/ofertas">Limpar filtros</a> para ver todos, ou <a href="/alertas">crie um alerta grátis</a> e a gente avisa quando aparecer um.</p>`;
+  }
+
+  const contagem = filtered.length === 1 ? "1 oferta ativa" : `${filtered.length} ofertas ativas`;
+  const totalTxt =
+    filtroAtivo && vms.length !== filtered.length ? ` <span class="feed-total">· de ${vms.length} no total</span>` : "";
+
+  const aviso = naoEncontrada
+    ? `<div class="wrap feed-aviso-wrap"><div class="feed-aviso" role="alert">` +
+      `<strong>Não encontramos essa oferta.</strong> ` +
+      `O endereço <code>${escapeHtml(String(naoEncontrada).slice(0, 80))}</code> não corresponde a nenhuma oferta publicada — ela pode ter saído do ar ou o link pode estar incompleto. ` +
+      `Veja os achados de hoje logo abaixo.</div></div>`
+    : "";
 
   const body =
     `<main id="conteudo" tabindex="-1">` +
-    originFilterHtml(origem) +
+    originFilterHtml(origemAtiva, filtros) +
+    aviso +
     // No celular a captura de e-mail desce para DEPOIS da lista (ver CSS
     // .feed-ordem): um usuario de primeira viagem rolou 1,5 tela ate achar as
     // ofertas e perguntou "cade a lista, gente?".
@@ -2101,8 +2258,9 @@ export function renderOffersPage(offers = [], { title = "Ofertas de viagem — A
     `<section class="wrap section feed-lista">` +
     `<div class="section-head section-head--tight">` +
     `<h2>Achados de hoje</h2>` +
-    `<span class="feed-count">${escapeHtml(filtered.length)} ofertas ativas</span>` +
+    `<p class="feed-resumo"><span class="feed-count">${contagem}</span>${totalTxt}</p>` +
     `</div>` +
+    filtrosOfertasHtml({ q: busca, tipo: tipoAtivo, tipos, origem: origemAtiva, ativo: filtroAtivo }) +
     `<div class="of-grid">${cards}</div>` +
     `</section>` +
     `</div>` +
@@ -2110,8 +2268,14 @@ export function renderOffersPage(offers = [], { title = "Ofertas de viagem — A
     `</main>` +
     siteFooter();
 
-  return htmlDocument({ title, body, script: enhancementScript(), canonical: "/ofertas",
-    description: "Achados de passagem conferidos um a um, com o preço, as datas e o que está incluso. Cada oferta diz de onde sai e para onde vai." });
+  return htmlDocument({
+    title: naoEncontrada ? "Oferta não encontrada — Aonde" : title,
+    body,
+    script: enhancementScript(),
+    canonical: naoEncontrada ? undefined : "/ofertas",
+    noindex: Boolean(naoEncontrada),
+    description: "Achados de passagem conferidos um a um, com o preço, as datas e o que está incluso. Cada oferta diz de onde sai e para onde vai.",
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -2179,15 +2343,17 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
   // ("SWISS, 12-24 out"), mas o CTA nomeia o destino real: Aviasales.
   const ctaLabel = vm.affiliateUrl
     ? aviasalesCtaLabel(vm)
-    : `Ver voos ${escapeHtml(vm.origem || "")} → ${escapeHtml(vm.destino || destinoLabel)} →`;
+    : vm.origem && vm.destino
+      ? `Ver voos de ${escapeHtml(vm.origem)} para ${escapeHtml(vm.destino)} →`
+      : "Ver voos desta rota →";
   // Subtexto HONESTO conforme o destino real do CTA (parceiro externo vs busca
   // interna de voos). Nunca prometer "site do parceiro" quando vai para /resultados.
   // aviasalesBuy:false / ctaFine: wrap existe, mas nao ha Buy — nao inventar reserva.
   const ctaFine = vm.ctaFine
     ? vm.ctaFine
     : vm.affiliateUrl
-    ? "Você será levado ao site do parceiro. O Aonde pode receber comissão, sem custo extra para você."
-    : "Você vai ver os voos desta rota (tarifas de exemplo por enquanto). A busca e a compra acontecem no site do parceiro — o Aonde pode receber comissão, sem custo extra para você.";
+    ? "O Aonde pode receber comissão do parceiro, sem custo extra para você."
+    : "As tarifas mostradas são exemplos por enquanto. O Aonde pode receber comissão do parceiro, sem custo extra para você.";
 
   // Hero: print de preco quando existe; senao o cartao OG daquela oferta
   // (GRU-FLN.jpg, GIG-SSA.jpg). Sem cartao, foto do destino. Nunca o cartao
@@ -2363,16 +2529,26 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
   const pubBadge = vm.publicado && !vm.fontePreco
     ? `<span class="det-pub">publicado ${escapeHtml(vm.publicado)}</span>`
     : "";
+  const precoSignificado = precoSignificadoHtml(vm);
+  // Passo a passo HONESTO do que o botao faz, na ordem em que aparece:
+  // o Aonde nao vende nem cobra — a compra termina no site do parceiro.
+  const passoCompra = vm.affiliateUrl
+    ? vm.aviasalesBuy === false
+      ? "Este botão abre uma busca no Aviasales. O Aonde não vende passagem nem cobra pagamento."
+      : "Você finaliza a compra no site do parceiro. O Aonde não vende passagem nem cobra pagamento."
+    : "Estes são voos de exemplo desta rota. A busca de verdade e a compra acontecem no site do parceiro.";
   const buyBox =
     `<div class="det-buy">` +
     `<span class="det-buy-label">a partir de</span>` +
     `<p class="det-buy-preco"${priceDataAttr}>${escapeHtml(vm.preco)}</p>` +
     `<p class="det-buy-sub">ida e volta${vm.datas ? ` · ${escapeHtml(vm.datas)}` : ""}</p>` +
+    `<p class="det-buy-passo">${escapeHtml(passoCompra)}</p>` +
     `<div class="det-buy-cta-row">` +
     `<a class="btn btn-green det-buy-cta" href="${escapeHtml(ctaHref)}">${ctaLabel}</a>` +
     fonteBuy +
     `</div>` +
     `<p class="det-buy-perks">Parcelamento e desconto no Pix variam conforme o parceiro — o valor final aparece no site dele, antes de você pagar.</p>` +
+    precoSignificado +
     `<p class="det-buy-fine">${escapeHtml(ctaFine)}</p>` +
     trustMini +
     `</div>`;
@@ -2481,8 +2657,9 @@ function diaArticleHtml(d, cidade, { anchorId = "" } = {}) {
  * A tarifa do lock fica marcada com data-origin-price para o seletor nao
  * implicar o mesmo valor saindo de outra cidade.
  */
-function editorialWeekHtml(semana, { cidade = "", ctaHref = "", ctaLabel = "", showFare = true, originIata = "", embedded = false } = {}) {
-  if (!semana) return "";
+function editorialWeekHtml(semanaDados, { cidade = "", ctaHref = "", ctaLabel = "", showFare = true, originIata = "", embedded = false } = {}) {
+  if (!semanaDados) return "";
+  const semana = moedaEmArvore(semanaDados);
   const sectionId = semana.offerId ? `semana-${semana.offerId}` : "semana-lock";
   const cidadeNome = cidade || semana.cidade || "";
   const dias = (Array.isArray(semana.dias) ? semana.dias : []).map(normalizeGuideDia);
