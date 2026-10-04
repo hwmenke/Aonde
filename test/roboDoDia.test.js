@@ -145,13 +145,13 @@ test("a pagina /hoje renderiza os topicos e nao promete preco garantido", () => 
   assert.match(html, /A escolha do dia/);
   assert.match(html, /class="hoje-card"/);
   assert.ok((html.match(/class="hoje-bullet"/g) || []).length >= 5, "topicos por dia");
-  assert.match(html, /conferidos no site do parceiro/, "mantem o aviso de preco");
+  assert.match(html, /confirme no site do parceiro antes de comprar/, "mantem o aviso de preco");
   assert.match(html, /rel="canonical" href="https:\/\/aonde\.com\.br\/hoje"/);
 });
 
 test("a pagina do dia aguenta um pacote vazio", () => {
   const html = renderTodayPage({ dia: "2026-07-26", itens: [] });
-  assert.match(html, /class="feed-vazio"/, "estado vazio em vez de pagina quebrada");
+  assert.match(html, /class="hoje-vazio"/, "estado vazio em vez de pagina quebrada");
   assert.ok(!/undefined|NaN/.test(html.replace(/<style[\s\S]*?<\/style>/g, "")));
 });
 
