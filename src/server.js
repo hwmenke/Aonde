@@ -176,7 +176,12 @@ function comprimir(res, corpo, nivelBrotli = BROTLI_NIVEL_DINAMICO) {
   return { buf, encoding: null };
 }
 
-function sendHtml(res, status, rawHtml) {
+// /saida/:id sem marker devolve a pagina da oferta sem botao de reserva: e uma
+// copia de /ofertas/:id sob outra URL e nao deve ser indexada. O cabecalho
+// acompanha o <meta robots> para crawlers que so olham a resposta HTTP.
+const NOINDEX_HEADERS = { "X-Robots-Tag": "noindex, nofollow" };
+
+function sendHtml(res, status, rawHtml, extraHeaders) {
   const html = externalizeStyles(rawHtml);
   const { buf, encoding } = comprimir(res, html);
   res.writeHead(status, {
@@ -185,6 +190,7 @@ function sendHtml(res, status, rawHtml) {
     ...(encoding ? { "Content-Encoding": encoding, Vary: "Accept-Encoding" } : {}),
     ...securityHeaders(),
     ...corsHeaders(),
+    ...(extraHeaders || {}),
   });
   res.end(buf);
 }
@@ -787,7 +793,7 @@ function handleExitHtml(req, res, id, url) {
       // que nao funciona ou enviar a pessoa para HTTP 409, devolvemos 200 com
       // uma pagina honesta que explica a limitacao (o renderer trata quando
       // affiliateUrl === null, mostrando o card da oferta sem link de reserva).
-      sendHtml(res, 200, renderOfferPage(offer, {}));
+      sendHtml(res, 200, renderOfferPage(offer, { noindex: true }), NOINDEX_HEADERS);
       return;
     }
     // sub_id para Travelpayouts: {utm_source}_{offer_id}_{origem}, e.g. "wa_gru-eze_rec"
@@ -807,11 +813,11 @@ function handleExitHtml(req, res, id, url) {
   // "javascript:" etc.): nao ha para onde mandar com seguranca; devolve o
   // detalhe da oferta.
   if (!affiliateUrl || !isSafeRedirectUrl(affiliateUrl)) {
-    sendHtml(res, 409, renderOfferPage(offer, {}));
+    sendHtml(res, 409, renderOfferPage(offer, { noindex: true }), NOINDEX_HEADERS);
     return;
   }
   recordClick(id, req.headers["user-agent"]);
-  sendHtml(res, 200, renderExitPage(offer, { affiliateUrl }));
+  sendHtml(res, 200, renderExitPage(offer, { affiliateUrl }), NOINDEX_HEADERS);
 }
 
 // Codigo IATA: exatamente 3 letras (case-insensitive na entrada).
