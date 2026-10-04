@@ -140,14 +140,15 @@ test("renderGuidePage tem a seção 'Onde ficar' com a base e CTA de hospedagem"
 test("renderGuidePage tem datas clicáveis para reservar", () => {
   const html = renderGuidePage("salvador");
   assert.ok(html.includes("Datas para viajar"), "seção de datas");
-  assert.ok(html.includes("Reservar estas datas"), "CTA de reserva");
+  assert.ok(html.includes("Ver voos nestas datas"), "CTA leva a busca de voos, nao promete reserva");
+  assert.ok(!html.includes("Reservar estas datas"), "nao chama de reserva o que e uma busca");
   assert.ok(/href="\/resultados\?destino=/.test(html), "CTA leva ao fluxo de voos com o destino");
   assert.ok(html.includes("melhor preço"), "destaca a melhor janela");
 });
 
 test("renderGuidePage embute o mini-mapa do Google quando há chave", () => {
   const semChave = renderGuidePage("salvador");
-  assert.ok(semChave.includes("Ver no mapa-múndi"), "sem chave: fallback com link para /mapa");
+  assert.ok(semChave.includes("Ver no mapa de destinos"), "sem chave: fallback com link para /mapa");
   assert.ok(!semChave.includes("maps.googleapis.com"), "sem chave: não carrega o Maps");
   const comChave = renderGuidePage("salvador", { apiKey: "KMAP" });
   assert.ok(comChave.includes('id="guia-map"'), "com chave: container do mapa");

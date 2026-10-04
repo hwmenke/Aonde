@@ -48,6 +48,7 @@ import { createHash } from "node:crypto";
 import { getConfig } from "../config.js";
 import { rotuloAeroporto, cidadeDoIata } from "./aeroportos.js";
 import { ogSharePathForOffer, hojeOgSharePath } from "./ogShare.js";
+import { continuePlanejandoHtml, indiceDoRoteiroHtml, ofertaNaCaixaHtml } from "./guideLinks.js";
 import {
   FAQ_GROUPS,
   buildOrganization,
@@ -403,12 +404,18 @@ function resilientImg(url, alt, label, className, largura = 900, destPhoto = fal
   // Special:FilePath, que sempre responde; so se esse tambem falhar vem o
   // placeholder.
   const fallbackAttr = direto ? ` data-fb="${escapeHtml(fotoLargura(url, 900))}"` : "";
+  // Miniaturas diretas (upload.wikimedia.org) respondem com `Access-Control-Allow-Origin: *`
+  // mas tambem com `Set-Cookie: WMF-Uniq` (SameSite=None) — cookie de terceiro,
+  // que derruba "Boas praticas" no Lighthouse. Em modo CORS anonimo o navegador
+  // nao envia nem guarda cookies. O Special:FilePath do fallback redireciona
+  // sem CORS, entao o onerror tira o atributo antes de tentar o fallback.
+  const cors = direto ? ' crossorigin="anonymous"' : "";
   const onerror = direto
-    ? `var f=this.getAttribute('data-fb');this.srcset='';this.onerror=function(){this.onerror=0;this.src='${dataUri}'};this.src=f`
+    ? `var f=this.getAttribute('data-fb');this.removeAttribute('crossorigin');this.srcset='';this.onerror=function(){this.onerror=0;this.src='${dataUri}'};this.src=f`
     : `this.onerror=0;this.srcset='';this.src='${dataUri}'`;
   const { w, h } = dimensoesDaImagem(className);
   const tam = ` width="${w}" height="${h}"`;
-  const comum = `alt="${escapeHtml(alt)}"${tam}${sizes}${destAttrs}${fallbackAttr}`;
+  const comum = `alt="${escapeHtml(alt)}"${tam}${sizes}${destAttrs}${fallbackAttr}${cors}`;
   if (adiar) {
     // Slide que ainda nao aparece: so o script do carrossel troca data-src por
     // src, pouco antes da vez dele. Sem JS ele nunca seria exibido mesmo.
@@ -696,6 +703,7 @@ function guideFromContent(g) {
     breadcrumb: g.breadcrumb || g.titulo || "",
     tag: g.tag || "",
     titulo: g.titulo || "",
+    resumo: g.resumo || "",
     intro: g.intro || "",
     hero: { url: g.heroSrc || "", credit: g.heroCredit || "", href: g.heroCreditHref || "", foto: g.heroFoto || g.titulo || "" },
     preco: g.preco || "",
@@ -968,7 +976,7 @@ function lodgingHtml(g) {
   const base = guideBaseArea(g);
   const busca = hotellookSearch(cidade);
   return (
-    `<section class="wrap section">` +
+    `<section class="wrap section" id="onde-ficar">` +
     `<div class="section-head section-head--tight"><h2>Onde ficar</h2>` +
     `<span class="dt-note">Hospedagem é reservada no parceiro — sem custo extra para você.</span></div>` +
     `<div class="lodging">` +
@@ -1000,7 +1008,7 @@ function travelDatesHtml(g) {
         `<span class="dt-when">${escapeHtml(o.label)}</span>` +
         `<span class="dt-price">${escapeHtml(o.price)}</span>` +
         `<span class="dt-sub">${escapeHtml(o.sub)}</span>` +
-        `<a class="btn ${o.best ? "btn-green" : "btn-dark"} dt-cta" href="${escapeHtml(href)}">Reservar estas datas →</a>` +
+        `<a class="btn ${o.best ? "btn-green" : "btn-dark"} dt-cta" href="${escapeHtml(href)}">Ver voos nestas datas →</a>` +
         `</div>`
       );
     })
@@ -1008,7 +1016,7 @@ function travelDatesHtml(g) {
   return (
     `<section class="wrap section">` +
     `<div class="section-head section-head--tight"><h2>Datas para viajar</h2>` +
-    `<span class="dt-note">Escolha uma janela e reserve. Parcelamento e desconto no Pix, quando houver, são condição do parceiro.</span></div>` +
+    `<span class="dt-note">Escolha uma janela e veja os voos. Parcelamento e desconto no Pix, quando houver, são condição do parceiro.</span></div>` +
     `<div class="dt-grid">${cards}</div>` +
     `</section>`
   );
@@ -1054,13 +1062,13 @@ function guideMiniMap(g, apiKey) {
   return miniMapSection({
     domId: "guia-map",
     callback: "aondeGuiaMap",
-    title: "Onde fica",
-    caption: "Explore o destino no mapa — e abra cada dia do roteiro no Google Maps abaixo.",
+    title: "No mapa",
+    caption: "Veja onde fica o destino. Cada dia do roteiro abre no Google Maps, logo abaixo.",
     coords: co,
     label: g.titulo,
     apiKey,
     fallbackHref: "/mapa",
-    fallbackText: "Ver no mapa-múndi",
+    fallbackText: "Ver no mapa de destinos",
   });
 }
 
@@ -1090,9 +1098,9 @@ function optimizerHtml(opt) {
   const destName = opt.destName || "o destino";
 
   return (
-    `<section class="wrap opt">` +
+    `<section class="wrap opt" id="quando-ir">` +
     `<div class="opt-head">` +
-    `<div><p class="eyebrow eyebrow--green">Otimizador de datas</p>` +
+    `<div><p class="eyebrow eyebrow--green">Melhor época</p>` +
     `<h2>Quando ir e por quanto</h2></div>` +
     `<p class="opt-sub">Referência de preço por mês para GRU → ${escapeHtml(destName)}, levantada pela nossa curadoria. O mês em verde é o mais barato do ano segundo esse levantamento — serve para escolher a época, não como cotação do dia.</p>` +
     `</div>` +
@@ -1110,7 +1118,7 @@ function optimizerHtml(opt) {
         `<div class="opt-window-price"><span>${escapeHtml(win.price || "")}</span><small>ida e volta</small></div>` +
         (win.save ? `<span class="opt-save">economize ${escapeHtml(win.save)} vs. a média</span>` : "") +
         (win.note ? `<p>${escapeHtml(win.note)}</p>` : "") +
-        `<a class="btn btn-lime" href="${escapeHtml(guideResultsHref(opt))}">Ver voos nessas datas →</a></div>`
+        `<a class="btn btn-lime" href="${escapeHtml(guideResultsHref(opt))}">Ver voos nestas datas →</a></div>`
       : "") +
     (sourcesHtml
       ? `<div class="opt-sources"><span class="opt-sources-title">Comparado com outros sites</span>` +
@@ -1865,7 +1873,7 @@ function roteirosSectionHtml(guides) {
     `<div class="roteiros-head" id="guias">` +
     `<p class="eyebrow eyebrow--lime">Revista Aonde · Roteiros prontos</p>` +
     `<h2>5 dias, dia a dia, com onde comer</h2>` +
-    `<p>Roteiros escritos por quem conhece o destino: pontos turísticos na ordem certa e um bom restaurante para cada dia. É só seguir.</p>` +
+    `<p>Roteiros editoriais com os pontos turísticos na ordem certa e um restaurante para cada dia. É só seguir.</p>` +
     `<p class="roteiros-all"><a href="/guias">Ver todos os roteiros →</a></p>` +
     `</div>` +
     `<div class="rot-grid">${cards}</div>` +
@@ -2111,7 +2119,7 @@ export function renderOffersPage(offers = [], { title = "Ofertas de viagem — A
 // ---------------------------------------------------------------------------
 
 /** Pagina de detalhe de uma oferta — porta fiel da tela "oferta". */
-export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
+export function renderOfferPage(offer, { related = [], apiKey = "", noindex = false } = {}) {
   const vm =
     offer && typeof offer === "object" && ("preco_centavos" in offer || "is_erro_tarifa" in offer)
       ? normalizeLiveOffer(offer)
@@ -2429,6 +2437,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
       : vm.href || (vm.id ? `/ofertas/${vm.id}` : "/ofertas"),
     image: ogImageForOfferPage(vm.id, vm.thumbUrl),
     jsonld: offerJsonld,
+    noindex,
   });
   if (offerMap.loader) doc = doc.replace("</body>", `${offerMap.loader}</body>`);
   return doc;
@@ -2438,7 +2447,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
 // GUIA / ROTEIRO
 // ---------------------------------------------------------------------------
 
-function diaArticleHtml(d, cidade) {
+function diaArticleHtml(d, cidade, { anchorId = "" } = {}) {
   const pontos = (d.pontos || []).map(pontoHtml).join("");
   const restQuery = d.restauranteEndereco
     ? `${d.restauranteNome}, ${d.restauranteEndereco}`
@@ -2452,7 +2461,7 @@ function diaArticleHtml(d, cidade) {
     ? `<a class="dia-map" href="${escapeHtml(dirUrl)}" target="_blank" rel="noopener"><span class="dia-map-pin" aria-hidden="true">📍</span> Ver o dia no Google Maps →</a>`
     : "";
   return (
-    `<article class="dia">` +
+    `<article class="dia"${anchorId ? ` id="${escapeHtml(anchorId)}"` : ""}>` +
     `<div class="dia-num"><span>DIA</span><strong>${escapeHtml(d.n)}</strong></div>` +
     `<div class="dia-body">` +
     `<h3>${escapeHtml(d.titulo)}</h3>` +
@@ -2544,7 +2553,7 @@ function editorialWeekHtml(semana, { cidade = "", ctaHref = "", ctaLabel = "", s
   );
 }
 
-function renderGuideVM(g, apiKey) {
+function renderGuideVM(g, apiKey, { hoje = new Date() } = {}) {
   const map = guideMiniMap(g, apiKey);
   const hero = g.hero || {};
   const heroMedia = hero.url
@@ -2552,18 +2561,20 @@ function renderGuideVM(g, apiKey) {
     : `<div class="media-placeholder">${placeholderSvgMarkup(hero.foto || g.titulo)}</div>`;
 
   const meta = (g.meta || [])
-    .map((m) => `<div class="guia-meta-row"><span>${escapeHtml(m.k)}</span><strong>${escapeHtml(m.v)}</strong></div>`)
+    .map((m) => `<div class="guia-meta-row"><dt>${escapeHtml(m.k)}</dt><dd>${escapeHtml(m.v)}</dd></div>`)
     .join("");
+  const origemExtenso = `${cidadeDoIata("GRU") || "São Paulo"} (GRU)`;
+  const guiaEditorial = !!(g.id && GUIDES[g.id]);
 
   const cidade = g.breadcrumb || g.titulo || "";
-  const dias = (g.dias || []).map((d) => diaArticleHtml(d, cidade)).join("");
+  const dias = (g.dias || []).map((d) => diaArticleHtml(d, cidade, { anchorId: d.n ? `dia-${d.n}` : "" })).join("");
 
   // O preco do roteiro e sempre da rota monitorada (GRU -> destino), a mesma do
   // otimizador logo abaixo. Sem dizer a origem, quem via "R$ 312 saindo de BH"
   // na escolha do dia e "R$ 399" aqui achava que o site se contradizia.
   const asidePreco = g.preco
-    ? `<span class="guia-aside-preco">a partir de <strong>${escapeHtml(g.preco)}</strong> ida e volta, ` +
-      `saindo de ${escapeHtml(rotuloAeroporto("GRU"))}</span>`
+    ? `<span class="guia-aside-preco">Referência da nossa curadoria: <strong>${escapeHtml(g.preco)}</strong> ida e volta, ` +
+      `saindo de ${escapeHtml(origemExtenso)}. Confira o valor atual no parceiro.</span>`
     : "";
 
   // O que este preco NAO cobre. Uma leitora planejando lua de mel com orcamento
@@ -2577,10 +2588,10 @@ function renderGuideVM(g, apiKey) {
       `<h2 class="escopo-h">O que esse valor cobre — e o que não cobre</h2>` +
       `<div class="escopo-cols">` +
       `<div><p class="escopo-tit escopo-tit--sim">Está incluído</p><ul>` +
-      `<li>Passagem aérea de ida e volta, <strong>por pessoa</strong>, saindo de ${escapeHtml(rotuloAeroporto("GRU"))}. Saindo de outra cidade o valor muda.</li>` +
+      `<li>Passagem aérea de ida e volta, <strong>por pessoa</strong>, saindo de ${escapeHtml(origemExtenso)}. Saindo de outra cidade, o valor muda.</li>` +
       `</ul></div>` +
       `<div><p class="escopo-tit escopo-tit--nao">Não está incluído</p><ul>` +
-      `<li>Hospedagem (veja a seção “Onde ficar” logo abaixo).</li>` +
+      `<li>Hospedagem (veja “Onde ficar”, logo abaixo).</li>` +
       `<li>Comida, transporte no destino e passeios.</li>` +
       `<li>Taxas e ingressos cobrados no próprio destino, quando houver.</li>` +
       `</ul></div>` +
@@ -2601,33 +2612,42 @@ function renderGuideVM(g, apiKey) {
     `</div>` +
     `<div class="guia-intro-grid">` +
     `<div><h1 class="guia-title">${escapeHtml(g.titulo)}</h1>` +
-    (g.intro ? `<p class="guia-intro">${escapeHtml(g.intro)}</p>` : "") + `</div>` +
+    (g.intro ? `<p class="guia-intro">${escapeHtml(g.intro)}</p>` : "") +
+    indiceDoRoteiroHtml(g.dias, {
+      temHospedagem: !!g.id,
+      temEpoca: !!(g.opt && Array.isArray(g.opt.months) && g.opt.months.length),
+      temPreparativos: !!preparativosDoGuia(g),
+      temMais: guiaEditorial,
+    }) +
+    `</div>` +
     `<aside class="guia-aside">` +
-    `<h2 class="guia-aside-h">Na prática</h2>${meta}` +
+    `<h2 class="guia-aside-h">Na prática</h2><dl class="guia-meta">${meta}</dl>` +
     `<a class="btn btn-green" href="${escapeHtml(guideResultsHref(g.opt))}">${escapeHtml(g.ctaVoos)}</a>` +
     asidePreco +
+    (guiaEditorial ? ofertaNaCaixaHtml(GUIDES[g.id]) : "") +
     `</aside>` +
     `</div>` +
     `</section>` +
     map.html +
     `<section class="wrap section">` +
     `<h2 class="guia-h2">O roteiro, dia a dia</h2>` +
-    `<div class="dias">${dias}</div>` +
+    `<div class="dias dias--guia">${dias}</div>` +
     `</section>` +
     escopoPreco +
     (g.id ? lodgingHtml(g) : "") +
     preparativosHtml(g) +
     optimizerHtml(g.opt) +
     travelDatesHtml(g) +
+    (guiaEditorial ? continuePlanejandoHtml(GUIDES[g.id], { data: hoje }) : "") +
     (g.id
       ? newsletterStripHtml({
-          titulo: `Ainda não é a hora? A gente avisa quando ${g.titulo} ficar mais barato.`,
-          sub: "Alerta de preço abaixo da média — sem lotar sua caixa de entrada com outros destinos.",
+          titulo: `Ainda não é a hora? A gente avisa quando as passagens para ${g.breadcrumb || g.titulo} ficarem mais baratas.`,
+          sub: "Alerta de preço abaixo da média, sem lotar sua caixa de entrada com outros destinos.",
         })
       : "") +
     `<section class="wrap section">` +
     `<div class="guia-cta"><div><h2>${escapeHtml(g.ctaTitulo)}</h2>` +
-    `<p>Voo + hotel na mesma reserva. As condições de pagamento são as do parceiro que vende o pacote.</p></div>` +
+    `<p>Voo e hospedagem são reservados nos sites dos parceiros, cada um com as próprias condições de pagamento.</p></div>` +
     `<div class="guia-cta-btns"><a class="btn btn-lime" href="${escapeHtml(guideResultsHref(g.opt))}">${escapeHtml(g.ctaVoos)}</a>` +
     `<a class="btn btn-ghost" href="/guias">Outros roteiros</a></div></div>` +
     `</section>` +
@@ -2663,6 +2683,7 @@ export function renderGuidesIndexPage() {
     `<section class="wrap map-head"><p class="eyebrow eyebrow--green">Revista Aonde</p>` +
     `<h1 class="map-title">Roteiros prontos, dia a dia</h1>` +
     `<p class="map-sub">${escapeHtml(GUIDE_LIST.length)} destinos com roteiro de 5 dias na ordem certa e um bom restaurante para cada dia. Escolha o seu.</p>` +
+    `<p class="map-sub map-sub--links">Já sabe para onde quer ir? Veja os <a href="/ofertas">achados de passagem</a> ou a <a href="/hoje">escolha do dia</a>.</p>` +
     // O campo nasce com "hidden": sem JS ele nunca aparece, entao ninguem ve
     // uma caixa de busca que nao filtra nada. O enhancementScript() tira o
     // hidden. A lista inteira continua ali, so escondemos cartoes ao filtrar.
@@ -2907,10 +2928,10 @@ export function renderTodayPage(pacote, { aviso = null, erro = false } = {}) {
 }
 
 /** Guia editorial (aondeContent) por id, ou objeto de guia. */
-export function renderGuidePage(guideOrId, { apiKey = "" } = {}) {
+export function renderGuidePage(guideOrId, { apiKey = "", hoje = new Date() } = {}) {
   const g = typeof guideOrId === "string" ? GUIDES[guideOrId] : guideOrId;
   if (!g) return renderHomePage();
-  return renderGuideVM(guideFromContent(g), apiKey);
+  return renderGuideVM(guideFromContent(g), apiKey, { hoje });
 }
 
 /**
