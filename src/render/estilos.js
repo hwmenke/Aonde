@@ -516,13 +516,15 @@ export function pageStyles() {
   .flag-dark{background:rgba(24,24,27,.75);color:#f7f7f5;text-transform:uppercase;letter-spacing:.05em;}
   .guia-intro-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:48px;margin-top:36px;align-items:start;}
   .guia-title{font-size:clamp(38px,6vw,54px);line-height:1.05;}
-  .guia-intro{margin:18px 0 0;font-size:18px;line-height:1.6;color:var(--muted);}
+  .guia-intro{margin:18px 0 0;font-size:clamp(17px,2.2vw,19px);line-height:1.7;color:var(--muted);max-width:64ch;}
   .guia-aside{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:14px;position:sticky;top:92px;}
   .guia-aside h3,.guia-aside-h{font-size:16px;font-weight:700;font-family:var(--sans);margin:0;line-height:1.3;}
-  .guia-meta-row{display:flex;justify-content:space-between;gap:12px;font-size:14px;border-bottom:1px solid var(--border);padding-bottom:10px;}
-  .guia-meta-row span{color:var(--muted-2);}
-  .guia-meta-row strong{text-align:right;}
-  .guia-aside-preco{font-size:13px;color:var(--muted);text-align:center;}
+  .guia-meta{margin:0;display:flex;flex-direction:column;gap:14px;}
+  .guia-meta-row{display:flex;justify-content:space-between;gap:16px;font-size:14px;line-height:1.45;border-bottom:1px solid var(--border);padding-bottom:10px;}
+  .guia-meta-row dt{color:var(--muted-2);flex:0 0 auto;}
+  .guia-meta-row dd{margin:0;font-weight:700;text-align:right;}
+  .guia-aside-preco{font-size:13px;line-height:1.5;color:var(--muted);text-align:center;}
+  .guia-aside-oferta{display:block;font-size:14px;font-weight:600;line-height:1.4;text-align:center;}
   .escopo-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:26px 28px;max-width:860px;}
   .escopo-h{font-size:22px;font-weight:700;font-family:var(--sans);margin:0 0 16px;}
   .escopo-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:24px;}
@@ -531,7 +533,43 @@ export function pageStyles() {
   .escopo-tit--nao{color:#9a3412;}
   .escopo-cols ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:15px;line-height:1.5;color:var(--muted);}
   .escopo-nota{margin:18px 0 0;font-size:13px;line-height:1.6;color:var(--muted);border-top:1px solid var(--border);padding-top:14px;}
-  .guia-h2{font-size:36px;margin-bottom:28px;}
+  .guia-h2{font-size:clamp(28px,5vw,36px);margin-bottom:28px;}
+  /* Roteiro de 5 dias: indice, dias mais legiveis e "Continue planejando".
+     Os ajustes de texto dos dias ficam presos a .dias--guia para nao mexer na
+     semana editorial de /ofertas, que usa o mesmo cartao .dia. */
+  .guia-toc{margin-top:28px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px;max-width:640px;}
+  .guia-toc-h{font-family:var(--sans);font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2);margin:0 0 6px;}
+  .guia-toc-lista{list-style:none;margin:0;padding:0;}
+  .guia-toc-lista li+li{border-top:1px solid var(--border);}
+  .guia-toc-lista a{display:flex;gap:14px;align-items:baseline;padding:11px 0;min-height:44px;color:var(--text);font-size:16px;line-height:1.35;}
+  .guia-toc-n{flex:0 0 48px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green-2);}
+  .guia-toc-t{font-weight:600;}
+  .guia-toc-lista a:hover .guia-toc-t{text-decoration:underline;}
+  .guia-toc-extras{display:flex;flex-wrap:wrap;gap:4px 18px;margin:8px 0 0;padding-top:12px;border-top:1px solid var(--border);font-size:14px;}
+  .guia-toc-extras span{color:var(--muted-2);}
+  .guia-toc-extras a{font-weight:600;display:inline-flex;align-items:center;min-height:32px;}
+  .dias--guia{max-width:760px;gap:24px;}
+  .dias--guia .dia{scroll-margin-top:96px;}
+  .dias--guia .dia-body h3{font-size:24px;line-height:1.2;margin-bottom:4px;}
+  .dias--guia .dia-desc{font-size:16.5px;line-height:1.65;margin:8px 0 18px;max-width:62ch;}
+  .dias--guia .dia-pontos{gap:12px;}
+  .dias--guia .dia-ponto{font-size:16px;line-height:1.55;}
+  .dias--guia .dia-rest span:last-child{font-size:15px;color:var(--muted);line-height:1.55;}
+  #onde-ficar,#quando-ir,#antes-de-viajar,#continue-planejando{scroll-margin-top:96px;}
+  .guia-mais-bloco{margin-top:36px;max-width:960px;}
+  .guia-mais-h{font-family:var(--sans);font-size:18px;font-weight:700;letter-spacing:0;line-height:1.3;margin:0 0 12px;}
+  .guia-mais-txt{margin:0 0 14px;font-size:16px;line-height:1.6;color:var(--muted);max-width:62ch;}
+  .guia-mais-fine{margin:12px 0 0;font-size:13px;line-height:1.55;color:var(--muted);max-width:70ch;}
+  .guia-mais-ver{margin-top:8px;font-size:14px;font-weight:600;color:var(--green);}
+  .guia-rel-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(250px,100%),1fr));gap:16px;}
+  .guia-rel-card{display:flex;flex-direction:column;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;color:inherit;}
+  .guia-rel-card:hover{border-color:var(--lime);color:inherit;}
+  .guia-rel-tag{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green-2);}
+  .guia-rel-titulo{font-size:18px;line-height:1.25;}
+  .guia-rel-resumo{font-size:14.5px;line-height:1.5;color:var(--muted);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .guia-rel-foot{margin-top:auto;padding-top:6px;font-size:13px;color:var(--muted-2);}
+  .map-sub--links{margin-top:10px;}
+
   .semana-lock{max-width:860px;}
   .semana-lock-aviso{margin:0 0 18px;font-size:15px;line-height:1.6;color:var(--text);background:var(--tint);border:1px solid var(--tint-border);border-radius:12px;padding:14px 18px;}
   .semana-lock-meta{margin:0 0 14px;font-size:16px;line-height:1.6;color:var(--muted);}
@@ -737,7 +775,7 @@ export function pageStyles() {
   .det-share-btn{display:block;width:100%;background:var(--green);color:var(--on-green);padding:10px;border-radius:10px;font-size:14px;font-weight:600;text-align:center;}
   .det-share-btn:hover{background:var(--green-2);color:var(--on-green);}
   .det-share-note{margin:10px 0 0;font-size:12px;color:var(--muted);line-height:1.45;}
-  .opt-foot--disclaimer{color:#8a8a84;}
+  .opt-foot--disclaimer{color:var(--muted);}
 
   /* Faixa de captura (strip) */
   .news-whatsapp-note{font-size:12px;color:#a1a1a6;display:block;margin-top:-4px;}
@@ -889,6 +927,13 @@ export function pageStyles() {
     .style-item{opacity:1;}
     .style-img{opacity:0;}.style-img.is-active{opacity:1;}
     .guia-intro-grid{grid-template-columns:1fr;gap:24px;}
+    .guia-aside{position:static;}
+    .guia-hero{height:280px;border-radius:18px;}
+    .guia-top ~ .section{padding-top:48px;}
+    .guia-map{height:220px;}
+    .dias--guia .dia-rest{flex-direction:column;gap:4px;}
+    .guia-toc-extras a{min-height:44px;}
+    .guia-cta{padding:28px 20px;}
     .det-aside{position:static;}
     .hero{height:520px;}
     .dia{grid-template-columns:1fr;gap:16px;}
