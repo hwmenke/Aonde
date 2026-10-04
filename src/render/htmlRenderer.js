@@ -403,12 +403,18 @@ function resilientImg(url, alt, label, className, largura = 900, destPhoto = fal
   // Special:FilePath, que sempre responde; so se esse tambem falhar vem o
   // placeholder.
   const fallbackAttr = direto ? ` data-fb="${escapeHtml(fotoLargura(url, 900))}"` : "";
+  // Miniaturas diretas (upload.wikimedia.org) respondem com `Access-Control-Allow-Origin: *`
+  // mas tambem com `Set-Cookie: WMF-Uniq` (SameSite=None) — cookie de terceiro,
+  // que derruba "Boas praticas" no Lighthouse. Em modo CORS anonimo o navegador
+  // nao envia nem guarda cookies. O Special:FilePath do fallback redireciona
+  // sem CORS, entao o onerror tira o atributo antes de tentar o fallback.
+  const cors = direto ? ' crossorigin="anonymous"' : "";
   const onerror = direto
-    ? `var f=this.getAttribute('data-fb');this.srcset='';this.onerror=function(){this.onerror=0;this.src='${dataUri}'};this.src=f`
+    ? `var f=this.getAttribute('data-fb');this.removeAttribute('crossorigin');this.srcset='';this.onerror=function(){this.onerror=0;this.src='${dataUri}'};this.src=f`
     : `this.onerror=0;this.srcset='';this.src='${dataUri}'`;
   const { w, h } = dimensoesDaImagem(className);
   const tam = ` width="${w}" height="${h}"`;
-  const comum = `alt="${escapeHtml(alt)}"${tam}${sizes}${destAttrs}${fallbackAttr}`;
+  const comum = `alt="${escapeHtml(alt)}"${tam}${sizes}${destAttrs}${fallbackAttr}${cors}`;
   if (adiar) {
     // Slide que ainda nao aparece: so o script do carrossel troca data-src por
     // src, pouco antes da vez dele. Sem JS ele nunca seria exibido mesmo.
@@ -2103,7 +2109,7 @@ export function renderOffersPage(offers = [], { title = "Ofertas de viagem — A
 // ---------------------------------------------------------------------------
 
 /** Pagina de detalhe de uma oferta — porta fiel da tela "oferta". */
-export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
+export function renderOfferPage(offer, { related = [], apiKey = "", noindex = false } = {}) {
   const vm =
     offer && typeof offer === "object" && ("preco_centavos" in offer || "is_erro_tarifa" in offer)
       ? normalizeLiveOffer(offer)
@@ -2421,6 +2427,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "" } = {}) {
       : vm.href || (vm.id ? `/ofertas/${vm.id}` : "/ofertas"),
     image: ogImageForOfferPage(vm.id, vm.thumbUrl),
     jsonld: offerJsonld,
+    noindex,
   });
   if (offerMap.loader) doc = doc.replace("</body>", `${offerMap.loader}</body>`);
   return doc;
