@@ -49,6 +49,19 @@ export function isValidEmail(str) {
   return typeof str === "string" && EMAIL_RE.test(str.trim());
 }
 
+/**
+ * WhatsApp opcional: aceita +, espaco, parenteses e hifen, mas exige de 10 a 15
+ * digitos (DDD + numero, com ou sem codigo do pais). Nao verifica se o numero
+ * existe — so barra lixo evidente antes de gravar.
+ */
+export function isValidWhatsapp(str) {
+  if (typeof str !== "string") return false;
+  const t = str.trim();
+  if (!/^[+(\d][\d\s().-]*$/.test(t)) return false;
+  const digitos = t.replace(/\D/g, "");
+  return digitos.length >= 10 && digitos.length <= 15;
+}
+
 /** Normaliza um e-mail (trim + minusculas) para comparacao/armazenamento. */
 export function normalizeEmail(str) {
   return String(str || "").trim().toLowerCase();
@@ -85,12 +98,17 @@ export function hashEmail(email) {
  */
 export function subscribe({ email, whatsapp, origem, destino, precoAlvoCentavos } = {}) {
   if (!isValidEmail(email)) {
-    return { ok: false, error: "E-mail invalido. Informe um endereco de e-mail valido." };
+    return {
+      ok: false,
+      field: "email",
+      error: "Esse e-mail não parece válido. Confira se há @ e o domínio, por exemplo nome@exemplo.com.br.",
+    };
   }
   if (!isIataCode(origem)) {
     return {
       ok: false,
-      error: `origem invalida: "${origem}". Esperado codigo IATA de 3 letras (A-Z), ex.: GRU`,
+      field: "origem",
+      error: "Escolha a cidade de onde você costuma sair.",
     };
   }
   // Alerta de rota/preco OPCIONAL — mesmas regras de alertRules. Se `destino`
@@ -98,11 +116,19 @@ export function subscribe({ email, whatsapp, origem, destino, precoAlvoCentavos 
   // transforma em AlertRule real assim que o double opt-in acontece.
   const hasDestino = destino !== undefined && destino !== null && String(destino).trim() !== "";
   if (hasDestino && !isIataCode(destino)) {
-    return { ok: false, error: `destino invalido: "${destino}". Esperado codigo IATA de 3 letras (A-Z).` };
+    return { ok: false, field: "destino", error: "Destino inválido para o alerta. Use o código de 3 letras do aeroporto, como REC." };
   }
   const hasPreco = precoAlvoCentavos !== undefined && precoAlvoCentavos !== null && precoAlvoCentavos !== "";
   if (hasPreco && !(Number.isFinite(Number(precoAlvoCentavos)) && Number(precoAlvoCentavos) > 0)) {
-    return { ok: false, error: "precoAlvoCentavos invalido. Esperado numero positivo em centavos." };
+    return { ok: false, field: "preco", error: "Preço-alvo inválido. Informe um valor maior que zero." };
+  }
+  const hasWhatsapp = whatsapp !== undefined && whatsapp !== null && String(whatsapp).trim() !== "";
+  if (hasWhatsapp && !isValidWhatsapp(whatsapp)) {
+    return {
+      ok: false,
+      field: "whatsapp",
+      error: "Esse WhatsApp não parece válido. Use DDD e número, por exemplo (11) 91234-5678, ou deixe o campo em branco.",
+    };
   }
   const pendingAlert =
     hasDestino || hasPreco
@@ -114,7 +140,6 @@ export function subscribe({ email, whatsapp, origem, destino, precoAlvoCentavos 
 
   const normalizedEmail = normalizeEmail(email);
   const normalizedOrigem = normalizeIata(origem);
-  const hasWhatsapp = whatsapp !== undefined && whatsapp !== null && String(whatsapp).trim() !== "";
   const channels = hasWhatsapp ? ["email", "whatsapp"] : ["email"];
 
   const now = new Date();
@@ -184,13 +209,13 @@ export function subscribe({ email, whatsapp, origem, destino, precoAlvoCentavos 
  */
 export function confirm(token) {
   if (typeof token !== "string" || token.trim() === "") {
-    return { ok: false, error: "Token de confirmacao ausente ou invalido." };
+    return { ok: false, error: "O link de confirmação está incompleto ou inválido." };
   }
 
   const all = readAll();
   const index = all.findIndex((s) => s && s.optin_token === token);
   if (index === -1) {
-    return { ok: false, error: "Token de confirmacao invalido ou ja utilizado." };
+    return { ok: false, error: "Esse link de confirmação não vale mais: já foi usado ou não existe." };
   }
 
   const subscriber = all[index];
@@ -198,7 +223,7 @@ export function confirm(token) {
     ? new Date(subscriber.optin_token_expires_at).getTime()
     : 0;
   if (!expiresAt || Date.now() > expiresAt) {
-    return { ok: false, error: "Token de confirmacao expirado. Inscreva-se novamente." };
+    return { ok: false, error: "Esse link de confirmação está expirado (ele vale por 48 horas)." };
   }
 
   const nowIso = new Date().toISOString();
@@ -225,7 +250,11 @@ export function confirm(token) {
  */
 export function unsubscribe(email) {
   if (!isValidEmail(email)) {
-    return { ok: false, error: "E-mail invalido. Informe um endereco de e-mail valido." };
+    return {
+      ok: false,
+      field: "email",
+      error: "Esse e-mail não parece válido. Confira se há @ e o domínio, por exemplo nome@exemplo.com.br.",
+    };
   }
 
   const normalizedEmail = normalizeEmail(email);

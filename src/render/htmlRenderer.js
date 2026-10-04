@@ -2048,24 +2048,32 @@ function newsletterHeroHtml() {
 }
 
 // Faixa compacta de captura para paginas cujo objetivo primario nao e a
-// newsletter (home, guias). `destinoContexto` pre-preenche um alerta de rota.
-function newsletterStripHtml({ titulo, sub, origemDefault = "GRU" } = {}) {
+// newsletter (home, guias, /hoje). `destinoContexto` pre-preenche um alerta de rota.
+// `idSuffix` mantem ids unicos se uma pagina tiver mais de uma faixa.
+function newsletterStripHtml({ titulo, sub, origemDefault = "GRU", idSuffix = "faixa" } = {}) {
+  const id = escapeHtml(idSuffix);
   return (
-    `<section class="wrap news-strip-wrap">` +
+    `<section class="wrap news-strip-wrap" aria-labelledby="news-titulo-${id}">` +
     `<div class="news-strip">` +
     `<div class="news-strip-copy">` +
     `<p class="eyebrow eyebrow--lime">Alertas de preço</p>` +
-    `<h2>${escapeHtml(titulo || "Essa passagem pode sumir até amanhã.")}</h2>` +
+    `<h2 id="news-titulo-${id}">${escapeHtml(titulo || "Essa passagem pode sumir até amanhã.")}</h2>` +
     `<p>${escapeHtml(sub || "Garimpamos passagens abaixo da média todos os dias. Deixe seu e-mail e a gente avisa quando aparecer uma da sua cidade.")}</p>` +
     `</div>` +
-    `<form class="news-form news-form--strip" data-newsletter action="/api/newsletter/subscribe" method="post">` +
-    `<input name="email" type="email" required aria-label="Seu e-mail" placeholder="Seu melhor e-mail">` +
-    `<select name="origem" aria-label="Sua cidade de origem">${originOptionsHtml(origemDefault)}</select>` +
+    `<form class="news-form news-form--strip" data-newsletter action="/api/newsletter/subscribe" method="post" aria-describedby="news-termos-${id}">` +
+    `<label class="news-label" for="news-email-${id}">Seu e-mail</label>` +
+    `<input id="news-email-${id}" name="email" type="email" required autocomplete="email" inputmode="email" placeholder="nome@exemplo.com.br">` +
+    `<label class="news-label" for="news-origem-${id}">Cidade de saída</label>` +
+    `<select id="news-origem-${id}" name="origem" autocomplete="off">${originOptionsHtml(origemDefault)}</select>` +
     `<button class="btn btn-lime" type="submit">Quero receber os alertas</button>` +
     `<p class="news-msg" data-newsletter-msg role="status" aria-live="polite" hidden></p>` +
     `</form>` +
     `</div>` +
-    `<span class="news-fine news-fine--strip">Grátis. Sem spam. Cancele quando quiser.</span>` +
+    `<div class="news-fine news-fine--strip" id="news-termos-${id}">` +
+    `<p><strong>O que acontece depois:</strong> enviamos um e-mail com um link de confirmação. Sem clicar nele, nada é enviado. ` +
+    `Depois, avisamos só quando surgir uma tarifa abaixo da média para a cidade escolhida, sem frequência fixa. ` +
+    `Grátis, e você cancela quando quiser em <a href="/alertas">Gerenciar alertas</a> ou pelo link de cada e-mail.</p>` +
+    `</div>` +
     `</section>`
   );
 }
@@ -2874,10 +2882,93 @@ export function renderGuidesIndexPage() {
  * PAGINA DO DIA (/hoje) — o que o robo diario publica: uma ou duas ofertas com
  * o roteiro em topicos, foto e melhor epoca. Ver src/daily/dailyPick.js.
  */
-export function renderTodayPage(pacote) {
+/** Nome do mes por extenso a partir da abreviacao do guia ("Abr" -> "abril"). */
+function mesPorExtenso(abrev) {
+  const t = String(abrev || "").trim();
+  if (!t) return "";
+  const i = MONTH_NAMES.findIndex((m) => String(m).toLowerCase() === t.toLowerCase());
+  return i >= 0 ? MESES_LONGOS_PT[i] : t;
+}
+
+/** Dias inteiros entre a data do preco e o dia mostrado; null se alguma data nao existe. */
+function idadeDoPrecoEmDias(isoPreco, diaMostrado) {
+  const p = parseFontePrecoIso(isoPreco);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(diaMostrado || ""));
+  if (!p || !m) return null;
+  const a = Date.UTC(p.ano, p.mesIdx, p.dia);
+  const b = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const dias = Math.round((b - a) / 86400000);
+  return dias >= 0 ? dias : null;
+}
+
+/** Aviso de idade do preco. So fala do que da para calcular: nunca "ao vivo". */
+function precoIdadeHtml(isoPreco, diaMostrado, originIata) {
+  const dias = idadeDoPrecoEmDias(isoPreco, diaMostrado);
+  if (dias === null) return "";
+  const quando = dias === 0 ? "no próprio dia" : dias === 1 ? "há 1 dia" : `há ${dias} dias`;
+  const originAttr = originIata ? ` data-origin-price="${escapeHtml(originIata)}"` : "";
+  return (
+    `<p class="hoje-preco-idade${dias >= 7 ? " is-velho" : ""}"${originAttr}>` +
+    `Preço visto ${quando}. Passagem muda de valor sem aviso — confirme no Aviasales antes de pagar.</p>`
+  );
+}
+
+const HOJE_SAIDAS_HTML =
+  `<div class="hoje-ctas">` +
+  `<a class="btn btn-green" href="/ofertas">Ver as ofertas</a>` +
+  `<a class="btn btn-ghost btn-ghost--claro" href="/guias">Ver roteiros prontos</a>` +
+  `<a class="btn btn-ghost btn-ghost--claro" href="/resultados">Buscar passagens</a>` +
+  `</div>`;
+
+function hojeVazioHtml({ erro = false } = {}) {
+  const titulo = erro
+    ? "Não conseguimos carregar a escolha do dia"
+    : "Hoje não há uma escolha do dia publicada";
+  const texto = erro
+    ? "Algo falhou do nosso lado ao montar esta página. Nenhum preço foi perdido: tente atualizar em instantes ou siga por um destes caminhos."
+    : "Aqui só entram destinos com roteiro dia a dia pronto e link de compra no parceiro. Hoje nenhum deles está disponível, e preferimos deixar a página vazia a mostrar um preço sem origem. Veja o que há de pronto ou peça o aviso por e-mail abaixo.";
+  return (
+    `<div class="hoje-vazio" role="${erro ? "alert" : "region"}" aria-labelledby="hoje-vazio-titulo">` +
+    `<h2 id="hoje-vazio-titulo">${escapeHtml(titulo)}</h2>` +
+    `<p>${escapeHtml(texto)}</p>` +
+    (erro ? `<p><a class="btn btn-green" href="/hoje">Tentar de novo</a></p>` : "") +
+    HOJE_SAIDAS_HTML +
+    `</div>`
+  );
+}
+
+function hojeAvisoHtml(aviso) {
+  if (!aviso) return "";
+  if (aviso.tipo === "previa") {
+    const quando = formatFontePrecoDataLonga(aviso.dia) || aviso.dia;
+    return (
+      `<p class="hoje-aviso" role="note">Você está vendo a escolha de <strong>${escapeHtml(quando)}</strong>, não a de hoje. ` +
+      `<a href="/hoje">Ver a escolha de hoje</a></p>`
+    );
+  }
+  if (aviso.tipo === "data-invalida") {
+    return (
+      `<p class="hoje-aviso" role="note">Não entendemos a data <strong>${escapeHtml(aviso.valor)}</strong> ` +
+      `(o formato é AAAA-MM-DD, por exemplo 2026-12-25). Mostramos a escolha de hoje.</p>`
+    );
+  }
+  return "";
+}
+
+const HOJE_CONFIANCA_HTML =
+  `<section class="wrap hoje-confianca" aria-label="Como ler esta página">` +
+  `<ul>` +
+  `<li><strong>Preço com fonte e data.</strong> Cada valor diz onde e quando foi visto. Tarifa muda sem aviso, então o número é um ponto de partida, não uma garantia.</li>` +
+  `<li><strong>A compra é no parceiro.</strong> O Aonde não vende passagem nem recebe seu pagamento. Quem vende e emite é o Aviasales (ou o parceiro indicado).</li>` +
+  `<li><strong>Como o Aonde ganha.</strong> Se você comprar por um link nosso, podemos receber uma comissão do parceiro, sem custo extra para você.</li>` +
+  `</ul>` +
+  `</section>`;
+
+export function renderTodayPage(pacote, { aviso = null, erro = false } = {}) {
   const itens = (pacote && Array.isArray(pacote.itens) ? pacote.itens : []).filter((i) => i && i.roteiro);
+  const diaMostrado = (pacote && pacote.dia) || "";
   const dataLonga = (() => {
-    const d = new Date(`${(pacote && pacote.dia) || ""}T12:00:00`);
+    const d = new Date(`${diaMostrado}T12:00:00`);
     return Number.isNaN(d.getTime())
       ? ""
       : d.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
@@ -2929,18 +3020,27 @@ export function renderTodayPage(pacote) {
       const shareTitle = (offerFull && offerFull.shareTitulo)
         || `${r.titulo} - ${o.preco} saindo de ${o.origemCidade}`;
       const waShareBtn = shareUrl
-        ? `<a class="btn btn-ghost btn-ghost--claro" href="${escapeHtml(waShareLink(shareTitle, shareUrl))}" target="_blank" rel="noopener">` +
-          `💬 Compartilhar` +
+        ? `<a class="btn btn-ghost btn-ghost--claro" href="${escapeHtml(waShareLink(shareTitle, shareUrl))}" target="_blank" rel="noopener" ` +
+          `aria-label="Compartilhar ${escapeHtml(r.destino || o.cidade)} no WhatsApp (abre em nova aba)">` +
+          `<span aria-hidden="true">💬 </span>Compartilhar no WhatsApp` +
           `</a>`
         : "";
+      // Ofertas RESERVAVEIS (com aviasalesUrl ou affiliateUrl real) usam copy honesto:
+      // vao direto para o parceiro, e o texto diz isso.
+      const isBookable = !!(o.__source && (o.__source.aviasalesUrl || o.__source.affiliate_url || o.__source.affiliateUrl));
+      const ctaText = isBookable ? aviasalesCtaLabel(o.__source) : "Ver a oferta →";
+      const ctaNota = isBookable
+        ? `Você passa por uma página de aviso do Aonde e segue para o Aviasales, onde vê a tarifa disponível no momento e conclui a compra. O Aonde não cobra nada de você.`
+        : `Veja os detalhes da oferta antes de decidir.`;
+      const mesExtenso = mesPorExtenso(r.melhorMes);
       return (
-        `<article class="hoje-card">` +
+        `<article class="hoje-card" aria-labelledby="hoje-t-${idx}">` +
         `<div class="hoje-media">${foto}${credito}` +
         (o.badge ? `<span class="of-badge badge-desconto">${escapeHtml(o.badge)}</span>` : "") +
         `</div>` +
         `<div class="hoje-body">` +
         `<p class="of-rota"><span data-origin-city-label>${escapeHtml(o.origemCidade)}</span> → ${escapeHtml(o.cidade)}</p>` +
-        `<h2 class="hoje-titulo">${escapeHtml(r.titulo)}</h2>` +
+        `<h2 class="hoje-titulo" id="hoje-t-${idx}">${escapeHtml(r.titulo)}</h2>` +
         (r.resumo ? `<p class="hoje-resumo">${escapeHtml(r.resumo)}</p>` : "") +
         `<div class="hoje-preco-row"${precoDataAttr}><span class="of-preco">${escapeHtml(o.preco)}</span>` +
         `<span class="of-iv">ida e volta, por pessoa · ${escapeHtml(o.datas)}</span></div>` +
@@ -2950,48 +3050,57 @@ export function renderTodayPage(pacote) {
           "hoje-fonte-preco",
           isOriginSpecificPrice ? o.origem : ""
         ) +
+        precoIdadeHtml(offerFull && offerFull.fontePrecoEm, diaMostrado, isOriginSpecificPrice ? o.origem : "") +
+        (isOriginSpecificPrice
+          ? `<p class="hoje-origem-aviso" data-origin-note hidden>Este preço era para outra cidade de saída e não vale para a que você escolheu. Veja o valor atual no Aviasales.</p>`
+          : "") +
         originSelector +
         `<ul class="hoje-bullets">${bullets}</ul>` +
-        (r.melhorMes ? `<p class="hoje-mes">Melhor mês para essa rota, pelo nosso histórico: <strong>${escapeHtml(r.melhorMes)}</strong></p>` : "") +
+        (mesExtenso
+          ? `<p class="hoje-mes">Mês mais barato nos valores de referência da nossa curadoria: <strong>${escapeHtml(mesExtenso)}</strong>. São valores coletados à mão, não uma previsão.</p>`
+          : "") +
         `<div class="hoje-ctas">` +
-        (() => {
-          // Ofertas RESERVAVEIS (com aviasalesUrl ou affiliateUrl real) usam copy honesto:
-          // "Reservar no Aviasales →" em vez de "Ver a oferta →", porque vao direto para o parceiro.
-          const isBookable = !!(o.__source && (o.__source.aviasalesUrl || o.__source.affiliate_url || o.__source.affiliateUrl));
-          const ctaText = isBookable ? aviasalesCtaLabel(o.__source) : "Ver a oferta →";
-          return `<a class="btn btn-green" href="${escapeHtml(o.href)}">${escapeHtml(ctaText)}</a>`;
-        })() +
+        `<a class="btn btn-green" href="${escapeHtml(o.href)}">${escapeHtml(ctaText)}</a>` +
         (r.href ? `<a class="btn btn-ghost btn-ghost--claro" href="${escapeHtml(r.href)}">Roteiro completo, dia a dia</a>` : "") +
         waShareBtn +
         `</div>` +
+        `<p class="hoje-cta-nota">${escapeHtml(ctaNota)}</p>` +
         `</div></article>`
       );
     })
     .join("");
 
-  const vazio =
-    `<p class="feed-vazio">Ainda não há escolha publicada para hoje. Veja os <a href="/ofertas">achados de hoje</a> ` +
-    `ou os <a href="/guias">roteiros prontos</a>.</p>`;
+  const vazioEstado = erro || !cards;
+  const stripTitulo = vazioEstado
+    ? "Quer saber quando aparecer um achado?"
+    : "Gostou? Receba o próximo achado por e-mail.";
+  const stripSub = vazioEstado
+    ? "Deixe seu e-mail e escolha sua cidade: avisamos quando surgir uma tarifa abaixo da média para ela."
+    : "Escolha sua cidade de saída e avisamos por e-mail quando surgir uma tarifa abaixo da média. Sem frequência fixa.";
 
   const body =
     `<main id="conteudo" tabindex="-1">` +
     `<section class="wrap section hoje-head">` +
-    `<p class="eyebrow eyebrow--green">A escolha do dia${dataLonga ? ` · ${escapeHtml(dataLonga)}` : ""}</p>` +
+    `<p class="eyebrow eyebrow--green">A escolha do dia${dataLonga && !erro ? ` · ${escapeHtml(dataLonga)}` : ""}</p>` +
     `<h1 class="section-title-wide">Hoje a gente iria para cá</h1>` +
-    `<p class="section-sub">Todo dia escolhemos um ou dois achados e mostramos o roteiro em tópicos — o que ver em cada dia e onde comer. Os preços são conferidos no site do parceiro antes de você comprar.</p>` +
+    `<p class="section-sub">Todo dia mostramos um ou dois destinos da nossa seleção, com o roteiro em tópicos: o que ver em cada dia e onde comer. O preço é o que vimos na data indicada em cada card — confirme no site do parceiro antes de comprar.</p>` +
+    hojeAvisoHtml(aviso) +
     `</section>` +
-    `<section class="wrap section hoje-grid">${cards || vazio}</section>` +
+    (vazioEstado ? "" : HOJE_CONFIANCA_HTML) +
+    `<section class="wrap section hoje-grid">${vazioEstado ? hojeVazioHtml({ erro }) : cards}</section>` +
+    newsletterStripHtml({ titulo: stripTitulo, sub: stripSub, idSuffix: "hoje" }) +
     `</main>` +
     siteFooter();
 
   return htmlDocument({
     title: "A escolha do dia · Aonde",
     description:
-      "Todo dia um ou dois achados de passagem com roteiro pronto em tópicos: o que ver em cada dia, onde comer e a melhor época para ir.",
+      "Todo dia um ou dois destinos com roteiro pronto: o que ver em cada dia e onde comer. Preço com fonte e data; a compra é feita no site do parceiro.",
     body,
     script: enhancementScript(),
     canonical: "/hoje",
     image: hojeOgSharePath(itens[0] && itens[0].oferta && itens[0].oferta.id) || "",
+    noindex: erro || !!(aviso && aviso.tipo === "previa"),
   });
 }
 
@@ -3308,9 +3417,10 @@ export function renderAlertsPage() {
     `<p class="map-sub">Alertas de preço chegam só para quem confirmou a inscrição pelo link que enviamos por e-mail. Cancele quando quiser abaixo.</p></section>` +
     `<section class="wrap section">` +
     `<form class="alerts-form" data-unsubscribe action="/api/newsletter/unsubscribe" method="post">` +
-    `<input name="email" type="email" required aria-label="Seu e-mail" placeholder="Seu e-mail cadastrado">` +
+    `<label class="unsub-lab" for="alertas-email">E-mail cadastrado</label>` +
+    `<input id="alertas-email" name="email" type="email" required autocomplete="email" inputmode="email" placeholder="nome@exemplo.com.br">` +
     `<button class="btn btn-dark" type="submit">Cancelar meus alertas</button>` +
-    `<p class="news-msg" data-unsubscribe-msg hidden></p>` +
+    `<p class="news-msg news-msg--claro" data-unsubscribe-msg role="status" aria-live="polite" hidden></p>` +
     `<noscript><p class="help-fine">Ative o JavaScript ou fale com a gente pela Central de ajuda para cancelar.</p></noscript>` +
     `</form>` +
     `<p class="help-fine">Quer mudar a rota ou o preço-alvo em vez de cancelar tudo? Fale com a gente pelo <strong>${escapeHtml(telLabel())}</strong> ou pela <a href="/ajuda">Central de ajuda</a> — ajustamos manualmente por enquanto.</p>` +
@@ -3414,31 +3524,85 @@ export function renderUnsubscribePage({ email = "" } = {}) {
   });
 }
 
-export function renderNewsletterStatusPage({ ok, error, pendente, descadastrado } = {}) {
-  const body =
-    `<main id="conteudo" tabindex="-1"><section class="wrap map-head status-page">` +
-    (ok
-      ? descadastrado
-        ? `<p class="eyebrow eyebrow--green">Pronto</p><h1 class="map-title">Cancelamento feito</h1>` +
-          `<p class="map-sub">Se este e-mail estava inscrito, não mandamos mais nada para ele. Nenhuma pergunta, nenhum "tem certeza?".</p>` +
-          `<p><a class="btn btn-green" href="/">Voltar para o site</a></p>`
-      : pendente
-        // Inscricao RECEBIDA nao e inscricao CONFIRMADA: ainda falta a pessoa
-        // clicar no link do e-mail (double opt-in). Dizer "confirmada" aqui
-        // seria prometer o que ainda nao aconteceu.
-        ? `<p class="eyebrow eyebrow--green">Quase lá</p><h1 class="map-title">Confira seu e-mail</h1>` +
-          `<p class="map-sub">Se este for um e-mail válido, acabamos de enviar um link de confirmação. A inscrição só vale depois que você clicar nele — é assim que a gente garante que ninguém inscreve você sem querer.</p>` +
-          `<p><a class="btn btn-green" href="/ofertas">Ver ofertas de hoje →</a></p>`
-      : `<p class="eyebrow eyebrow--green">Tudo certo</p><h1 class="map-title">Inscrição confirmada!</h1>` +
-        `<p class="map-sub">Pronto — você vai receber os próximos achados de passagem que saem da sua cidade. É só ficar de olho no e-mail.</p>` +
-        `<p><a class="btn btn-green" href="/ofertas">Ver ofertas de hoje →</a></p>`
-      : `<p class="eyebrow eyebrow--green">Ops</p><h1 class="map-title">Não foi possível confirmar</h1>` +
-        `<p class="map-sub">${escapeHtml(error || "O link pode ter expirado ou já ter sido usado.")} Tente se inscrever de novo — é rápido.</p>` +
-        `<p><a class="btn btn-green" href="/ofertas">Voltar às ofertas →</a></p>`) +
-    `</section></main>` +
-    siteFooter();
+/** Formulario de nova tentativa: funciona sem JavaScript (post nativo) e vem preenchido. */
+function statusRetryFormHtml(email, { resumo = "" } = {}) {
+  const form =
+    `<form class="status-retry" method="post" action="/api/newsletter/subscribe">` +
+    `<label class="unsub-lab" for="retry-email">Seu e-mail</label>` +
+    `<input class="unsub-input" id="retry-email" name="email" type="email" required autocomplete="email" ` +
+    `value="${escapeHtml(email)}" placeholder="nome@exemplo.com.br">` +
+    `<label class="unsub-lab" for="retry-origem">Cidade de saída</label>` +
+    `<select class="unsub-input" id="retry-origem" name="origem">${originOptionsHtml("GRU")}</select>` +
+    `<button class="btn btn-green" type="submit">Enviar de novo</button>` +
+    `</form>`;
+  return resumo
+    ? `<details class="status-detalhes"><summary>${escapeHtml(resumo)}</summary>${form}</details>`
+    : form;
+}
+
+const STATUS_SAIDAS_HTML =
+  `<p class="status-links"><a href="/hoje">Escolha do dia</a> · <a href="/ofertas">Ofertas</a> · ` +
+  `<a href="/guias">Roteiros prontos</a> · <a href="/alertas">Gerenciar alertas</a></p>`;
+
+export function renderNewsletterStatusPage({ ok, error, pendente, descadastrado, entrega, email = "", retry = false } = {}) {
+  const enderecoSeguro = typeof email === "string" ? email.trim().slice(0, 200) : "";
+  let conteudo;
+  let titulo = "Confirmação · Aonde";
+  if (ok && descadastrado) {
+    conteudo =
+      `<p class="eyebrow eyebrow--green">Pronto</p><h1 class="map-title">Cancelamento feito</h1>` +
+      `<p class="map-sub">Se este e-mail estava inscrito, não mandamos mais nada para ele. Nenhuma pergunta, nenhum "tem certeza?".</p>` +
+      `<p><a class="btn btn-green" href="/">Voltar para o site</a></p>` +
+      STATUS_SAIDAS_HTML;
+  } else if (ok && pendente && entrega === "indisponivel") {
+    // O pedido foi recebido, mas sem provedor de e-mail o link nunca sai.
+    // Dizer "confira seu e-mail" aqui seria mandar a pessoa esperar por nada.
+    titulo = "Inscrição ainda não concluída · Aonde";
+    conteudo =
+      `<p class="eyebrow eyebrow--green">Quase, mas ainda não</p><h1 class="map-title">Não conseguimos enviar o e-mail de confirmação</h1>` +
+      `<p class="map-sub">Recebemos seu pedido, mas o envio de e-mails não está ativo no site neste momento. ` +
+      `Sem o link de confirmação a inscrição não é concluída, então você <strong>não vai receber alertas</strong> por enquanto. ` +
+      `Tente de novo mais tarde.</p>` +
+      `<p><a class="btn btn-green" href="/hoje">Ver a escolha do dia →</a></p>` +
+      STATUS_SAIDAS_HTML;
+  } else if (ok && pendente) {
+    // Inscricao RECEBIDA nao e inscricao CONFIRMADA: ainda falta a pessoa
+    // clicar no link do e-mail (double opt-in). Dizer "confirmada" aqui
+    // seria prometer o que ainda nao aconteceu.
+    titulo = "Confira seu e-mail · Aonde";
+    conteudo =
+      `<p class="eyebrow eyebrow--green">Quase lá</p><h1 class="map-title">Confira seu e-mail</h1>` +
+      `<p class="map-sub">Pedido recebido${enderecoSeguro ? ` para <strong>${escapeHtml(enderecoSeguro)}</strong>` : ""}. ` +
+      `Um link de confirmação está a caminho. A inscrição só vale depois que você clicar nele; se esse endereço já estava confirmado, não precisa fazer mais nada.</p>` +
+      `<ol class="status-passos">` +
+      `<li>Abra o e-mail do Aonde e clique em <strong>Confirmar inscrição</strong>.</li>` +
+      `<li>Não chegou em alguns minutos? Olhe a caixa de spam ou promoções. O link vale por 48 horas.</li>` +
+      `<li>Depois, só avisamos quando surgir uma tarifa abaixo da média para a sua cidade, sem frequência fixa. Cancelar é um clique.</li>` +
+      `</ol>` +
+      statusRetryFormHtml(enderecoSeguro, { resumo: "Digitou errado ou o e-mail não chegou? Enviar de novo" }) +
+      `<p><a class="btn btn-green" href="/hoje">Ver a escolha do dia →</a></p>` +
+      STATUS_SAIDAS_HTML;
+  } else if (ok) {
+    titulo = "Inscrição confirmada · Aonde";
+    conteudo =
+      `<p class="eyebrow eyebrow--green">Tudo certo</p><h1 class="map-title">Inscrição confirmada!</h1>` +
+      `<p class="map-sub">Pronto: a partir de agora você recebe um e-mail quando surgir uma tarifa abaixo da média para a cidade que escolheu. ` +
+      `Não há frequência fixa, então pode haver semanas sem aviso. O preço final sempre se confirma no site do parceiro.</p>` +
+      `<p><a class="btn btn-green" href="/hoje">Ver a escolha do dia →</a></p>` +
+      STATUS_SAIDAS_HTML;
+  } else {
+    titulo = retry ? "Não foi possível se inscrever · Aonde" : "Não foi possível confirmar · Aonde";
+    conteudo =
+      `<p class="eyebrow eyebrow--green">Ops</p>` +
+      `<h1 class="map-title">${retry ? "Não foi possível concluir a inscrição" : "Não foi possível confirmar"}</h1>` +
+      `<p class="map-sub" role="alert">${escapeHtml(error || "O link pode ter expirado ou já ter sido usado.")}</p>` +
+      `<p class="map-sub">Sem problema: é só tentar de novo abaixo.</p>` +
+      statusRetryFormHtml(enderecoSeguro) +
+      STATUS_SAIDAS_HTML;
+  }
+  const body = `<main id="conteudo" tabindex="-1"><section class="wrap map-head status-page">${conteudo}</section></main>` + siteFooter();
   return htmlDocument({
-    title: ok ? "Inscrição confirmada · Aonde" : "Confirmação · Aonde",
+    title: titulo,
     description: "Situação da sua inscrição nos alertas de preço do Aonde.",
     body,
     noindex: true,
@@ -3724,39 +3888,131 @@ function enhancementScript() {
     }
   }
   // Pode haver mais de um form de captura por pagina (hero + faixa + widget de rota).
+  // Sem JavaScript o <form> posta nativo e o servidor devolve uma pagina de
+  // verdade; com JavaScript valida aqui, mostra o estado de cada etapa e nunca
+  // apaga o que a pessoa digitou quando algo da errado.
   document.querySelectorAll('[data-newsletter]').forEach(function(form){
     var msg=form.querySelector('[data-newsletter-msg]');
+    if(!msg){
+      msg=document.createElement('p');
+      msg.className='news-msg';
+      msg.setAttribute('data-newsletter-msg','');
+      msg.setAttribute('role','status');
+      msg.setAttribute('aria-live','polite');
+      msg.hidden=true;
+      form.appendChild(msg);
+    }
+    var btn=form.querySelector('button[type=submit]');
+    var rotuloBtn=btn?btn.textContent:'';
+    var ocupado=false;
+    form.setAttribute('novalidate','');
+    function fala(tipo,texto,campo){
+      msg.hidden=false;
+      msg.className='news-msg news-msg--'+tipo;
+      msg.textContent=texto;
+      if(campo){campo.setAttribute('aria-invalid','true');campo.focus();}
+    }
+    function limpaInvalidos(){
+      [].slice.call(form.querySelectorAll('[aria-invalid]')).forEach(function(c){c.removeAttribute('aria-invalid');});
+    }
+    function livre(){
+      ocupado=false;
+      if(btn){btn.disabled=false;btn.removeAttribute('aria-busy');btn.textContent=rotuloBtn;}
+    }
+    function emailOk(v){return /^[^ @]+@[^ @]+[.][^ @]+$/.test(v);}
+    if(form.email){form.email.addEventListener('input',function(){form.email.removeAttribute('aria-invalid');});}
     form.addEventListener('submit',function(ev){
       ev.preventDefault();
-      var body={email:form.email.value};
+      if(ocupado)return;
+      limpaInvalidos();
+      var email=form.email.value.trim();
+      if(!email){fala('erro','Digite seu e-mail para receber os alertas.',form.email);return;}
+      if(!emailOk(email)){fala('erro','Esse e-mail não parece válido. Confira se há @ e o domínio, por exemplo nome@exemplo.com.br.',form.email);return;}
+      var body={email:email};
       if(form.whatsapp&&form.whatsapp.value)body.whatsapp=form.whatsapp.value;
       if(form.origem&&form.origem.value)body.origem=form.origem.value;
       if(form.destino&&form.destino.value)body.destino=form.destino.value;
       if(form.precoAlvoCentavos&&form.precoAlvoCentavos.value)body.precoAlvoCentavos=Number(form.precoAlvoCentavos.value);
+      ocupado=true;
+      if(btn){btn.disabled=true;btn.setAttribute('aria-busy','true');btn.textContent='Enviando…';}
+      fala('info','Enviando seu pedido…');
       fetch(form.action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
-        .then(function(r){return r.json();})
-        .then(function(d){
-          if(msg){
-            msg.hidden=false;
-            if(d.status==='already_confirmed'){msg.textContent='Você já está inscrito! Fique de olho no e-mail.';}
-            else if(d.status){msg.textContent='Quase lá! Confira seu e-mail e clique no link para confirmar.';}
-            else{msg.textContent=d.error||'Não foi possível inscrever agora. Tente novamente.';}
-          }
-          if(d.status)form.reset();
+        .then(function(r){
+          var espera=Number(r.headers.get('Retry-After'))||0;
+          return r.json().then(
+            function(d){return {ok:r.ok,status:r.status,d:d||{},espera:espera};},
+            function(){return {ok:false,status:r.status,d:{},espera:espera};}
+          );
         })
-        .catch(function(){if(msg){msg.hidden=false;msg.textContent='Falha de conexão. Tente novamente.';}});
+        .then(function(x){
+          livre();
+          var d=x.d;
+          if(x.ok&&d.status){
+            if(d.entrega==='indisponivel'){
+              fala('aviso','Recebemos seu pedido, mas o envio de e-mails não está ativo no site neste momento. Sem o link de confirmação a inscrição não é concluída. Tente de novo mais tarde.');
+              return;
+            }
+            fala('ok','Pedido recebido para '+email+'. Um link de confirmação está a caminho; a inscrição só vale depois que você clicar nele. Não chegou em alguns minutos? Olhe a caixa de spam ou envie de novo.');
+            form.email.value='';
+            return;
+          }
+          if(x.status===429){
+            fala('erro','Muitas tentativas em pouco tempo. '+(x.espera?'Aguarde cerca de '+x.espera+' segundos e tente de novo.':'Aguarde um instante e tente de novo.'));
+            return;
+          }
+          if(x.status===400&&d.error){
+            fala('erro',d.error,d.field&&form[d.field]&&form[d.field].focus?form[d.field]:0);
+            return;
+          }
+          fala('erro','Não conseguimos registrar seu pedido agora. O que você digitou continua aqui; tente de novo em instantes.');
+        })
+        .catch(function(){
+          livre();
+          fala('erro','Sem conexão com o Aonde. Confira sua internet e tente de novo; o que você digitou continua aqui.');
+        });
     });
   });
   // Formulario de descadastro (/alertas).
   var unsub=document.querySelector('[data-unsubscribe]');
   if(unsub){
     var umsg=unsub.querySelector('[data-unsubscribe-msg]');
+    var ubtn=unsub.querySelector('button[type=submit]');
+    var ubtnRotulo=ubtn?ubtn.textContent:'';
+    var uocupado=false;
+    unsub.setAttribute('novalidate','');
+    function ufala(tipo,texto,campo){
+      if(!umsg)return;
+      umsg.hidden=false;
+      umsg.className='news-msg news-msg--'+tipo;
+      umsg.textContent=texto;
+      if(campo){campo.setAttribute('aria-invalid','true');campo.focus();}
+    }
+    function ulivre(){
+      uocupado=false;
+      if(ubtn){ubtn.disabled=false;ubtn.removeAttribute('aria-busy');ubtn.textContent=ubtnRotulo;}
+    }
     unsub.addEventListener('submit',function(ev){
       ev.preventDefault();
-      fetch(unsub.action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:unsub.email.value})})
-        .then(function(r){return r.json();})
-        .then(function(){if(umsg){umsg.hidden=false;umsg.textContent='Pronto — se o e-mail estava inscrito, foi cancelado.';}unsub.reset();})
-        .catch(function(){if(umsg){umsg.hidden=false;umsg.textContent='Falha de conexão. Tente de novo mais tarde.';}});
+      if(uocupado)return;
+      unsub.email.removeAttribute('aria-invalid');
+      var uemail=unsub.email.value.trim();
+      if(!uemail||!/^[^ @]+@[^ @]+[.][^ @]+$/.test(uemail)){
+        ufala('erro','Digite o e-mail cadastrado, por exemplo nome@exemplo.com.br.',unsub.email);
+        return;
+      }
+      uocupado=true;
+      if(ubtn){ubtn.disabled=true;ubtn.setAttribute('aria-busy','true');ubtn.textContent='Cancelando…';}
+      ufala('info','Cancelando…');
+      fetch(unsub.action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:uemail})})
+        .then(function(r){return r.json().then(function(d){return {ok:r.ok,status:r.status,d:d||{}};},function(){return {ok:false,status:r.status,d:{}};});})
+        .then(function(x){
+          ulivre();
+          if(x.ok){ufala('ok','Pronto. Se '+uemail+' estava inscrito, não enviamos mais nada para esse endereço.');unsub.email.value='';return;}
+          if(x.status===429){ufala('erro','Muitas tentativas em pouco tempo. Aguarde um instante e tente de novo.');return;}
+          if(x.status===400&&x.d.error){ufala('erro',x.d.error,unsub.email);return;}
+          ufala('erro','Não conseguimos cancelar agora. Tente de novo em instantes ou fale com a gente pela Central de ajuda.');
+        })
+        .catch(function(){ulivre();ufala('erro','Sem conexão com o Aonde. Confira sua internet e tente de novo.');});
     });
   }
   // Filtros de voo (/resultados): paradas, companhias e horario filtram de
@@ -3883,6 +4139,9 @@ function enhancementScript() {
           el.textContent=cidade;
         });
       }
+      root.querySelectorAll('[data-origin-note]').forEach(function(el){
+        el.hidden=novaOrigem===origemOriginal;
+      });
       root.querySelectorAll('[data-origin-iata-label]').forEach(function(el){
         el.textContent=novaOrigem;
       });

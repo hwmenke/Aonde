@@ -68,7 +68,7 @@ import { renderExitFlightPage, buildAviasalesSearchUrl } from "./render/exitFlig
 import { OFFERS as CONTENT_OFFERS, GUIDES, RESULTS_ROUTE } from "./render/aondeContent.js";
 import { resolveAeroporto } from "./render/aeroportos.js";
 import { buscarVoosAoVivo } from "./flights/buscarVoos.js";
-import { pacoteDoDia } from "./daily/dailyPick.js";
+import { pacoteDoDia, chaveDoDia } from "./daily/dailyPick.js";
 import { listRoutes } from "./store/priceHistory.js";
 import { resolveDataDir, ensureDir } from "./store/dataDir.js";
 import {
@@ -79,6 +79,7 @@ import {
   clearPendingAlert,
 } from "./newsletter/subscriberStore.js";
 import { addAlertRule } from "./newsletter/alertRules.js";
+import { envioDeEmailDisponivel, enviarConfirmacaoOptin } from "./newsletter/optinMail.js";
 import { createInboundRateLimiter, clientIp } from "./inboundRateLimiter.js";
 
 function corsHeaders() {
@@ -359,27 +360,50 @@ async function handleNewsletterSubscribe(req, res) {
   // da pagina manda JSON e continua recebendo JSON, como antes.
   const veioDeForm = parsed.form === true;
   if (!parsed.ok) {
-    if (veioDeForm) sendHtml(res, 400, renderNewsletterStatusPage({ ok: false, error: parsed.error }));
+    if (veioDeForm) sendHtml(res, 400, renderNewsletterStatusPage({ ok: false, error: parsed.error, retry: true }));
     else sendJson(res, 400, { error: parsed.error });
     return;
   }
   const { email, whatsapp, origem, destino, precoAlvoCentavos } = parsed.body || {};
   const result = subscribeNewsletter({ email, whatsapp, origem, destino, precoAlvoCentavos });
   if (!result.ok) {
-    if (veioDeForm) sendHtml(res, 400, renderNewsletterStatusPage({ ok: false, error: result.error }));
-    else sendJson(res, 400, { error: result.error });
+    if (veioDeForm) {
+      sendHtml(
+        res,
+        400,
+        renderNewsletterStatusPage({ ok: false, error: result.error, retry: true, email: typeof email === "string" ? email : "" })
+      );
+    } else {
+      sendJson(res, 400, { error: result.error, ...(result.field ? { field: result.field } : {}) });
+    }
     return;
   }
 
-  // DEV: sem provedor de e-mail, o token de confirmacao nunca vai na resposta
-  // HTTP (iria por e-mail). Para permitir teste manual, quando
-  // AONDE_DEV_LOG_OPTIN=1 logamos a URL de confirmacao no console do servidor.
+  // DEV: quando AONDE_DEV_LOG_OPTIN=1 logamos a URL de confirmacao no console
+  // do servidor, para teste manual sem provedor de e-mail.
   // NUNCA habilite isso em producao — o token no log da acesso a confirmacao.
   if (result.status === "pending_optin" && process.env.AONDE_DEV_LOG_OPTIN === "1") {
     console.log(
       `[aonde-affiliates][DEV] Opt-in de ${result.subscriber.email}: /api/newsletter/confirm?token=${result.token}`
     );
   }
+
+  // O link de confirmacao so existe por e-mail. Sem provedor configurado
+  // (AONDE_EMAIL_PROVIDER, ver src/newsletter/sender.js) NADA sai — e a pessoa
+  // merece saber, em vez de esperar um e-mail que nao vem. `entrega` e uma
+  // propriedade do servidor, igual para todo visitante: nao revela quem ja
+  // esta inscrito.
+  const entregaDisponivel = envioDeEmailDisponivel();
+  if (result.status === "pending_optin" && entregaDisponivel) {
+    // Sem await: enviarEmail repete falhas temporarias com espera, e a pessoa
+    // nao deve ficar olhando um botao parado. Nunca lanca.
+    enviarConfirmacaoOptin({
+      subscriber: result.subscriber,
+      token: result.token,
+      baseUrl: siteBaseUrl(),
+    }).catch(() => {});
+  }
+  const entrega = entregaDisponivel ? "email" : "indisponivel";
 
   // Resposta HTTP GENERICA de proposito: nao distinguimos "pending_optin" de
   // "already_confirmed" para quem consome a API. Devolver o status real
@@ -389,12 +413,14 @@ async function handleNewsletterSubscribe(req, res) {
   // subscriberStore.subscribe()); so a resposta publica foi uniformizada. O
   // token JAMAIS aparece na resposta publica.
   if (veioDeForm) {
-    // Mesma mensagem uniforme do JSON (nao revela se o e-mail ja existia),
-    // so que numa pagina de verdade, com caminho de volta para o site.
-    sendHtml(res, 200, renderNewsletterStatusPage({ ok: true, pendente: true }));
+    sendHtml(
+      res,
+      200,
+      renderNewsletterStatusPage({ ok: true, pendente: true, entrega, email: result.subscriber.email })
+    );
     return;
   }
-  sendJson(res, 200, { status: "ok" });
+  sendJson(res, 200, { status: "ok", entrega });
 }
 
 // Depois do double opt-in, transforma um `pending_alert` em AlertRule real.
@@ -546,6 +572,33 @@ function handleGuideHtml(res, id) {
     return;
   }
   sendHtml(res, 404, renderHomePage({ offers: publishedLiveOffers() }));
+}
+
+// Escolha do dia. `?dia=AAAA-MM-DD` serve para teste e preview; qualquer outra
+// coisa vira um aviso na propria pagina em vez de ser ignorada em silencio. Se
+// montar o pacote falhar, a pessoa ainda recebe uma pagina util (com saidas),
+// nao a tela de erro generica.
+function handleTodayHtml(res, diaParam) {
+  const pedido = diaParam === null || diaParam === undefined ? "" : String(diaParam).trim();
+  let data = new Date();
+  let aviso = null;
+  if (pedido) {
+    if (chaveDoDia(pedido) === pedido && /^\d{4}-\d{2}-\d{2}$/.test(pedido)) {
+      data = pedido;
+      aviso = { tipo: "previa", dia: pedido };
+    } else {
+      aviso = { tipo: "data-invalida", valor: pedido.slice(0, 40) };
+    }
+  }
+  let pacote;
+  try {
+    pacote = pacoteDoDia(data);
+  } catch (err) {
+    console.error("[aonde-affiliates] /hoje: falha ao montar a escolha do dia:", err && err.message);
+    sendHtml(res, 500, renderTodayPage(null, { erro: true }));
+    return;
+  }
+  sendHtml(res, 200, renderTodayPage(pacote, { aviso }));
 }
 
 function siteBaseUrl() {
@@ -878,12 +931,15 @@ export function createServer() {
     const key = `${routeClass}:${clientIp(req)}`;
     const result = inboundLimiter.take(key);
     if (result.ok) return false;
-    sendJson(
-      res,
-      429,
-      { error: "Muitas requisicoes. Aguarde um momento e tente novamente." },
-      { "Retry-After": String(Math.max(1, Math.ceil(result.retryAfterMs / 1000))) }
-    );
+    const segundos = Math.max(1, Math.ceil(result.retryAfterMs / 1000));
+    const aviso = "Muitas tentativas em pouco tempo. Aguarde um instante e tente de novo.";
+    // Formulario sem JavaScript: HTML com caminho de volta, nao JSON cru.
+    const tipo = String((req.headers && req.headers["content-type"]) || "");
+    if (routeClass === "newsletter-subscribe" && tipo.includes("application/x-www-form-urlencoded")) {
+      sendHtml(res, 429, renderNewsletterStatusPage({ ok: false, error: aviso, retry: true }));
+      return true;
+    }
+    sendJson(res, 429, { error: aviso }, { "Retry-After": String(segundos) });
     return true;
   }
 
@@ -928,9 +984,7 @@ export function createServer() {
       // A escolha do dia — o que o robo diario publica (ver src/daily/dailyPick.js).
       if (method === "GET" && pathname === "/hoje") {
         // Permite forcar uma data especifica via ?dia=AAAA-MM-DD (para testes e preview).
-        const diaParam = url.searchParams.get("dia");
-        const data = diaParam || new Date();
-        sendHtml(res, 200, renderTodayPage(pacoteDoDia(data)));
+        handleTodayHtml(res, url.searchParams.get("dia"));
         return;
       }
       if (method === "GET" && pathname === "/sitemap.xml") {
