@@ -100,6 +100,9 @@ export function pageStyles() {
   h1,h2,h3{font-family:var(--serif);font-weight:400;line-height:1.08;margin:0;letter-spacing:-.5px;}
   a{color:var(--green);text-decoration:none;}
   a:hover{color:var(--green-2);}
+  /* No meio de uma frase, cor sozinha nao distingue o link do texto ao redor
+     (WCAG 1.4.1). Sublinhado resolve; <a class="btn"> continua sem risco. */
+  p a:not(.btn),.dia-ponto-meta a,.dia-ponto-credit a,.res-help a{text-decoration:underline;text-underline-offset:.15em;}
   a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--green);outline-offset:2px;border-radius:4px;}
   .hero a:focus-visible,.hero button:focus-visible,.hero select:focus-visible,.hero input:focus-visible{outline-color:var(--lime-2);}
   @media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important;}}
@@ -263,7 +266,7 @@ export function pageStyles() {
   .sc-tabs{display:flex;gap:4px;padding:12px 16px 0;border-bottom:1px solid var(--border);}
   .sc-tab{font-size:14px;font-weight:600;color:var(--muted);padding:10px 18px;border-radius:10px 10px 0 0;border-bottom:2px solid transparent;}
   .sc-tab.is-active{background:var(--tint);color:var(--green-2);border-bottom-color:var(--green);}
-  .sc-tab--soon{opacity:.45;cursor:not-allowed;}
+  .sc-tab--soon{color:var(--muted-2);cursor:not-allowed;}
   .sc-tab--soon::after{content:" · em breve";font-size:11px;font-weight:400;}
   /* Aviso "como funciona por aqui": tom informativo (verde da marca, nao
      laranja/vermelho de alerta) com um icone circular no lugar de comecar a
@@ -310,8 +313,8 @@ export function pageStyles() {
 
   /* Styles / estilos de viagem */
   .styles-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:56px;margin-top:40px;align-items:start;}
-  .style-item{padding:36px 0;border-top:1px solid var(--border);opacity:.8;}
-  .style-item.is-active{opacity:1;}
+  .style-item{padding:36px 0;border-top:1px solid var(--border);}
+  .style-item.is-active{box-shadow:inset 3px 0 0 var(--green);}
   .style-num{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green);}
   .style-item h3{margin:12px 0 10px;font-size:32px;}
   .style-item p{margin:0 0 18px;font-size:16px;line-height:1.6;color:var(--muted);}
@@ -877,7 +880,7 @@ export function pageStyles() {
   .foot-brand p{margin:14px 0 0;font-size:14px;color:var(--muted);line-height:1.6;max-width:280px;}
   .foot-col{display:flex;flex-direction:column;gap:10px;font-size:14px;}
   .foot-title{font-weight:700;margin-bottom:4px;}
-  .foot-link--soon{color:var(--muted-2);opacity:.7;cursor:not-allowed;}
+  .foot-link--soon{color:var(--muted-2);cursor:not-allowed;}
   .foot-link--soon::after{content:" · em breve";font-size:11px;font-weight:400;}
   .foot-bar{border-top:1px solid var(--border);}
   .foot-bar-in{padding-top:20px;padding-bottom:24px;display:flex;flex-direction:column;gap:8px;}
@@ -959,7 +962,6 @@ export function pageStyles() {
        ancestral posicionado la em cima e virava uma camada de ~9000px por
        cima do feed de ofertas, roubando o toque dos cards no celular. */
     .styles-imgs{position:relative;height:320px;}
-    .style-item{opacity:1;}
     .style-img{opacity:0;}.style-img.is-active{opacity:1;}
     .guia-intro-grid{grid-template-columns:1fr;gap:24px;}
     .guia-aside{position:static;}

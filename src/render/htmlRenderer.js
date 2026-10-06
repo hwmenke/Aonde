@@ -285,15 +285,19 @@ export { escapeHtml, formatBRL };
 
 // Placeholder no estilo image-slot: tint verde, "montanhas" e o rotulo.
 function placeholderSvgMarkup(label) {
-  const safe = escapeHtml(label || "Aonde");
+  const raw = label || "Aonde";
+  const safe = escapeHtml(raw);
+  // O desenho mostra "Aonde" e o rotulo. O nome da imagem tem de ter as duas
+  // palavras, separadas — senao o leitor de tela cola tudo ("AondeMapa").
+  const nome = raw === "Aonde" ? "Aonde" : `Aonde ${raw}`;
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="${safe}">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="${escapeHtml(nome)}">` +
     `<rect width="400" height="260" fill="#f1f8e4"/>` +
     `<rect x="0" y="0" width="400" height="260" fill="none" stroke="#dededa" stroke-width="2"/>` +
     `<path d="M0 200 L110 120 L175 175 L250 105 L400 210 L400 260 L0 260 Z" fill="#a3e635" opacity="0.55"/>` +
     `<path d="M0 225 L90 165 L180 220 L280 150 L400 235 L400 260 L0 260 Z" fill="#84cc16" opacity="0.65"/>` +
     `<circle cx="315" cy="70" r="26" fill="#a3e635"/>` +
-    `<text x="200" y="60" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#4d7c0f">Aonde</text>` +
+    `<text x="200" y="60" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#4d7c0f">Aonde</text> ` +
     `<text x="200" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="bold" fill="#18181b">${safe}</text>` +
     `</svg>`
   );
@@ -871,7 +875,7 @@ function seasonalRingSvg(months, win) {
   const slabels = seasons
     .map(([name, ang]) => {
       const [sx, sy] = P(R + 16, ang);
-      return `<text x="${sx}" y="${sy}" text-anchor="middle" dominant-baseline="central" font-family="Archivo,sans-serif" font-size="10" font-weight="700" letter-spacing="1" fill="#8a8a84">${escapeHtml(name)}</text>`;
+      return `<text x="${sx}" y="${sy}" text-anchor="middle" dominant-baseline="central" font-family="Archivo,sans-serif" font-size="10" font-weight="700" letter-spacing="1" fill="#50504a">${escapeHtml(name)}</text>`;
     })
     .join("");
 
@@ -882,9 +886,9 @@ function seasonalRingSvg(months, win) {
     segs +
     `<circle cx="160" cy="160" r="${r}" fill="#fff"/>` +
     slabels +
-    `<text x="160" y="142" text-anchor="middle" font-family="Archivo,sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#8a8a84">MELHOR ÉPOCA</text>` +
+    `<text x="160" y="142" text-anchor="middle" font-family="Archivo,sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#50504a">MELHOR ÉPOCA</text>` +
     `<text x="160" y="168" text-anchor="middle" font-family="Archivo,sans-serif" font-size="26" font-weight="700" fill="#3f6212">${centerPrice}</text>` +
-    (centerLabel ? `<text x="160" y="190" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11" fill="#6b6b66">${centerLabel}</text>` : "") +
+    (centerLabel ? `<text x="160" y="190" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11" fill="#50504a">${centerLabel}</text>` : "") +
     `</svg>`
   );
 }
@@ -1946,6 +1950,10 @@ function extrasSectionHtml(extras) {
 
 // Seção "explore no mapa" da home — chama o /mapa (mapa-múndi de destinos).
 function mapExploreHtml() {
+  const n = GUIDE_LIST.length;
+  const mapaTxt = `${n} destinos`;
+  // Sem aria-label no link: um rotulo por cima escondia o texto do desenho
+  // ("Aonde", "Mapa dos destinos") e do selo. O nome sai do conteudo.
   return (
     `<section class="wrap section">` +
     `<div class="explore">` +
@@ -1953,9 +1961,9 @@ function mapExploreHtml() {
     `<h2>Todos os roteiros no mapa</h2>` +
     `<p>Navegue o mapa e clique num destino para abrir o roteiro de 5 dias, dia a dia, com onde comer.</p>` +
     `<a class="btn btn-green" href="/mapa">Abrir o mapa de destinos →</a></div>` +
-    `<a class="explore-map" href="/mapa" aria-label="22 destinos: abrir o mapa de destinos">` +
+    `<a class="explore-map" href="/mapa">` +
     `<div class="media-placeholder">${placeholderSvgMarkup("Mapa dos destinos")}</div>` +
-    `<span class="explore-map-badge">📍 22 destinos</span></a>` +
+    `<span class="explore-map-badge">📍 ${escapeHtml(mapaTxt)}</span></a>` +
     `</div>` +
     `</section>`
   );
