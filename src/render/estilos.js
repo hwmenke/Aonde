@@ -102,7 +102,7 @@ export function pageStyles() {
   a:hover{color:var(--green-2);}
   /* No meio de uma frase, cor sozinha nao distingue o link do texto ao redor
      (WCAG 1.4.1). Sublinhado resolve; <a class="btn"> continua sem risco. */
-  p a:not(.btn),.dia-ponto-meta a,.dia-ponto-credit a{text-decoration:underline;text-underline-offset:.15em;}
+  p a:not(.btn),.dia-ponto-meta a,.dia-ponto-credit a,.res-help a{text-decoration:underline;text-underline-offset:.15em;}
   a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--green);outline-offset:2px;border-radius:4px;}
   .hero a:focus-visible,.hero button:focus-visible,.hero select:focus-visible,.hero input:focus-visible{outline-color:var(--lime-2);}
   @media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important;}}

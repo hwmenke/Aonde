@@ -285,15 +285,19 @@ export { escapeHtml, formatBRL };
 
 // Placeholder no estilo image-slot: tint verde, "montanhas" e o rotulo.
 function placeholderSvgMarkup(label) {
-  const safe = escapeHtml(label || "Aonde");
+  const raw = label || "Aonde";
+  const safe = escapeHtml(raw);
+  // O desenho mostra "Aonde" e o rotulo. O nome da imagem tem de ter as duas
+  // palavras, separadas — senao o leitor de tela cola tudo ("AondeMapa").
+  const nome = raw === "Aonde" ? "Aonde" : `Aonde ${raw}`;
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="${safe}">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="${escapeHtml(nome)}">` +
     `<rect width="400" height="260" fill="#f1f8e4"/>` +
     `<rect x="0" y="0" width="400" height="260" fill="none" stroke="#dededa" stroke-width="2"/>` +
     `<path d="M0 200 L110 120 L175 175 L250 105 L400 210 L400 260 L0 260 Z" fill="#a3e635" opacity="0.55"/>` +
     `<path d="M0 225 L90 165 L180 220 L280 150 L400 235 L400 260 L0 260 Z" fill="#84cc16" opacity="0.65"/>` +
     `<circle cx="315" cy="70" r="26" fill="#a3e635"/>` +
-    `<text x="200" y="60" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#4d7c0f">Aonde</text>` +
+    `<text x="200" y="60" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#4d7c0f">Aonde</text> ` +
     `<text x="200" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="bold" fill="#18181b">${safe}</text>` +
     `</svg>`
   );
@@ -1948,8 +1952,8 @@ function extrasSectionHtml(extras) {
 function mapExploreHtml() {
   const n = GUIDE_LIST.length;
   const mapaTxt = `${n} destinos`;
-  // O desenho mostra "Aonde" e "Mapa dos destinos"; o selo mostra o numero.
-  // O nome acessivel tem de conter esse texto visivel (WCAG 2.5.3).
+  // Sem aria-label no link: um rotulo por cima escondia o texto do desenho
+  // ("Aonde", "Mapa dos destinos") e do selo. O nome sai do conteudo.
   return (
     `<section class="wrap section">` +
     `<div class="explore">` +
@@ -1957,7 +1961,7 @@ function mapExploreHtml() {
     `<h2>Todos os roteiros no mapa</h2>` +
     `<p>Navegue o mapa e clique num destino para abrir o roteiro de 5 dias, dia a dia, com onde comer.</p>` +
     `<a class="btn btn-green" href="/mapa">Abrir o mapa de destinos →</a></div>` +
-    `<a class="explore-map" href="/mapa" aria-label="Aonde, Mapa dos destinos, 📍 ${escapeHtml(mapaTxt)}">` +
+    `<a class="explore-map" href="/mapa">` +
     `<div class="media-placeholder">${placeholderSvgMarkup("Mapa dos destinos")}</div>` +
     `<span class="explore-map-badge">📍 ${escapeHtml(mapaTxt)}</span></a>` +
     `</div>` +

@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { renderGuidePage, renderGuidesIndexPage, renderHomePage } from "../src/render/htmlRenderer.js";
+import { renderGuidePage, renderGuidesIndexPage, renderHomePage, renderResultsPage } from "../src/render/htmlRenderer.js";
 import { pageStyles } from "../src/render/estilos.js";
 import { GUIDE_LIST } from "../src/render/aondeContent.js";
 
@@ -19,7 +19,7 @@ test("opacidade não esmaece texto que a pessoa precisa ler", () => {
 
 test("link no meio da frase ganha sublinhado, botão não", () => {
   const css = pageStyles();
-  assert.match(css, /p a:not\(\.btn\),\.dia-ponto-meta a,\.dia-ponto-credit a\{text-decoration:underline/);
+  assert.match(css, /p a:not\(\.btn\),\.dia-ponto-meta a,\.dia-ponto-credit a,\.res-help a\{text-decoration:underline/);
 });
 
 test("fontes oficiais do guia ficam dentro do parágrafo que é sublinhado", () => {
@@ -41,6 +41,11 @@ test("índice de guias: links de oferta e de /hoje estão em texto corrido", () 
 test("selo do mapa usa a quantidade real de roteiros", () => {
   const home = renderHomePage({});
   const n = GUIDE_LIST.length;
-  assert.match(home, new RegExp(`aria-label="Aonde, Mapa dos destinos, 📍 ${n} destinos"`));
+  assert.match(home, /<a class="explore-map" href="\/mapa">/);
   assert.match(home, new RegExp(`<span class="explore-map-badge">📍 ${n} destinos</span>`));
+});
+
+test("resultados: o pedido de ajuda é um link no meio da frase", () => {
+  const html = renderResultsPage({});
+  assert.match(html, /<div class="res-help">Precisa de ajuda para escolher\? <a href="\/ajuda">Central de ajuda<\/a><\/div>/);
 });

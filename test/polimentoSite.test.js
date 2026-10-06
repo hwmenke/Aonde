@@ -149,12 +149,10 @@ test("foco visível usa cor com contraste no tema claro e o link da caixa de con
 test("o link do mapa na home leva o texto visível no nome acessível", () => {
   const home = renderHomePage({});
   const tag = (home.match(/<a class="explore-map"[^>]*>/) || [])[0];
-  const nome = (tag.match(/aria-label="([^"]+)"/) || [])[1];
-  const selo = (home.match(/<span class="explore-map-badge">([^<]+)<\/span>/) || [])[1];
-  assert.ok(nome && selo, "o mapa tem nome acessível e selo visível");
-  assert.ok(nome.includes("Aonde"), "o desenho mostra Aonde");
-  assert.ok(nome.includes("Mapa dos destinos"), "o desenho mostra Mapa dos destinos");
-  assert.ok(nome.includes(selo), "o nome contém o texto do selo, emoji inclusive");
+  assert.ok(tag && !/aria-label=/.test(tag), "o link não cobre o texto visível com outro nome");
+  const bloco = home.slice(home.indexOf(tag), home.indexOf("</a>", home.indexOf(tag)));
+  assert.match(bloco, /aria-label="Aonde Mapa dos destinos"/);
+  assert.match(bloco, /<span class="explore-map-badge">📍 \d+ destinos<\/span>/);
 });
 
 test("preparativos aponta o CIVP da Anvisa para a página que existe", async () => {
