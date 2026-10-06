@@ -871,7 +871,7 @@ function seasonalRingSvg(months, win) {
   const slabels = seasons
     .map(([name, ang]) => {
       const [sx, sy] = P(R + 16, ang);
-      return `<text x="${sx}" y="${sy}" text-anchor="middle" dominant-baseline="central" font-family="Archivo,sans-serif" font-size="10" font-weight="700" letter-spacing="1" fill="#8a8a84">${escapeHtml(name)}</text>`;
+      return `<text x="${sx}" y="${sy}" text-anchor="middle" dominant-baseline="central" font-family="Archivo,sans-serif" font-size="10" font-weight="700" letter-spacing="1" fill="#50504a">${escapeHtml(name)}</text>`;
     })
     .join("");
 
@@ -882,9 +882,9 @@ function seasonalRingSvg(months, win) {
     segs +
     `<circle cx="160" cy="160" r="${r}" fill="#fff"/>` +
     slabels +
-    `<text x="160" y="142" text-anchor="middle" font-family="Archivo,sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#8a8a84">MELHOR ÉPOCA</text>` +
+    `<text x="160" y="142" text-anchor="middle" font-family="Archivo,sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#50504a">MELHOR ÉPOCA</text>` +
     `<text x="160" y="168" text-anchor="middle" font-family="Archivo,sans-serif" font-size="26" font-weight="700" fill="#3f6212">${centerPrice}</text>` +
-    (centerLabel ? `<text x="160" y="190" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11" fill="#6b6b66">${centerLabel}</text>` : "") +
+    (centerLabel ? `<text x="160" y="190" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11" fill="#50504a">${centerLabel}</text>` : "") +
     `</svg>`
   );
 }
@@ -1946,6 +1946,10 @@ function extrasSectionHtml(extras) {
 
 // Seção "explore no mapa" da home — chama o /mapa (mapa-múndi de destinos).
 function mapExploreHtml() {
+  const n = GUIDE_LIST.length;
+  const mapaTxt = `${n} destinos`;
+  // O desenho mostra "Aonde" e "Mapa dos destinos"; o selo mostra o numero.
+  // O nome acessivel tem de conter esse texto visivel (WCAG 2.5.3).
   return (
     `<section class="wrap section">` +
     `<div class="explore">` +
@@ -1953,9 +1957,9 @@ function mapExploreHtml() {
     `<h2>Todos os roteiros no mapa</h2>` +
     `<p>Navegue o mapa e clique num destino para abrir o roteiro de 5 dias, dia a dia, com onde comer.</p>` +
     `<a class="btn btn-green" href="/mapa">Abrir o mapa de destinos →</a></div>` +
-    `<a class="explore-map" href="/mapa" aria-label="22 destinos: abrir o mapa de destinos">` +
+    `<a class="explore-map" href="/mapa" aria-label="Aonde, Mapa dos destinos, 📍 ${escapeHtml(mapaTxt)}">` +
     `<div class="media-placeholder">${placeholderSvgMarkup("Mapa dos destinos")}</div>` +
-    `<span class="explore-map-badge">📍 22 destinos</span></a>` +
+    `<span class="explore-map-badge">📍 ${escapeHtml(mapaTxt)}</span></a>` +
     `</div>` +
     `</section>`
   );
