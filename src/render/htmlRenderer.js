@@ -48,7 +48,12 @@ import { createHash } from "node:crypto";
 import { getConfig } from "../config.js";
 import { rotuloAeroporto, cidadeDoIata } from "./aeroportos.js";
 import { ogSharePathForOffer, hojeOgSharePath } from "./ogShare.js";
-import { continuePlanejandoHtml, indiceDoRoteiroHtml, ofertaNaCaixaHtml } from "./guideLinks.js";
+import {
+  continuePlanejandoHtml,
+  indiceDoRoteiroHtml,
+  ofertaNaCaixaHtml,
+  roteiroStickyCtaHtml,
+} from "./guideLinks.js";
 import {
   FAQ_GROUPS,
   buildOrganization,
@@ -2828,6 +2833,7 @@ function renderGuideVM(g, apiKey, { hoje = new Date() } = {}) {
     `<div class="guia-cta-btns"><a class="btn btn-lime" href="${escapeHtml(guideResultsHref(g.opt))}">${escapeHtml(g.ctaVoos)}</a>` +
     `<a class="btn btn-ghost" href="/guias">Outros roteiros</a></div></div>` +
     `</section>` +
+    (guiaEditorial ? roteiroStickyCtaHtml(GUIDES[g.id]) : "") +
     `</main>` +
     siteFooter({ places: g.places, attribution: g.attribution });
 

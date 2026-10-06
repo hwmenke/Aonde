@@ -218,3 +218,23 @@ export function indiceDoRoteiroHtml(dias, { temHospedagem = false, temEpoca = fa
     `</nav>`
   );
 }
+
+/**
+ * CTA fixo no fim da leitura do roteiro editorial: leva ao achado do destino
+ * (/ofertas/:id) ou a /ofertas. So links internos; textos ja usados em
+ * "Continue planejando" e nos cards de oferta.
+ */
+export function roteiroStickyCtaHtml(guide, opts = {}) {
+  if (!guide || !guide.id || !GUIDES[guide.id]) return "";
+  const destino = guide.breadcrumb || guide.titulo || "este destino";
+  const [o] = ofertasDoRoteiro(guide, { ...opts, max: 1 });
+  const href = o ? `/ofertas/${encodeURIComponent(o.id)}` : "/ofertas";
+  const label = o ? "Ver a oferta →" : "Ver todos os achados de passagem →";
+  const titulo = `Passagens para ${destino}`;
+  return (
+    `<aside class="guia-sticky-cta" aria-labelledby="guia-sticky-titulo">` +
+    `<p class="guia-sticky-cta-tit" id="guia-sticky-titulo">${escapeHtml(titulo)}</p>` +
+    `<a class="guia-sticky-cta-link btn btn-green" href="${escapeHtml(href)}">${escapeHtml(label)}</a>` +
+    `</aside>`
+  );
+}
