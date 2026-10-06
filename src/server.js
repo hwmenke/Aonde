@@ -250,7 +250,7 @@ function readJsonBody(req) {
       size += chunk.length;
       if (size > 64 * 1024) {
         aborted = true;
-        resolve({ ok: false, error: "Corpo da requisicao grande demais." });
+        resolve({ ok: false, error: "Corpo da requisição grande demais." });
         return;
       }
       chunks.push(chunk);
@@ -275,10 +275,10 @@ function readJsonBody(req) {
       try {
         resolve({ ok: true, body: JSON.parse(raw) });
       } catch {
-        resolve({ ok: false, error: "Corpo da requisicao nao e um JSON valido." });
+        resolve({ ok: false, error: "Corpo da requisição não é um JSON válido." });
       }
     });
-    req.on("error", () => resolve({ ok: false, error: "Falha ao ler o corpo da requisicao." }));
+    req.on("error", () => resolve({ ok: false, error: "Falha ao ler o corpo da requisição." }));
   });
 }
 
@@ -322,7 +322,7 @@ function handleGetOffer(req, res, id) {
   const offer = getOffer(id);
   // 404 para inexistente E para rascunho (nao revela a existencia de rascunhos).
   if (!offer || (offer.status !== "publicada" && !isAdminRequest(req))) {
-    sendJson(res, 404, { error: `Oferta nao encontrada: ${id}` });
+    sendJson(res, 404, { error: `Oferta não encontrada: ${id}` });
     return;
   }
   sendJson(res, 200, { ok: true, offer });
@@ -331,12 +331,12 @@ function handleGetOffer(req, res, id) {
 function handleClick(req, res, id) {
   const offer = getOffer(id);
   if (!offer) {
-    sendJson(res, 404, { error: `Oferta nao encontrada: ${id}` });
+    sendJson(res, 404, { error: `Oferta não encontrada: ${id}` });
     return;
   }
   if (!offer.affiliate_url) {
     sendJson(res, 409, {
-      error: `Oferta "${id}" nao possui affiliate_url — nao ha para onde redirecionar.`,
+      error: `Oferta "${id}" não possui affiliate_url — não há para onde redirecionar.`,
     });
     return;
   }
@@ -344,7 +344,7 @@ function handleClick(req, res, id) {
   // "javascript:" num affiliate_url mal formado/adulterado).
   if (!isSafeRedirectUrl(offer.affiliate_url)) {
     sendJson(res, 409, {
-      error: `Oferta "${id}" possui affiliate_url com esquema nao permitido (so http/https).`,
+      error: `Oferta "${id}" possui affiliate_url com esquema não permitido (só http/https).`,
     });
     return;
   }
@@ -461,7 +461,7 @@ function handleNewsletterConfirm(req, res, url) {
     sendHtml(res, 200, renderNewsletterStatusPage({ ok: true }));
     return;
   }
-  sendJson(res, 200, { ok: true, message: "Inscricao confirmada! Voce recebera nossos alertas de preco." });
+  sendJson(res, 200, { ok: true, message: "Inscrição confirmada! Você receberá nossos alertas de preço." });
 }
 
 async function handleNewsletterUnsubscribe(req, res) {
@@ -497,12 +497,12 @@ async function handleCreateAlert(req, res) {
 
   const subscriber = getSubscriberByEmail(email);
   if (!subscriber) {
-    sendJson(res, 404, { error: "Assinante nao encontrado. Inscreva-se antes de criar um alerta." });
+    sendJson(res, 404, { error: "Assinante não encontrado. Inscreva-se antes de criar um alerta." });
     return;
   }
   if (!subscriber.double_optin_confirmed || subscriber.unsubscribed_at) {
     sendJson(res, 409, {
-      error: "Assinante nao confirmou a inscricao (double opt-in) ou esta descadastrado.",
+      error: "Assinante não confirmou a inscrição pelo e-mail ou está descadastrado.",
     });
     return;
   }
@@ -651,12 +651,12 @@ function handleOgImage(res, pathname) {
   const filename = path.basename(pathname);
   // Validacao: so aceita nomes seguros e extensoes de imagem conhecidas.
   if (!/^[a-zA-Z0-9_-]+\.(jpg|jpeg|png)$/i.test(filename)) {
-    sendText(res, 400, "Nome de arquivo invalido", "text/plain; charset=utf-8");
+    sendText(res, 400, "Nome de arquivo inválido", "text/plain; charset=utf-8");
     return;
   }
   const filePath = path.join(process.cwd(), "public", "og", filename);
   if (!existsSync(filePath)) {
-    sendText(res, 404, "Imagem nao encontrada", "text/plain; charset=utf-8");
+    sendText(res, 404, "Imagem não encontrada", "text/plain; charset=utf-8");
     return;
   }
   try {
@@ -900,7 +900,7 @@ function handleExitFlightHtml(req, res, url) {
   // http/https. Na pratica buildAviasalesSearchUrl sempre gera https, mas o
   // teto de seguranca fica aqui caso isso mude no futuro.
   if (!isSafeRedirectUrl(searchUrl)) {
-    sendJson(res, 409, { error: "Nao foi possivel montar o link de busca do parceiro." });
+    sendJson(res, 409, { error: "Não foi possível montar o link de busca do parceiro." });
     return;
   }
   // Mesmo log dos outros cliques (data/clicks.jsonl) — identificador
@@ -1053,7 +1053,7 @@ export function createServer() {
       // ---- Newsletter / alertas de preco (double opt-in, LGPD) ----
       if (pathname === "/api/newsletter/subscribe") {
         if (method !== "POST") {
-          sendJson(res, 405, { error: "Metodo nao permitido; use POST." });
+          sendJson(res, 405, { error: "Método não permitido; use POST." });
           return;
         }
         if (enforceInboundRateLimit(req, res, "newsletter-subscribe")) return;
@@ -1063,7 +1063,7 @@ export function createServer() {
 
       if (pathname === "/api/newsletter/confirm") {
         if (method !== "GET") {
-          sendJson(res, 405, { error: "Metodo nao permitido; use GET." });
+          sendJson(res, 405, { error: "Método não permitido; use GET." });
           return;
         }
         handleNewsletterConfirm(req, res, url);
@@ -1080,7 +1080,7 @@ export function createServer() {
           return;
         }
         if (method !== "POST") {
-          sendJson(res, 405, { error: "Metodo nao permitido; use GET ou POST." });
+          sendJson(res, 405, { error: "Método não permitido; use GET ou POST." });
           return;
         }
         if (enforceInboundRateLimit(req, res, "newsletter-unsubscribe")) return;
@@ -1090,7 +1090,7 @@ export function createServer() {
 
       if (pathname === "/api/alerts") {
         if (method !== "POST") {
-          sendJson(res, 405, { error: "Metodo nao permitido; use POST." });
+          sendJson(res, 405, { error: "Método não permitido; use POST." });
           return;
         }
         if (enforceInboundRateLimit(req, res, "alerts")) return;
@@ -1102,7 +1102,7 @@ export function createServer() {
       const clickMatch = pathname.match(/^\/api\/offers\/([^/]+)\/click$/);
       if (clickMatch) {
         if (method !== "POST") {
-          sendJson(res, 405, { error: "Metodo nao permitido; use POST." });
+          sendJson(res, 405, { error: "Método não permitido; use POST." });
           return;
         }
         if (enforceInboundRateLimit(req, res, "offers-click")) return;
@@ -1114,7 +1114,7 @@ export function createServer() {
       const offerMatch = pathname.match(/^\/api\/offers\/([^/]+)$/);
       if (offerMatch) {
         if (method !== "GET") {
-          sendJson(res, 405, { error: "Metodo nao permitido; use GET." });
+          sendJson(res, 405, { error: "Método não permitido; use GET." });
           return;
         }
         handleGetOffer(req, res, decodeURIComponent(offerMatch[1]));
@@ -1125,7 +1125,7 @@ export function createServer() {
       // Antes era JSON para todo mundo: quem digitava a URL errada ou seguia um
       // link velho via {"error":"Rota nao encontrada"} na tela, sem volta.
       if (querHtml(req, pathname)) sendHtml(res, 404, renderNotFoundPage({ caminho: pathname }));
-      else sendJson(res, 404, { error: `Rota nao encontrada: ${method} ${pathname}` });
+      else sendJson(res, 404, { error: `Rota não encontrada: ${method} ${pathname}` });
     } catch (err) {
       // Nunca derruba o processo por um request malformado.
       try {

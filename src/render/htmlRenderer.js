@@ -2036,7 +2036,7 @@ function newsletterHeroHtml() {
     `<div class="news-card">` +
     `<div class="news-copy">` +
     `<p class="eyebrow eyebrow--lime">Alertas de preço</p>` +
-    `<h1>Os achados de passagem antes que acabem</h1>` +
+    `<h1>Receba os achados de passagem antes que a tarifa mude</h1>` +
     `<p>Preços muito abaixo da média e erros de tarifa, garimpados todos os dias. Comparamos cada tarifa com a média dos últimos 90 dias antes de avisar você.</p>` +
     `</div>` +
     `<form class="news-form" data-newsletter action="/api/newsletter/subscribe" method="post">` +
@@ -2405,7 +2405,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
         `<input type="hidden" name="origem" value="${escapeHtml(vm.origem)}">` +
         `<input type="hidden" name="destino" value="${escapeHtml(vm.destino)}">`
       : `<p>Alertas de preço da sua cidade, direto no e-mail.</p>` +
-        `<label class="det-alert-orig"><span>Sua origem</span><select name="origem">${origensSel}</select></label>`) +
+        `<label class="det-alert-orig"><span>Cidade de saída</span><select name="origem">${origensSel}</select></label>`) +
     (typeof offer.preco_centavos === "number"
       ? `<input type="hidden" name="precoAlvoCentavos" value="${escapeHtml(offer.preco_centavos)}">`
       : "") +
@@ -3167,7 +3167,7 @@ export function renderResultsPage(opts = {}) {
           pax.criancas > 0 ? "criança" : ""
         }${pax.criancas > 0 && pax.bebes > 0 ? " e " : ""}${
           pax.bebes > 0 ? "bebê de colo" : ""
-        }: os valores ${voosReais ? "" : "de exemplo "}abaixo são <strong>por adulto</strong>. Criança e bebê pagam tarifa própria, calculada pela companhia no site do parceiro — leve isso em conta antes de fechar a conta da viagem.</p>`
+        }: os valores ${voosReais ? "" : "de exemplo "}abaixo são <strong>por adulto</strong>. Criança e bebê pagam tarifa própria, calculada pela companhia no site do parceiro — leve isso em conta antes de calcular o total da viagem.</p>`
       : "";
   const avisoOrigem = voosReais
     ? `<p class="res-amostra res-amostra--vivo"><strong>Preços buscados ao vivo agora.</strong> Estes são os voos que a busca devolveu para ${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)}, com o preço do momento. Tarifa de avião muda rápido: o valor final é o que aparecer no site do parceiro ao clicar em "Selecionar".</p>`
@@ -3271,7 +3271,7 @@ export function renderResultsPage(opts = {}) {
         : "Preços acima são exemplos."
     } Ao selecionar, você vai para o site do parceiro ver as tarifas reais e concluir a compra. O Aonde pode receber comissão, sem custo extra para você.</p>` +
     `<div class="res-pix"><strong>Pix</strong><span>Vários parceiros dão desconto no Pix, mas não todos, e o percentual é decidido por eles. O valor com desconto aparece no site do parceiro antes de você confirmar.</span></div>` +
-    `<div class="res-alert-banner"><div><strong>Não fechou negócio hoje?</strong> ` +
+    `<div class="res-alert-banner"><div><strong>Não vai comprar agora?</strong> ` +
     `<span>A gente avisa se ${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)} ficar mais barato.</span></div>` +
     `<form class="res-alert-form" data-newsletter action="/api/newsletter/subscribe" method="post">` +
     `<input name="email" type="email" required aria-label="Seu e-mail" placeholder="Seu melhor e-mail">` +
@@ -3517,7 +3517,7 @@ export function renderUnsubscribePage({ email = "" } = {}) {
     `<form method="post" action="/api/newsletter/unsubscribe" class="unsub-form">` +
     `<label class="unsub-lab" for="unsub-email">Seu e-mail</label>` +
     `<input class="unsub-input" id="unsub-email" name="email" type="email" required ` +
-    `value="${escapeHtml(email)}" placeholder="voce@exemplo.com">` +
+    `value="${escapeHtml(email)}" placeholder="nome@exemplo.com.br">` +
     `<button class="btn btn-green" type="submit">Confirmar cancelamento</button>` +
     `</form>` +
     `<p class="map-sub"><a href="/">Voltar para o site</a></p>` +
@@ -3585,7 +3585,7 @@ export function renderNewsletterStatusPage({ ok, error, pendente, descadastrado,
       `<ol class="status-passos">` +
       `<li>Abra o e-mail do Aonde e clique em <strong>Confirmar inscrição</strong>.</li>` +
       `<li>Não chegou em alguns minutos? Olhe a caixa de spam ou promoções. O link vale por 48 horas.</li>` +
-      `<li>Depois, só avisamos quando surgir uma tarifa abaixo da média para a sua cidade, sem frequência fixa. Cancelar é um clique.</li>` +
+      `<li>Depois, só avisamos quando surgir uma tarifa abaixo da média para a sua cidade, sem frequência fixa. Cancelar são dois cliques, sem perguntas.</li>` +
       `</ol>` +
       statusRetryFormHtml(enderecoSeguro, { resumo: "Digitou errado ou o e-mail não chegou? Enviar de novo" }) +
       `<p><a class="btn btn-green" href="/hoje">Ver a escolha do dia →</a></p>` +
@@ -3670,9 +3670,9 @@ export function renderMapPage({ apiKey = "" } = {}) {
 
   const head =
     `<section class="wrap map-head">` +
-    `<p class="eyebrow eyebrow--green">Explorar o mundo</p>` +
+    `<p class="eyebrow eyebrow--green">Explore o mundo</p>` +
     `<h1 class="map-title">Onde a gente já tem roteiro pronto</h1>` +
-    `<p class="map-sub">Navegue o mapa e clique num destino para abrir o roteiro de 5 dias, dia a dia, com onde comer.</p>` +
+    `<p class="map-sub">Navegue pelo mapa e clique num destino para abrir o roteiro de 5 dias, dia a dia, com onde comer.</p>` +
     `</section>`;
 
   let panel;

@@ -101,7 +101,7 @@ test("GET /api/offers/:id retorna a oferta ou 404 JSON", async (t) => {
   const notFound = await fetch(`${baseUrl}/api/offers/nao-existe`);
   assert.equal(notFound.status, 404);
   const nfBody = await notFound.json();
-  assert.match(nfBody.error, /nao encontrada/i);
+  assert.match(nfBody.error, /não encontrada/i);
 });
 
 test("POST /api/offers/:id/click registra o clique e devolve redirect", async (t) => {
@@ -132,7 +132,7 @@ test("POST /api/offers/:id/click responde 404 quando a oferta nao existe", async
   const res = await fetch(`${baseUrl}/api/offers/inexistente/click`, { method: "POST" });
   assert.equal(res.status, 404);
   const body = await res.json();
-  assert.match(body.error, /nao encontrada/i);
+  assert.match(body.error, /não encontrada/i);
 });
 
 test("POST /api/offers/:id/click responde 409 quando a oferta nao tem affiliate_url", async (t) => {
@@ -231,7 +231,7 @@ test("rota desconhecida responde 404 JSON", async (t) => {
   const res = await fetch(`${baseUrl}/api/qualquer-coisa`);
   assert.equal(res.status, 404);
   const body = await res.json();
-  assert.match(body.error, /nao encontrada/i);
+  assert.match(body.error, /não encontrada/i);
 });
 
 test("CORS: header presente apenas quando AONDE_CORS_ORIGIN esta definido", async (t) => {

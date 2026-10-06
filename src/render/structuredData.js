@@ -103,7 +103,7 @@ export const FAQ_GROUPS = [
       },
       {
         q: "Por que o preço muda quando chego no parceiro?",
-        a: "Quem controla estoque e tarifa é o parceiro, não o Aonde. Assentos promocionais são limitados e o preço pode subir (ou o voo sumir) entre o momento em que publicamos e o da compra.",
+        a: "Quem controla as vagas e a tarifa é o parceiro, não o Aonde. Assentos promocionais são limitados e o preço pode subir (ou o voo sumir) entre o momento em que publicamos e o da compra.",
       },
       {
         q: "O Aonde cobra alguma taxa a mais?",
@@ -120,7 +120,7 @@ export const FAQ_GROUPS = [
       },
       {
         q: "Não recebi a confirmação. E agora?",
-        a: "Confira o spam usando o e-mail que você digitou no site do parceiro. Se não aparecer, fale direto com o suporte deles — eles têm acesso ao seu pagamento e à sua reserva, o Aonde não tem.",
+        a: "Confira a caixa de spam usando o e-mail que você digitou no site do parceiro. Se não aparecer, fale direto com o suporte deles — eles têm acesso ao seu pagamento e à sua reserva, o Aonde não tem.",
       },
       {
         q: "Quero cancelar ou alterar minha reserva.",
@@ -133,7 +133,7 @@ export const FAQ_GROUPS = [
     items: [
       {
         q: "Como recebo alertas de preço?",
-        a: "Cadastre seu e-mail em qualquer página de ofertas. Você confirma a inscrição por e-mail (double opt-in) antes de receber qualquer coisa.",
+        a: "Cadastre seu e-mail em qualquer página de ofertas. Você confirma a inscrição pelo link que enviamos por e-mail, antes de receber qualquer alerta.",
       },
       {
         q: "Como cancelo a inscrição?",
