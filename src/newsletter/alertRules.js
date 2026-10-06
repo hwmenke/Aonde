@@ -35,26 +35,26 @@ function readAll() {
 export function addAlertRule({ subscriberId, origem, destino, precoAlvoCentavos, canais } = {}) {
   const subscriber = subscriberId ? getSubscriberById(subscriberId) : null;
   if (!subscriber) {
-    return { ok: false, error: "Assinante nao encontrado." };
+    return { ok: false, error: "Assinante não encontrado." };
   }
   if (!subscriber.double_optin_confirmed || subscriber.unsubscribed_at) {
     return {
       ok: false,
-      error: "Assinante nao confirmou a inscricao (double opt-in) ou esta descadastrado.",
+      error: "Assinante não confirmou a inscrição pelo e-mail ou está descadastrado.",
     };
   }
 
   if (!isIataCode(origem)) {
     return {
       ok: false,
-      error: `origem invalida: "${origem}". Esperado codigo IATA de 3 letras (A-Z), ex.: GRU`,
+      error: `Origem inválida: "${origem}". Use o código IATA de 3 letras (A-Z), por exemplo GRU.`,
     };
   }
   const hasDestino = destino !== undefined && destino !== null && String(destino).trim() !== "";
   if (hasDestino && !isIataCode(destino)) {
     return {
       ok: false,
-      error: `destino invalido: "${destino}". Esperado codigo IATA de 3 letras (A-Z), ex.: LIS`,
+      error: `Destino inválido: "${destino}". Use o código IATA de 3 letras (A-Z), por exemplo LIS.`,
     };
   }
 
@@ -62,7 +62,7 @@ export function addAlertRule({ subscriberId, origem, destino, precoAlvoCentavos,
   if (hasPreco && (typeof precoAlvoCentavos !== "number" || !Number.isFinite(precoAlvoCentavos) || precoAlvoCentavos <= 0)) {
     return {
       ok: false,
-      error: "precoAlvoCentavos invalido. Informe um valor em centavos maior que zero.",
+      error: "Preço-alvo inválido. Informe um valor em centavos maior que zero.",
     };
   }
 

@@ -71,8 +71,8 @@ function montarHtml({ tituloPreheader, corpoHtml, unsubscribeUrl, email }) {
     `<tr><td style="padding:24px 28px 4px 28px;font-size:20px;font-weight:bold;color:${COR_TEXTO};">Aonde</td></tr>` +
     `<tr><td style="padding:4px 28px 20px 28px;font-size:15px;line-height:1.6;color:${COR_TEXTO};">${corpoHtml}</td></tr>` +
     `<tr><td style="padding:16px 28px 28px 28px;border-top:1px solid ${COR_BORDA};font-size:13px;line-height:1.5;color:${COR_MUTED};">` +
-    `Este e-mail foi enviado para ${emailSeguro} porque este endereco esta (ou pediu para estar) nos alertas de preco do Aonde.<br>` +
-    `<a href="${unsubHref}" style="color:${COR_LINK};font-weight:bold;">Cancelar inscricao</a>` +
+    `Este e-mail foi enviado para ${emailSeguro} porque este endereço está (ou pediu para estar) nos alertas de preço do Aonde.<br>` +
+    `<a href="${unsubHref}" style="color:${COR_LINK};font-weight:bold;">Cancelar inscrição</a>` +
     `</td></tr>` +
     `</table>` +
     `</td></tr>` +
@@ -86,13 +86,13 @@ function montarHtml({ tituloPreheader, corpoHtml, unsubscribeUrl, email }) {
 function linhaDescadastroHtml(unsubscribeUrl) {
   const href = escapeHtml(safeUrl(unsubscribeUrl));
   return (
-    `<p style="margin:16px 0 0 0;">Nao quer mais receber estes e-mails? ` +
-    `<a href="${href}" style="color:${COR_LINK};">Cancelar inscricao</a> — abre a pagina de confirmacao, sem perguntas.</p>`
+    `<p style="margin:16px 0 0 0;">Não quer mais receber estes e-mails? ` +
+    `<a href="${href}" style="color:${COR_LINK};">Cancelar inscrição</a> — abre a página de confirmação, sem perguntas.</p>`
   );
 }
 
 function linhaDescadastroTexto(unsubscribeUrl) {
-  return `Cancelar inscricao (confirma numa pagina, sem perguntas): ${safeUrl(unsubscribeUrl)}`;
+  return `Cancelar inscrição (confirma numa página, sem perguntas): ${safeUrl(unsubscribeUrl)}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -129,46 +129,46 @@ export function buildConfirmationEmail({
     ? ` com destino a ${alvo.destinoLabel}`
     : "";
   const precoTexto =
-    alvo.precoAlvoCentavos != null ? ` ate ${formatBRL(alvo.precoAlvoCentavos)}` : "";
+    alvo.precoAlvoCentavos != null ? ` até ${formatBRL(alvo.precoAlvoCentavos)}` : "";
 
-  const assunto = sanitizarAssunto("Confirme sua inscricao nos alertas de preco do Aonde");
+  const assunto = sanitizarAssunto("Confirme sua inscrição nos alertas de preço do Aonde");
 
   const textoPlano = [
-    "Aonde — confirme sua inscricao",
+    "Aonde — confirme sua inscrição",
     "",
-    `Este endereco (${email}) pediu para receber alertas de preco de passagens aereas saindo de ${alvo.origemLabel}${rotaTexto}${precoTexto}.`,
+    `Este endereço (${email}) pediu para receber alertas de preço de passagens aéreas saindo de ${alvo.origemLabel}${rotaTexto}${precoTexto}.`,
     "",
-    "Isso so comeca a valer depois que voce confirmar clicando no link abaixo. SEM confirmar, voce nao recebe nenhum alerta — nem mais e-mails deste tipo.",
+    "Isso só começa a valer depois que você confirmar clicando no link abaixo. Sem confirmar, você não recebe nenhum alerta — nem mais e-mails deste tipo.",
     "",
-    `Confirmar inscricao: ${confirmHref}`,
+    `Confirmar inscrição: ${confirmHref}`,
     "",
-    "O que voce vai receber depois de confirmado:",
-    "- E-mails so quando encontrarmos um preco que bate com o que voce pediu. Sem frequencia fixa, sem spam.",
-    "- Voce pode cancelar quando quiser, em dois cliques e sem perguntas.",
+    "O que você vai receber depois de confirmado:",
+    "- E-mails só quando encontrarmos um preço que bate com o que você pediu. Sem frequência fixa, sem spam.",
+    "- Você pode cancelar quando quiser, em dois cliques e sem perguntas.",
     "",
-    `Nao foi voce quem pediu isso? Ignore este e-mail: sem confirmacao, nada acontece. Se preferir garantir que nunca mais chega nada, cancele agora: ${unsubHref}`,
+    `Não foi você quem pediu isso? Ignore este e-mail: sem confirmação, nada acontece. Se preferir garantir que nunca mais chega nada, cancele agora: ${unsubHref}`,
     "",
     "--",
-    "Aonde — comparador de passagens aereas",
+    "Aonde — comparador de passagens aéreas",
     linhaDescadastroTexto(unsubscribeUrl),
   ].join("\n");
 
   const corpoHtml =
-    `<p style="margin:0 0 12px 0;">Este endereco (<strong>${escapeHtml(email)}</strong>) pediu para receber alertas de preco de passagens aereas saindo de <strong>${escapeHtml(alvo.origemLabel)}</strong>` +
+    `<p style="margin:0 0 12px 0;">Este endereço (<strong>${escapeHtml(email)}</strong>) pediu para receber alertas de preço de passagens aéreas saindo de <strong>${escapeHtml(alvo.origemLabel)}</strong>` +
     (alvo.temRotaEspecifica ? ` com destino a <strong>${escapeHtml(alvo.destinoLabel)}</strong>` : "") +
-    (alvo.precoAlvoCentavos != null ? ` ate <strong>${escapeHtml(formatBRL(alvo.precoAlvoCentavos))}</strong>` : "") +
+    (alvo.precoAlvoCentavos != null ? ` até <strong>${escapeHtml(formatBRL(alvo.precoAlvoCentavos))}</strong>` : "") +
     `.</p>` +
-    `<p style="margin:0 0 16px 0;">Isso so comeca a valer depois que voce confirmar clicando no botao abaixo. <strong>Sem confirmar, voce nao recebe nenhum alerta</strong> — nem mais e-mails deste tipo.</p>` +
+    `<p style="margin:0 0 16px 0;">Isso só começa a valer depois que você confirmar clicando no botão abaixo. <strong>Sem confirmar, você não recebe nenhum alerta</strong> — nem mais e-mails deste tipo.</p>` +
     `<p style="margin:0 0 20px 0;">` +
-    `<a href="${escapeHtml(confirmHref)}" style="display:inline-block;background-color:${COR_LINK};color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:bold;">Confirmar inscricao</a>` +
+    `<a href="${escapeHtml(confirmHref)}" style="display:inline-block;background-color:${COR_LINK};color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:bold;">Confirmar inscrição</a>` +
     `</p>` +
-    `<p style="margin:0 0 4px 0;font-size:13px;color:${COR_MUTED};">Se o botao nao funcionar, copie e cole este endereco no navegador:<br>${escapeHtml(confirmHref)}</p>` +
-    `<p style="margin:16px 0 0 0;">Depois de confirmado, voce so recebe e-mail quando encontrarmos um preco que bate com o que voce pediu — sem frequencia fixa, sem spam.</p>` +
-    `<p style="margin:16px 0 0 0;">Nao foi voce quem pediu isso? Pode ignorar: sem confirmacao, nada acontece. Se preferir garantir que nunca mais chega nada, use o link abaixo.</p>` +
+    `<p style="margin:0 0 4px 0;font-size:13px;color:${COR_MUTED};">Se o botão não funcionar, copie e cole este endereço no navegador:<br>${escapeHtml(confirmHref)}</p>` +
+    `<p style="margin:16px 0 0 0;">Depois de confirmado, você só recebe e-mail quando encontrarmos um preço que bate com o que você pediu — sem frequência fixa, sem spam.</p>` +
+    `<p style="margin:16px 0 0 0;">Não foi você quem pediu isso? Pode ignorar: sem confirmação, nada acontece. Se preferir garantir que nunca mais chega nada, use o link abaixo.</p>` +
     linhaDescadastroHtml(unsubscribeUrl);
 
   const html = montarHtml({
-    tituloPreheader: "Confirme sua inscricao para comecar a receber alertas de preco.",
+    tituloPreheader: "Confirme sua inscrição para começar a receber alertas de preço.",
     corpoHtml,
     unsubscribeUrl,
     email,
@@ -216,42 +216,42 @@ export function buildPriceAlertEmail({
     const diffPct = Math.round((1 - precoCentavos / precoMedioCentavos) * 100);
     const medioLabel = formatBRL(precoMedioCentavos);
     if (diffPct > 0) {
-      comparacaoTexto = `Isso e ${diffPct}% abaixo da media recente que vimos nessa rota (${medioLabel}).`;
+      comparacaoTexto = `Isso é ${diffPct}% abaixo da média recente que vimos nessa rota (${medioLabel}).`;
     } else if (diffPct < 0) {
-      comparacaoTexto = `Isso fica ${Math.abs(diffPct)}% acima da media recente nessa rota (${medioLabel}) — mesmo assim bateu o preco que voce pediu.`;
+      comparacaoTexto = `Isso fica ${Math.abs(diffPct)}% acima da média recente nessa rota (${medioLabel}) — mesmo assim bateu o preço que você pediu.`;
     } else {
-      comparacaoTexto = `Isso esta na media recente que vimos nessa rota (${medioLabel}).`;
+      comparacaoTexto = `Isso está na média recente que vimos nessa rota (${medioLabel}).`;
     }
   } else {
-    comparacaoTexto = "Ainda nao temos historico suficiente dessa rota para comparar com a media.";
+    comparacaoTexto = "Ainda não temos histórico suficiente dessa rota para comparar com a média.";
   }
   comparacaoHtml = escapeHtml(comparacaoTexto);
 
   const rotaLabel = `${alvo.origemLabel} → ${alvo.destinoLabel || (destino ? String(destino).toUpperCase() : "")}`;
 
-  const assunto = sanitizarAssunto(`Alerta de preco: ${rotaLabel} por ${precoLabel}`);
+  const assunto = sanitizarAssunto(`Alerta de preço: ${rotaLabel} por ${precoLabel}`);
 
   const textoPlano = [
-    "Aonde — encontramos um preco que bate com o seu alerta",
+    "Aonde — encontramos um preço que bate com o seu alerta",
     "",
     `Rota: ${rotaLabel}`,
-    `Preco encontrado: ${precoLabel}`,
+    `Preço encontrado: ${precoLabel}`,
     comparacaoTexto,
     "",
     `Ver oferta: ${offerHref}`,
     "",
-    "Importante: este preco foi visto no site do parceiro no momento da busca e pode mudar a qualquer momento — inclusive entre agora e voce clicar no link. O preco final e sempre o que aparecer la, na hora da compra. O Aonde nao processa pagamento nem emite passagem: a compra e feita direto com o parceiro.",
+    "Importante: este preço foi visto no site do parceiro no momento da busca e pode mudar a qualquer momento — inclusive entre agora e você clicar no link. O preço final é sempre o que aparecer lá, na hora da compra. O Aonde não processa pagamento nem emite passagem: a compra é feita direto com o parceiro.",
     "",
     "--",
-    "Aonde — comparador de passagens aereas",
+    "Aonde — comparador de passagens aéreas",
     linhaDescadastroTexto(unsubscribeUrl),
   ].join("\n");
 
   const corpoHtml =
-    `<p style="margin:0 0 12px 0;">Encontramos um preco que bate com o alerta que voce pediu para <strong>${escapeHtml(rotaLabel)}</strong>.</p>` +
+    `<p style="margin:0 0 12px 0;">Encontramos um preço que bate com o alerta que você pediu para <strong>${escapeHtml(rotaLabel)}</strong>.</p>` +
     `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;width:100%;background-color:#f9fafb;border-radius:6px;">` +
     `<tr><td style="padding:14px 16px;">` +
-    `<div style="font-size:13px;color:${COR_MUTED};">Preco encontrado</div>` +
+    `<div style="font-size:13px;color:${COR_MUTED};">Preço encontrado</div>` +
     `<div style="font-size:24px;font-weight:bold;color:${COR_TEXTO};">${escapeHtml(precoLabel)}</div>` +
     `<div style="font-size:13px;color:${COR_MUTED};margin-top:4px;">${comparacaoHtml}</div>` +
     `</td></tr>` +
@@ -259,12 +259,12 @@ export function buildPriceAlertEmail({
     `<p style="margin:0 0 20px 0;">` +
     `<a href="${escapeHtml(offerHref)}" style="display:inline-block;background-color:${COR_LINK};color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:bold;">Ver oferta</a>` +
     `</p>` +
-    `<p style="margin:0 0 4px 0;font-size:13px;color:${COR_MUTED};">Se o botao nao funcionar, copie e cole este endereco no navegador:<br>${escapeHtml(offerHref)}</p>` +
-    `<p style="margin:16px 0 0 0;">Este preco foi visto no site do parceiro no momento da busca e <strong>pode mudar</strong> a qualquer momento — o preco final e sempre o que aparecer la, na hora da compra. O Aonde nao processa pagamento nem emite passagem: a compra e feita direto com o parceiro (cia aerea ou agencia).</p>` +
+    `<p style="margin:0 0 4px 0;font-size:13px;color:${COR_MUTED};">Se o botão não funcionar, copie e cole este endereço no navegador:<br>${escapeHtml(offerHref)}</p>` +
+    `<p style="margin:16px 0 0 0;">Este preço foi visto no site do parceiro no momento da busca e <strong>pode mudar</strong> a qualquer momento — o preço final é sempre o que aparecer lá, na hora da compra. O Aonde não processa pagamento nem emite passagem: a compra é feita direto com o parceiro (cia aérea ou agência).</p>` +
     linhaDescadastroHtml(unsubscribeUrl);
 
   const html = montarHtml({
-    tituloPreheader: `${rotaLabel} por ${precoLabel}. Preco confirma no site do parceiro.`,
+    tituloPreheader: `${rotaLabel} por ${precoLabel}. O preço se confirma no site do parceiro.`,
     corpoHtml,
     unsubscribeUrl,
     email,
@@ -303,41 +303,41 @@ export function buildWelcomeEmail({
   const rotaTexto = alvo.temRotaEspecifica
     ? `voos saindo de ${alvo.origemLabel} para ${alvo.destinoLabel}`
     : `voos saindo de ${alvo.origemLabel}`;
-  const precoTexto = alvo.precoAlvoCentavos != null ? ` ate ${formatBRL(alvo.precoAlvoCentavos)}` : "";
+  const precoTexto = alvo.precoAlvoCentavos != null ? ` até ${formatBRL(alvo.precoAlvoCentavos)}` : "";
 
-  const assunto = sanitizarAssunto("Inscricao confirmada — voce esta nos alertas de preco do Aonde");
+  const assunto = sanitizarAssunto("Inscrição confirmada — você está nos alertas de preço do Aonde");
 
   const textoPlano = [
-    "Aonde — inscricao confirmada",
+    "Aonde — inscrição confirmada",
     "",
-    `Pronto: ${email} esta cadastrado para receber alertas de ${rotaTexto}${precoTexto}.`,
+    `Pronto: ${email} está cadastrado para receber alertas de ${rotaTexto}${precoTexto}.`,
     "",
     "O que esperar:",
-    "- Voce so recebe e-mail quando encontrarmos um preco que bate com o que voce pediu. Nao existe frequencia fixa (nao e diario nem semanal) — e quando surge, nao quando completa um calendario.",
-    "- Cada alerta mostra o preco encontrado, como ele se compara a media da rota, e o link para a oferta.",
-    "- O preco final e sempre confirmado no site do parceiro, na hora da compra — o Aonde nao processa pagamento nem emite passagem.",
-    "- Se algo der errado na compra (cancelamento, reembolso, alteracao), isso e negociado direto com o parceiro que vendeu a passagem, nao com o Aonde. E assim em qualquer comparador de precos — preferimos dizer isso agora a deixar voce descobrir depois.",
+    "- Você só recebe e-mail quando encontrarmos um preço que bate com o que você pediu. Não existe frequência fixa (não é diário nem semanal) — é quando surge, não quando completa um calendário.",
+    "- Cada alerta mostra o preço encontrado, como ele se compara à média da rota, e o link para a oferta.",
+    "- O preço final é sempre confirmado no site do parceiro, na hora da compra — o Aonde não processa pagamento nem emite passagem.",
+    "- Se algo der errado na compra (cancelamento, reembolso, alteração), isso é negociado direto com o parceiro que vendeu a passagem, não com o Aonde. É assim em qualquer comparador de preços — preferimos dizer isso agora a deixar você descobrir depois.",
     "",
     "Cancelar quando quiser, sem perguntas:",
     linhaDescadastroTexto(unsubscribeUrl),
     "",
     "--",
-    "Aonde — comparador de passagens aereas",
+    "Aonde — comparador de passagens aéreas",
   ].join("\n");
 
   const corpoHtml =
-    `<p style="margin:0 0 12px 0;">Pronto: <strong>${escapeHtml(email)}</strong> esta cadastrado para receber alertas de ${escapeHtml(rotaTexto)}${escapeHtml(precoTexto)}.</p>` +
+    `<p style="margin:0 0 12px 0;">Pronto: <strong>${escapeHtml(email)}</strong> está cadastrado para receber alertas de ${escapeHtml(rotaTexto)}${escapeHtml(precoTexto)}.</p>` +
     `<p style="margin:0 0 8px 0;font-weight:bold;">O que esperar</p>` +
     `<ul style="margin:0 0 16px 0;padding-left:18px;">` +
-    `<li style="margin-bottom:6px;">Voce so recebe e-mail quando encontrarmos um preco que bate com o que voce pediu. Sem frequencia fixa — nao e diario nem semanal.</li>` +
-    `<li style="margin-bottom:6px;">Cada alerta mostra o preco encontrado, como ele se compara a media da rota, e o link para a oferta.</li>` +
-    `<li style="margin-bottom:6px;">O preco final e sempre confirmado no site do parceiro, na hora da compra — o Aonde nao processa pagamento nem emite passagem.</li>` +
-    `<li>Se algo der errado na compra (cancelamento, reembolso, alteracao), isso e negociado direto com o parceiro que vendeu a passagem, nao com o Aonde. Preferimos dizer isso agora a deixar voce descobrir depois.</li>` +
+    `<li style="margin-bottom:6px;">Você só recebe e-mail quando encontrarmos um preço que bate com o que você pediu. Sem frequência fixa — não é diário nem semanal.</li>` +
+    `<li style="margin-bottom:6px;">Cada alerta mostra o preço encontrado, como ele se compara à média da rota, e o link para a oferta.</li>` +
+    `<li style="margin-bottom:6px;">O preço final é sempre confirmado no site do parceiro, na hora da compra — o Aonde não processa pagamento nem emite passagem.</li>` +
+    `<li>Se algo der errado na compra (cancelamento, reembolso, alteração), isso é negociado direto com o parceiro que vendeu a passagem, não com o Aonde. Preferimos dizer isso agora a deixar você descobrir depois.</li>` +
     `</ul>` +
     linhaDescadastroHtml(unsubscribeUrl);
 
   const html = montarHtml({
-    tituloPreheader: "Inscricao confirmada. Veja o que esperar dos proximos alertas.",
+    tituloPreheader: "Inscrição confirmada. Veja o que esperar dos próximos alertas.",
     corpoHtml,
     unsubscribeUrl,
     email,

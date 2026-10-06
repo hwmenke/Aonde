@@ -48,7 +48,12 @@ import { createHash } from "node:crypto";
 import { getConfig } from "../config.js";
 import { rotuloAeroporto, cidadeDoIata } from "./aeroportos.js";
 import { ogSharePathForOffer, hojeOgSharePath } from "./ogShare.js";
-import { continuePlanejandoHtml, indiceDoRoteiroHtml, ofertaNaCaixaHtml } from "./guideLinks.js";
+import {
+  continuePlanejandoHtml,
+  indiceDoRoteiroHtml,
+  ofertaNaCaixaHtml,
+  roteiroStickyCtaHtml,
+} from "./guideLinks.js";
 import {
   FAQ_GROUPS,
   buildOrganization,
@@ -285,15 +290,19 @@ export { escapeHtml, formatBRL };
 
 // Placeholder no estilo image-slot: tint verde, "montanhas" e o rotulo.
 function placeholderSvgMarkup(label) {
-  const safe = escapeHtml(label || "Aonde");
+  const raw = label || "Aonde";
+  const safe = escapeHtml(raw);
+  // O desenho mostra "Aonde" e o rotulo. O nome da imagem tem de ter as duas
+  // palavras, separadas — senao o leitor de tela cola tudo ("AondeMapa").
+  const nome = raw === "Aonde" ? "Aonde" : `Aonde ${raw}`;
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="${safe}">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="${escapeHtml(nome)}">` +
     `<rect width="400" height="260" fill="#f1f8e4"/>` +
     `<rect x="0" y="0" width="400" height="260" fill="none" stroke="#dededa" stroke-width="2"/>` +
     `<path d="M0 200 L110 120 L175 175 L250 105 L400 210 L400 260 L0 260 Z" fill="#a3e635" opacity="0.55"/>` +
     `<path d="M0 225 L90 165 L180 220 L280 150 L400 235 L400 260 L0 260 Z" fill="#84cc16" opacity="0.65"/>` +
     `<circle cx="315" cy="70" r="26" fill="#a3e635"/>` +
-    `<text x="200" y="60" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#4d7c0f">Aonde</text>` +
+    `<text x="200" y="60" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#4d7c0f">Aonde</text> ` +
     `<text x="200" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="bold" fill="#18181b">${safe}</text>` +
     `</svg>`
   );
@@ -870,7 +879,7 @@ function seasonalRingSvg(months, win) {
   const slabels = seasons
     .map(([name, ang]) => {
       const [sx, sy] = P(R + 16, ang);
-      return `<text x="${sx}" y="${sy}" text-anchor="middle" dominant-baseline="central" font-family="Archivo,sans-serif" font-size="10" font-weight="700" letter-spacing="1" fill="#8a8a84">${escapeHtml(name)}</text>`;
+      return `<text x="${sx}" y="${sy}" text-anchor="middle" dominant-baseline="central" font-family="Archivo,sans-serif" font-size="10" font-weight="700" letter-spacing="1" fill="#50504a">${escapeHtml(name)}</text>`;
     })
     .join("");
 
@@ -881,9 +890,9 @@ function seasonalRingSvg(months, win) {
     segs +
     `<circle cx="160" cy="160" r="${r}" fill="#fff"/>` +
     slabels +
-    `<text x="160" y="142" text-anchor="middle" font-family="Archivo,sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#8a8a84">MELHOR ÉPOCA</text>` +
+    `<text x="160" y="142" text-anchor="middle" font-family="Archivo,sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#50504a">MELHOR ÉPOCA</text>` +
     `<text x="160" y="168" text-anchor="middle" font-family="Archivo,sans-serif" font-size="26" font-weight="700" fill="#3f6212">${centerPrice}</text>` +
-    (centerLabel ? `<text x="160" y="190" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11" fill="#6b6b66">${centerLabel}</text>` : "") +
+    (centerLabel ? `<text x="160" y="190" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11" fill="#50504a">${centerLabel}</text>` : "") +
     `</svg>`
   );
 }
@@ -1969,6 +1978,10 @@ function extrasSectionHtml(extras) {
 
 // Seção "explore no mapa" da home — chama o /mapa (mapa-múndi de destinos).
 function mapExploreHtml() {
+  const n = GUIDE_LIST.length;
+  const mapaTxt = `${n} destinos`;
+  // Sem aria-label no link: um rotulo por cima escondia o texto do desenho
+  // ("Aonde", "Mapa dos destinos") e do selo. O nome sai do conteudo.
   return (
     `<section class="wrap section">` +
     `<div class="explore">` +
@@ -1976,9 +1989,9 @@ function mapExploreHtml() {
     `<h2>Todos os roteiros no mapa</h2>` +
     `<p>Navegue o mapa e clique num destino para abrir o roteiro de 5 dias, dia a dia, com onde comer.</p>` +
     `<a class="btn btn-green" href="/mapa">Abrir o mapa de destinos →</a></div>` +
-    `<a class="explore-map" href="/mapa" aria-label="22 destinos: abrir o mapa de destinos">` +
+    `<a class="explore-map" href="/mapa">` +
     `<div class="media-placeholder">${placeholderSvgMarkup("Mapa dos destinos")}</div>` +
-    `<span class="explore-map-badge">📍 22 destinos</span></a>` +
+    `<span class="explore-map-badge">📍 ${escapeHtml(mapaTxt)}</span></a>` +
     `</div>` +
     `</section>`
   );
@@ -2051,7 +2064,7 @@ function newsletterHeroHtml() {
     `<div class="news-card">` +
     `<div class="news-copy">` +
     `<p class="eyebrow eyebrow--lime">Alertas de preço</p>` +
-    `<h1>Os achados de passagem antes que acabem</h1>` +
+    `<h1>Receba os achados de passagem antes que a tarifa mude</h1>` +
     `<p>Preços muito abaixo da média e erros de tarifa, garimpados todos os dias. Comparamos cada tarifa com a média dos últimos 90 dias antes de avisar você.</p>` +
     `</div>` +
     `<form class="news-form" data-newsletter action="/api/newsletter/subscribe" method="post">` +
@@ -2420,7 +2433,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
         `<input type="hidden" name="origem" value="${escapeHtml(vm.origem)}">` +
         `<input type="hidden" name="destino" value="${escapeHtml(vm.destino)}">`
       : `<p>Alertas de preço da sua cidade, direto no e-mail.</p>` +
-        `<label class="det-alert-orig"><span>Sua origem</span><select name="origem">${origensSel}</select></label>`) +
+        `<label class="det-alert-orig"><span>Cidade de saída</span><select name="origem">${origensSel}</select></label>`) +
     (typeof offer.preco_centavos === "number"
       ? `<input type="hidden" name="precoAlvoCentavos" value="${escapeHtml(offer.preco_centavos)}">`
       : "") +
@@ -2852,6 +2865,7 @@ function renderGuideVM(g, apiKey, { hoje = new Date() } = {}) {
     `<div class="guia-cta-btns"><a class="btn btn-lime" href="${escapeHtml(guideResultsHref(g.opt))}">${escapeHtml(g.ctaVoos)}</a>` +
     `<a class="btn btn-ghost" href="/guias">Outros roteiros</a></div></div>` +
     `</section>` +
+    (guiaEditorial ? roteiroStickyCtaHtml(GUIDES[g.id]) : "") +
     `</main>` +
     siteFooter({ places: g.places, attribution: g.attribution });
 
@@ -3189,7 +3203,7 @@ export function renderResultsPage(opts = {}) {
           pax.criancas > 0 ? "criança" : ""
         }${pax.criancas > 0 && pax.bebes > 0 ? " e " : ""}${
           pax.bebes > 0 ? "bebê de colo" : ""
-        }: os valores ${voosReais ? "" : "de exemplo "}abaixo são <strong>por adulto</strong>. Criança e bebê pagam tarifa própria, calculada pela companhia no site do parceiro — leve isso em conta antes de fechar a conta da viagem.</p>`
+        }: os valores ${voosReais ? "" : "de exemplo "}abaixo são <strong>por adulto</strong>. Criança e bebê pagam tarifa própria, calculada pela companhia no site do parceiro — leve isso em conta antes de calcular o total da viagem.</p>`
       : "";
   const avisoOrigem = voosReais
     ? `<p class="res-amostra res-amostra--vivo"><strong>Preços buscados ao vivo agora.</strong> Estes são os voos que a busca devolveu para ${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)}, com o preço do momento. Tarifa de avião muda rápido: o valor final é o que aparecer no site do parceiro ao clicar em "Selecionar".</p>`
@@ -3293,7 +3307,7 @@ export function renderResultsPage(opts = {}) {
         : "Preços acima são exemplos."
     } Ao selecionar, você vai para o site do parceiro ver as tarifas reais e concluir a compra. O Aonde pode receber comissão, sem custo extra para você.</p>` +
     `<div class="res-pix"><strong>Pix</strong><span>Vários parceiros dão desconto no Pix, mas não todos, e o percentual é decidido por eles. O valor com desconto aparece no site do parceiro antes de você confirmar.</span></div>` +
-    `<div class="res-alert-banner"><div><strong>Não fechou negócio hoje?</strong> ` +
+    `<div class="res-alert-banner"><div><strong>Não vai comprar agora?</strong> ` +
     `<span>A gente avisa se ${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)} ficar mais barato.</span></div>` +
     `<form class="res-alert-form" data-newsletter action="/api/newsletter/subscribe" method="post">` +
     `<input name="email" type="email" required aria-label="Seu e-mail" placeholder="Seu melhor e-mail">` +
@@ -3539,7 +3553,7 @@ export function renderUnsubscribePage({ email = "" } = {}) {
     `<form method="post" action="/api/newsletter/unsubscribe" class="unsub-form">` +
     `<label class="unsub-lab" for="unsub-email">Seu e-mail</label>` +
     `<input class="unsub-input" id="unsub-email" name="email" type="email" required ` +
-    `value="${escapeHtml(email)}" placeholder="voce@exemplo.com">` +
+    `value="${escapeHtml(email)}" placeholder="nome@exemplo.com.br">` +
     `<button class="btn btn-green" type="submit">Confirmar cancelamento</button>` +
     `</form>` +
     `<p class="map-sub"><a href="/">Voltar para o site</a></p>` +
@@ -3607,7 +3621,7 @@ export function renderNewsletterStatusPage({ ok, error, pendente, descadastrado,
       `<ol class="status-passos">` +
       `<li>Abra o e-mail do Aonde e clique em <strong>Confirmar inscrição</strong>.</li>` +
       `<li>Não chegou em alguns minutos? Olhe a caixa de spam ou promoções. O link vale por 48 horas.</li>` +
-      `<li>Depois, só avisamos quando surgir uma tarifa abaixo da média para a sua cidade, sem frequência fixa. Cancelar é um clique.</li>` +
+      `<li>Depois, só avisamos quando surgir uma tarifa abaixo da média para a sua cidade, sem frequência fixa. Cancelar são dois cliques, sem perguntas.</li>` +
       `</ol>` +
       statusRetryFormHtml(enderecoSeguro, { resumo: "Digitou errado ou o e-mail não chegou? Enviar de novo" }) +
       `<p><a class="btn btn-green" href="/hoje">Ver a escolha do dia →</a></p>` +
@@ -3692,9 +3706,9 @@ export function renderMapPage({ apiKey = "" } = {}) {
 
   const head =
     `<section class="wrap map-head">` +
-    `<p class="eyebrow eyebrow--green">Explorar o mundo</p>` +
+    `<p class="eyebrow eyebrow--green">Explore o mundo</p>` +
     `<h1 class="map-title">Onde a gente já tem roteiro pronto</h1>` +
-    `<p class="map-sub">Navegue o mapa e clique num destino para abrir o roteiro de 5 dias, dia a dia, com onde comer.</p>` +
+    `<p class="map-sub">Navegue pelo mapa e clique num destino para abrir o roteiro de 5 dias, dia a dia, com onde comer.</p>` +
     `</section>`;
 
   let panel;

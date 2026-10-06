@@ -177,7 +177,7 @@ test("confirmacao: deixa claro que sem confirmar nao recebe nada", () => {
     unsubscribeUrl: CAMPOS_BASE.unsubscribeUrl,
   });
   assert.match(textoPlano, /sem confirmar/i);
-  assert.match(textoPlano, /nao recebe/i);
+  assert.match(textoPlano, /não recebe/i);
   assert.ok(textoPlano.includes(CAMPOS_BASE.confirmUrl));
   assert.ok(html.includes(CAMPOS_BASE.confirmUrl));
 });
@@ -204,7 +204,7 @@ test("alerta de preco: menciona rota, preco encontrado, comparacao e link", () =
   });
   assert.match(assunto, /GRU/);
   assert.match(textoPlano, /R\$\s*2\.340/); // preco encontrado formatado
-  assert.match(textoPlano, /abaixo da media/i);
+  assert.match(textoPlano, /abaixo da média/i);
   assert.ok(textoPlano.includes(CAMPOS_BASE.offerUrl));
   assert.ok(html.includes(CAMPOS_BASE.offerUrl));
 });
@@ -233,7 +233,7 @@ test("alerta de preco: sem media historica, admite que nao tem comparacao", () =
     offerUrl: CAMPOS_BASE.offerUrl,
     unsubscribeUrl: CAMPOS_BASE.unsubscribeUrl,
   });
-  assert.match(textoPlano, /nao temos historico/i);
+  assert.match(textoPlano, /não temos histórico/i);
 });
 
 test("boas-vindas: explica frequencia e como cancelar, sem prometer mais do que o site faz", () => {
@@ -250,8 +250,8 @@ test("boas-vindas: explica frequencia e como cancelar, sem prometer mais do que 
   assert.match(textoPlano, /cancelar/i);
   assert.match(textoPlano, /sem perguntas/i);
   assert.doesNotMatch(textoPlano, /em um clique/i, "nao prometer um clique: sao dois");
-  assert.match(textoPlano, /frequencia fixa|sem frequencia/i);
-  assert.match(html, /[Cc]ancelar inscricao/);
+  assert.match(textoPlano, /frequência fixa|sem frequência/i);
+  assert.match(html, /[Cc]ancelar inscrição/);
 });
 
 test("boas-vindas: reforca que o Aonde nao processa pagamento nem emite passagem", () => {
@@ -260,14 +260,46 @@ test("boas-vindas: reforca que o Aonde nao processa pagamento nem emite passagem
     origem: "GRU",
     unsubscribeUrl: CAMPOS_BASE.unsubscribeUrl,
   });
-  assert.match(textoPlano, /nao processa pagamento/i);
+  assert.match(textoPlano, /não processa pagamento/i);
   assert.match(textoPlano, /emite passagem/i);
-  assert.match(html, /nao processa pagamento/i);
+  assert.match(html, /não processa pagamento/i);
 });
 
 // -----------------------------------------------------------------------
 // Funcoes sao puras: mesma entrada -> mesma saida, sem side-effect visivel
 // -----------------------------------------------------------------------
+
+test("templates usam portugues com acento e sem jargao em ingles", () => {
+  const trechos = TEMPLATES.map(({ build }) => {
+    const { assunto, textoPlano, html } = build();
+    return `${assunto}\n${textoPlano}\n${html.replace(/<[^>]+>/g, " ")}`;
+  }).join("\n");
+  for (const palavra of [
+    "inscrição",
+    "preço",
+    "você",
+    "não",
+    "aéreas",
+    "endereço",
+    "frequência",
+    "confirmação",
+  ]) {
+    assert.match(trechos, new RegExp(palavra, "i"), `faltou acento em "${palavra}"`);
+  }
+  for (const cru of [
+    /\binscricao\b/i,
+    /\bpreco\b/i,
+    /\bvoce\b/i,
+    /\bnao\b/i,
+    /\baereas\b/i,
+    /\bendereco\b/i,
+    /\bfrequencia\b/i,
+    /\bconfirmacao\b/i,
+    /\bdouble opt-in\b/i,
+  ]) {
+    assert.doesNotMatch(trechos, cru, `copia ainda sem acento ou em ingles: ${cru}`);
+  }
+});
 
 test("templates sao puros: chamadas repetidas com mesma entrada dao o mesmo resultado", () => {
   const a = buildPriceAlertEmail({
