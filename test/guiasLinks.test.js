@@ -20,6 +20,7 @@ import {
   continuePlanejandoHtml,
   indiceDoRoteiroHtml,
   ofertaNaCaixaHtml,
+  roteiroStickyCtaHtml,
 } from "../src/render/guideLinks.js";
 
 const DATA = new Date("2026-10-03T12:00:00-03:00");
@@ -130,6 +131,20 @@ test("ofertaNaCaixaHtml: vazio sem oferta, link para /ofertas/:id com oferta", (
   assert.ok(/href="\/ofertas\/[\w-]+"/.test(html));
 });
 
+test("roteiroStickyCtaHtml: so /ofertas ou /ofertas/:id, textos existentes", () => {
+  assert.equal(roteiroStickyCtaHtml(null), "");
+  assert.equal(roteiroStickyCtaHtml({ id: "nao-existe" }), "");
+  const comOferta = roteiroStickyCtaHtml(GUIDES.salvador);
+  assert.ok(comOferta.includes('class="guia-sticky-cta"'));
+  assert.ok(comOferta.includes("Ver a oferta →"));
+  assert.ok(/href="\/ofertas\/[\w-]+"/.test(comOferta));
+  assert.ok(comOferta.includes('id="guia-sticky-titulo"'));
+  const semOferta = roteiroStickyCtaHtml(GUIDES.salvador, { offers: [] });
+  assert.ok(semOferta.includes('href="/ofertas"'));
+  assert.ok(semOferta.includes("Ver todos os achados de passagem →"));
+  assert.ok(!semOferta.includes("/saida"));
+});
+
 test("indiceDoRoteiroHtml aponta para dias e secoes, e escapa titulos", () => {
   const html = indiceDoRoteiroHtml(
     [{ n: 1, titulo: "A <b>x</b>" }, { n: 2, titulo: "B" }, { titulo: "sem n" }],
@@ -153,6 +168,9 @@ test("pagina do guia: todo link de ancora tem um alvo na propria pagina", () => 
     for (const alvo of ["continue-planejando", "guia-toc-h"]) assert.ok(ids.has(alvo), `${id}: ${alvo}`);
     assert.ok(html.includes('<dl class="guia-meta">'));
     assert.ok(html.includes("Continue planejando"));
+    const sticky = html.match(/<aside class="guia-sticky-cta"[\s\S]*?<\/aside>/);
+    assert.ok(sticky, `${id}: barra fixa de passagens`);
+    assert.ok(/href="\/ofertas(\/[\w-]+)?"/.test(sticky[0]), `${id}: link da barra fixa`);
   }
 });
 
@@ -180,6 +198,9 @@ test("CSS: contraste do aviso das fontes e regras mobile do guia", () => {
   assert.ok(/\.opt-foot--disclaimer\s*\{[^}]*color/.test(css));
   assert.ok(css.includes(".guia-toc"));
   assert.ok(css.includes(".guia-rel-card"));
+  assert.ok(css.includes(".guia-sticky-cta"));
+  assert.ok(css.includes("safe-area-inset-bottom"));
+  assert.ok(css.includes("main#conteudo:has(.guia-sticky-cta)"));
 });
 
 test("arquivos novos nao mexem em afiliados", () => {

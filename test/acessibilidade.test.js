@@ -19,7 +19,10 @@ test("opacidade não esmaece texto que a pessoa precisa ler", () => {
 
 test("link no meio da frase ganha sublinhado, botão não", () => {
   const css = pageStyles();
-  assert.match(css, /p a:not\(\.btn\),\.dia-ponto-meta a,\.dia-ponto-credit a,\.res-help a\{text-decoration:underline/);
+  assert.match(
+    css,
+    /p a:not\(\.btn\),\.prep-fonte a,\.dia-ponto-meta a,\.dia-ponto-credit a,\.res-help a\{text-decoration:underline/,
+  );
 });
 
 test("fontes oficiais do guia ficam dentro do parágrafo que é sublinhado", () => {
