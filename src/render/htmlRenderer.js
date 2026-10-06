@@ -501,9 +501,9 @@ function normalizeLiveOffer(offer) {
       : "";
   const attr = offerAttrCredit(offer.thumb_attribution);
   const affiliateUrl = offer.affiliate_url || "";
-  // Oferta RESERVAVEL (tem link de afiliado): o card aponta para /saida/{id}
-  // em vez de /ofertas/{id}, encurtando o funil (sobretudo em /hoje, destino
-  // do trafego de WhatsApp).
+  // Oferta RESERVAVEL: o card do FEED aponta para /saida/{id}. A home e a
+  // escolha do dia nao usam este href — elas abrem /ofertas/{id}, e o botao
+  // do parceiro fica na pagina da oferta.
   const href = offer.id
     ? affiliateUrl
       ? `/saida/${encodeURIComponent(offer.id)}`
@@ -547,9 +547,8 @@ function normalizeContentOffer(o) {
   // isto para decidir entre /saida/:id (quando ha URL de parceiro) e
   // /resultados (busca interna quando nao ha).
   const affiliateUrl = o.affiliateUrl || o.affiliate_url || (o.aviasalesUrl ? "pending" : "");
-  // Oferta RESERVAVEL (tem link de afiliado OU aviasalesUrl): o card aponta
-  // para /saida/{id} em vez de /ofertas/{id}, encurtando o funil (sobretudo
-  // em /hoje, destino do trafego de WhatsApp).
+  // Oferta RESERVAVEL: o card do FEED aponta para /saida/{id}. A home e a
+  // escolha do dia nao usam este href — elas abrem /ofertas/{id}.
   const href = o.id
     ? affiliateUrl
       ? `/saida/${encodeURIComponent(o.id)}`
@@ -1560,7 +1559,12 @@ function heroHtml(slides) {
     `<div class="wrap hero-in">` +
     `<p class="eyebrow eyebrow--lime">Passagens · Hotéis · Experiências</p>` +
     `<h1 class="hero-title">Aonde você quer <em>estar</em> na próxima semana?</h1>` +
-    `<p class="hero-sub">Compare voos, hotéis e experiências pelo Brasil e América do Sul. A compra acontece no site do parceiro, com as condições de pagamento dele.</p>` +
+    `<p class="hero-sub">A escolha do dia mostra um ou dois achados já conferidos, com o preço que vimos e a data da consulta. A compra, quando a oferta tem link, acontece no site do parceiro.</p>` +
+    `<div class="hero-ctas">` +
+    `<a class="btn btn-green" href="/hoje">Ver a escolha do dia →</a>` +
+    `<a class="btn btn-ghost" href="/ofertas">Ver os achados de passagem →</a>` +
+    `</div>` +
+    `<p class="hero-passo">Os dois botões só avançam no Aonde. O verde abre a escolha de hoje; o outro, a lista de achados. Nenhum deles reserva passagem.</p>` +
     `<div class="hero-tabs">${tabs}` +
     `<button type="button" class="hero-pause" data-hero-pause aria-pressed="false" ` +
     `aria-label="Pausar troca automática de fotos">Pausar</button>` +
@@ -1609,7 +1613,7 @@ function searchCardHtml() {
     // A informacao e a mesma (nao ha preco em tempo real, os voos sao
     // exemplo) mas comeca pelo que JA funciona, com um rotulo curto antes do
     // texto para dar hierarquia visual sem esconder nada em letra miuda.
-    `<p class="sc-notice"><strong class="sc-notice-tag">Como funciona por aqui:</strong> os voos que aparecem abaixo são <strong>exemplos</strong>, para você ver como fica — ainda não temos busca de preço em tempo real. O valor certo você sempre confere no site do parceiro.</p>` +
+    `<p class="sc-notice"><strong class="sc-notice-tag">Como funciona por aqui:</strong> o botão Buscar voos mostra <strong>exemplos</strong> — ainda não há preço em tempo real. Os cards mais abaixo são outra lista: achados que já conferimos, com a data da consulta.</p>` +
     `<div class="sc-grid">` +
     field("Origem", "origem", "São Paulo · GRU") +
     field("Destino", "destino", "Recife · REC") +
@@ -1633,6 +1637,21 @@ function searchCardHtml() {
   );
 }
 
+// Na home o card abre a PAGINA da oferta. O botao do parceiro fica la —
+// assim o caminho e o mesmo da escolha do dia: home, oferta, site do parceiro.
+function homeOfferHref(vm) {
+  return vm && vm.id ? `/ofertas/${encodeURIComponent(vm.id)}` : "/ofertas";
+}
+
+function homeOfferNota(vm) {
+  if (vm && vm.affiliateUrl) {
+    return vm.aviasalesBuy === false
+      ? "Abre a página desta oferta. O botão de lá abre uma busca no Aviasales, não uma reserva."
+      : "Abre a página desta oferta. O botão de lá segue para o parceiro, onde a compra termina.";
+  }
+  return "Abre a página desta oferta. Sem link de parceiro, o botão de lá mostra exemplos de voo desta rota.";
+}
+
 function homeOffersHtml(offers) {
   const cards = offers
     .map((vm) => {
@@ -1646,7 +1665,7 @@ function homeOffersHtml(offers) {
         ? `saindo de ${escapeHtml(cidadeDoIata(vm.origem) || vm.origem)}${cidadeDoIata(vm.origem) ? ` (${escapeHtml(vm.origem)})` : ""}`
         : escapeHtml(vm.tipo || "");
       return (
-        `<a class="of-card${vm.erro ? " of-card--erro" : ""}" href="${escapeHtml(vm.href || "/ofertas")}">` +
+        `<a class="of-card${vm.erro ? " of-card--erro" : ""}" href="${escapeHtml(homeOfferHref(vm))}">` +
         `<div class="of-media">` +
         imageBlock(vm.thumbUrl, `Oferta para ${destinoLabel}`, destinoLabel, "of-media-inner", false, "", TAMANHOS_CARTAO_OFERTA) +
         badge +
@@ -1657,7 +1676,8 @@ function homeOffersHtml(offers) {
         (vm.datas ? `<span class="of-periodo">${escapeHtml(vm.datas)}</span>` : "") +
         `<div class="of-preco-row">${media}${preco}</div>` +
         (vm.erro ? `<span class="of-erro-note">⚠ Preço abaixo do normal por engano da companhia — ela pode corrigir ou cancelar depois da compra. Não reserve hotel/passeio antes de confirmar.</span>` : "") +
-        `<span class="of-cta">Ver voos →</span>` +
+        `<span class="of-cta">Ver esta oferta →</span>` +
+        `<span class="of-cta-nota">${escapeHtml(homeOfferNota(vm))}</span>` +
         `</div>` +
         `</a>`
       );
@@ -1667,8 +1687,11 @@ function homeOffersHtml(offers) {
     `<section class="wrap section" id="ofertas">` +
     `<div class="section-head">` +
     `<div><h2>Ofertas da semana</h2>` +
-    `<p>Tarifas negociadas com as companhias — válidas até <strong>domingo, 23h59</strong>, ou enquanto durarem os assentos.</p></div>` +
-    `<a class="section-link" href="/ofertas">Ver todas as ofertas →</a>` +
+    `<p>Cada card abre a página daquele achado, com o preço que vimos na consulta. A tarifa muda sem aviso. O valor atual aparece no site do parceiro quando a oferta tem link.</p></div>` +
+    `<div class="section-links">` +
+    `<a class="section-link" href="/hoje">Ver a escolha do dia →</a>` +
+    `<a class="section-link" href="/ofertas">Ver todos os achados →</a>` +
+    `</div>` +
     `</div>` +
     `<div class="of-grid">${cards}</div>` +
     `</section>`
@@ -2472,12 +2495,14 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
       const rv = "preco_centavos" in r || "is_erro_tarifa" in r ? normalizeLiveOffer(r) : normalizeContentOffer(r);
       if (!rv) return "";
       const rb = rv.badge ? `<span class="rel-badge ${badgeClass(rv)}">${escapeHtml(rv.badge)}</span>` : "";
+      const relHref = rv.id ? `/ofertas/${encodeURIComponent(rv.id)}` : "/ofertas";
       return (
-        `<a class="rel-card" href="${escapeHtml(rv.href || "/ofertas")}">` +
+        `<a class="rel-card" href="${escapeHtml(relHref)}">` +
         `<div class="rel-top"><span class="rel-rota">${escapeHtml(rv.origem)} → ${escapeHtml(rv.destino)}</span>${rb}</div>` +
         `<h3>${escapeHtml(rv.cidade || rv.destino)}</h3>` +
         `<span class="rel-preco">${escapeHtml(rv.preco)}</span>` +
         (rv.cia || rv.datas ? `<span class="rel-cia">${[rv.cia, rv.datas].filter(Boolean).map(escapeHtml).join(" · ")}</span>` : "") +
+        `<span class="rel-ver">Ver esta oferta →</span>` +
         `</a>`
       );
     })
@@ -2587,12 +2612,13 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
     `</main>` +
     siteFooter();
 
+  const offerPageHref = vm.id ? `/ofertas/${encodeURIComponent(vm.id)}` : "/ofertas";
   const offerJsonld = [
-    buildOfferProduct(vm),
+    buildOfferProduct({ ...vm, href: offerPageHref }),
     buildBreadcrumbList([
       { name: "Início", url: "/" },
       { name: "Ofertas", url: "/ofertas" },
-      { name: destinoLabel, url: vm.href },
+      { name: destinoLabel, url: offerPageHref },
     ]),
   ].filter(Boolean);
 
@@ -2608,9 +2634,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
     description: metaDescricao(vm.texto) || undefined,
     body,
     script: [offerMap.script, enhancementScript()].filter(Boolean).join(";"),
-    canonical: vm.id === "for-ssa"
-      ? `/ofertas/${encodeURIComponent(vm.id)}`
-      : vm.href || (vm.id ? `/ofertas/${vm.id}` : "/ofertas"),
+    canonical: offerPageHref,
     image: ogImageForOfferPage(vm.id, vm.thumbUrl),
     jsonld: offerJsonld,
     noindex,
@@ -2915,7 +2939,7 @@ function precoIdadeHtml(isoPreco, diaMostrado, originIata) {
 
 const HOJE_SAIDAS_HTML =
   `<div class="hoje-ctas">` +
-  `<a class="btn btn-green" href="/ofertas">Ver as ofertas</a>` +
+  `<a class="btn btn-green" href="/ofertas">Ver os achados de passagem →</a>` +
   `<a class="btn btn-ghost btn-ghost--claro" href="/guias">Ver roteiros prontos</a>` +
   `<a class="btn btn-ghost btn-ghost--claro" href="/resultados">Buscar passagens</a>` +
   `</div>`;
@@ -3025,13 +3049,19 @@ export function renderTodayPage(pacote, { aviso = null, erro = false } = {}) {
           `<span aria-hidden="true">💬 </span>Compartilhar no WhatsApp` +
           `</a>`
         : "";
-      // Ofertas RESERVAVEIS (com aviasalesUrl ou affiliateUrl real) usam copy honesto:
-      // vao direto para o parceiro, e o texto diz isso.
+      // O card da escolha do dia abre a PAGINA da oferta (/ofertas/{id}).
+      // O botao do parceiro fica nessa pagina — o mesmo rotulo da home
+      // ("Ver esta oferta"), para o caminho nao pular um passo nem prometer
+      // reserva antes da hora. aviasalesBuy:false continua busca, nao Buy.
       const isBookable = !!(o.__source && (o.__source.aviasalesUrl || o.__source.affiliate_url || o.__source.affiliateUrl));
-      const ctaText = isBookable ? aviasalesCtaLabel(o.__source) : "Ver a oferta →";
-      const ctaNota = isBookable
-        ? `Você passa por uma página de aviso do Aonde e segue para o Aviasales, onde vê a tarifa disponível no momento e conclui a compra. O Aonde não cobra nada de você.`
-        : `Veja os detalhes da oferta antes de decidir.`;
+      const offerHref = o.id ? `/ofertas/${encodeURIComponent(o.id)}` : "/ofertas";
+      const ctaText = "Ver esta oferta →";
+      const ctaFine = offerFull && offerFull.ctaFine ? String(offerFull.ctaFine).trim() : "";
+      const ctaNota = !isBookable
+        ? "A próxima página mostra os detalhes deste achado. Sem link de parceiro, o botão de lá abre exemplos de voo desta rota."
+        : offerFull && offerFull.aviasalesBuy === false
+          ? `A próxima página é a desta oferta, com o preço que vimos.${ctaFine ? ` ${ctaFine}` : " O botão de lá abre uma busca no Aviasales, não uma reserva pronta."} O Aonde não cobra nada de você.`
+          : "A próxima página é a desta oferta, com o preço que vimos e a data da consulta. De lá, o botão abre o Aviasales, onde você vê a tarifa do momento e conclui a compra. O Aonde não cobra nada de você.";
       const mesExtenso = mesPorExtenso(r.melhorMes);
       return (
         `<article class="hoje-card" aria-labelledby="hoje-t-${idx}">` +
@@ -3060,7 +3090,7 @@ export function renderTodayPage(pacote, { aviso = null, erro = false } = {}) {
           ? `<p class="hoje-mes">Mês mais barato nos valores de referência da nossa curadoria: <strong>${escapeHtml(mesExtenso)}</strong>. São valores coletados à mão, não uma previsão.</p>`
           : "") +
         `<div class="hoje-ctas">` +
-        `<a class="btn btn-green" href="${escapeHtml(o.href)}">${escapeHtml(ctaText)}</a>` +
+        `<a class="btn btn-green" href="${escapeHtml(offerHref)}">${escapeHtml(ctaText)}</a>` +
         (r.href ? `<a class="btn btn-ghost btn-ghost--claro" href="${escapeHtml(r.href)}">Roteiro completo, dia a dia</a>` : "") +
         waShareBtn +
         `</div>` +
@@ -3319,7 +3349,7 @@ export function renderExitPage(offer, { affiliateUrl, notaExtra = "" } = {}) {
 
   const body =
     `<main id="conteudo" tabindex="-1"><section class="wrap exit">` +
-    `<p class="breadcrumb"><a href="/">Início</a> · <a href="/ofertas">Ofertas</a> · <a href="${escapeHtml(vm.href || "/ofertas")}">${escapeHtml(destinoLabel)}</a> · <span>Saindo do Aonde</span></p>` +
+    `<p class="breadcrumb"><a href="/">Início</a> · <a href="/ofertas">Ofertas</a> · <a href="${escapeHtml(vm.id ? `/ofertas/${encodeURIComponent(vm.id)}` : "/ofertas")}">${escapeHtml(destinoLabel)}</a> · <span>Saindo do Aonde</span></p>` +
     `<div class="exit-card">` +
     `<p class="eyebrow eyebrow--lime">Redirecionando</p>` +
     `<h1>Você está indo para ${escapeHtml(parceiro)}</h1>` +
