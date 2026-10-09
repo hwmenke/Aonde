@@ -33,12 +33,12 @@ test.after(async () => {
 // OFERTA GRU-EZE: origem alteravel
 // ---------------------------------------------------------------------------
 
-test("GET /ofertas/gru-eze mostra seletor de origem", async () => {
-  const res = await fetch(`${baseUrl}/ofertas/gru-eze`);
+test("GET /ofertas/gig-ssa mostra seletor de origem", async () => {
+  const res = await fetch(`${baseUrl}/ofertas/gig-ssa`);
   assert.strictEqual(res.status, 200, "deve devolver 200 OK");
   const html = await res.text();
   
-  // Deve ter o seletor de origem.
+  // Deve ter o seletor de origem. gig-ssa (7 nov) ainda esta no ar; gru-eze ja encerrou.
   assert.ok(html.includes('data-origin-selector'), "deve ter o seletor de origem");
   assert.ok(html.includes('Saindo de'), "deve ter o rotulo 'Saindo de'");
   assert.ok(html.includes('value="GRU"'), "deve ter GRU como opcao");

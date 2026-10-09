@@ -63,6 +63,7 @@ import {
   buildTouristTrip,
   buildOfferProduct,
 } from "./structuredData.js";
+import { ofertaEncerrada } from "../offerDeparture.js";
 
 // ---------------------------------------------------------------------------
 // Atendimento — WhatsApp so quando ha um numero REAL configurado
@@ -2014,11 +2015,13 @@ function confiancaSectionHtml(stats) {
 /** Pagina inicial (home) — porta fiel da tela "home" do prototipo. */
 export function renderHomePage(opts = {}) {
   const liveOffers = Array.isArray(opts.offers) ? opts.offers : null;
+  const hoje = opts.hoje;
   const offerVMs = (liveOffers && liveOffers.length
     ? liveOffers.map(normalizeLiveOffer)
     : CONTENT_OFFERS.map(normalizeContentOffer)
   )
     .filter(Boolean)
+    .filter((vm) => !ofertaEncerrada(vm, hoje))
     .slice(0, 4);
   const guides = Array.isArray(opts.guides) && opts.guides.length ? opts.guides : GUIDE_LIST.slice(0, 3);
 
@@ -2236,10 +2239,12 @@ function precoSignificadoHtml(vm) {
  */
 export function renderOffersPage(
   offers = [],
-  { title = "Ofertas de viagem — Aonde", origem, q = "", tipo = "", naoEncontrada = "" } = {}
+  { title = "Ofertas de viagem — Aonde", origem, q = "", tipo = "", naoEncontrada = "", hoje } = {}
 ) {
   const list = Array.isArray(offers) ? offers : [];
-  const vms = (list.length ? list.map(normalizeLiveOffer) : CONTENT_OFFERS.map(normalizeContentOffer)).filter(Boolean);
+  const vms = (list.length ? list.map(normalizeLiveOffer) : CONTENT_OFFERS.map(normalizeContentOffer))
+    .filter(Boolean)
+    .filter((vm) => !ofertaEncerrada(vm, hoje));
   const tipos = [...new Set(vms.map((v) => v.tipo).filter(Boolean))].sort();
   const busca = limparBusca(q);
   const tipoAtivo = tipos.includes(tipo) ? tipo : "";
@@ -2319,12 +2324,13 @@ export function renderOffersPage(
 // ---------------------------------------------------------------------------
 
 /** Pagina de detalhe de uma oferta — porta fiel da tela "oferta". */
-export function renderOfferPage(offer, { related = [], apiKey = "", noindex = false } = {}) {
+export function renderOfferPage(offer, { related = [], apiKey = "", noindex = false, hoje } = {}) {
   const vm =
     offer && typeof offer === "object" && ("preco_centavos" in offer || "is_erro_tarifa" in offer)
       ? normalizeLiveOffer(offer)
       : normalizeContentOffer(offer);
-  if (!vm) return renderOffersPage([]);
+  if (!vm) return renderOffersPage([], { hoje });
+  const encerrada = ofertaEncerrada(vm, hoje);
 
   const destinoLabel = vm.cidade || vm.destino || "Destino";
   // Nome da cidade de origem: entra no <h1>, no <title> e na description.
@@ -2504,6 +2510,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
     `</div>`;
 
   const relatedCards = (Array.isArray(related) ? related : [])
+    .filter((r) => !ofertaEncerrada(r, hoje))
     .map((r) => {
       const rv = "preco_centavos" in r || "is_erro_tarifa" in r ? normalizeLiveOffer(r) : normalizeContentOffer(r);
       if (!rv) return "";
@@ -2575,27 +2582,37 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
       ? "Este botão abre uma busca no Aviasales. O Aonde não vende passagem nem cobra pagamento."
       : "Você finaliza a compra no site do parceiro. O Aonde não vende passagem nem cobra pagamento."
     : "Estes são voos de exemplo desta rota. A busca de verdade e a compra acontecem no site do parceiro.";
+  const ctaBloco = encerrada
+    ? ""
+    : `<p class="det-buy-passo">${escapeHtml(passoCompra)}</p>` +
+      `<div class="det-buy-cta-row">` +
+      `<a class="btn btn-green det-buy-cta" href="${escapeHtml(ctaHref)}">${ctaLabel}</a>` +
+      fonteBuy +
+      `</div>`;
   const buyBox =
     `<div class="det-buy">` +
     `<span class="det-buy-label">a partir de</span>` +
     `<p class="det-buy-preco"${priceDataAttr}>${escapeHtml(vm.preco)}</p>` +
     `<p class="det-buy-sub">ida e volta${vm.datas ? ` · ${escapeHtml(vm.datas)}` : ""}</p>` +
-    `<p class="det-buy-passo">${escapeHtml(passoCompra)}</p>` +
-    `<div class="det-buy-cta-row">` +
-    `<a class="btn btn-green det-buy-cta" href="${escapeHtml(ctaHref)}">${ctaLabel}</a>` +
-    fonteBuy +
-    `</div>` +
+    ctaBloco +
     `<p class="det-buy-perks">Parcelamento e desconto no Pix variam conforme o parceiro — o valor final aparece no site dele, antes de você pagar.</p>` +
     precoSignificado +
     `<p class="det-buy-fine">${escapeHtml(ctaFine)}</p>` +
     trustMini +
     `</div>`;
-  const extrasAside = histBloco + alertForm + waShare + originSelector;
+  const extrasAside = histBloco + alertForm + waShare + (encerrada ? "" : originSelector);
+  const encerradaBanner = encerrada
+    ? `<div class="det-encerrada" role="status">` +
+      `Esta oferta já encerrou — as datas já passaram. ` +
+      `Veja os <a href="/ofertas">achados atuais</a> ou ` +
+      `<a href="/alertas">crie um alerta para essa rota</a>.</div>`
+    : "";
 
   const body =
     `<main id="conteudo" tabindex="-1">` +
     `<section class="wrap det">` +
     `<p class="breadcrumb"><a href="/">Início</a> · <a href="/ofertas">Ofertas</a> · <span>${escapeHtml(destinoLabel)}</span></p>` +
+    encerradaBanner +
     `<div class="det-grid${isLock ? " det-grid--lock" : ""}">` +
     `<div class="det-main">` +
     `<div class="det-badges">${badge}${pubBadge}</div>` +
@@ -2627,7 +2644,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
 
   const offerPageHref = vm.id ? `/ofertas/${encodeURIComponent(vm.id)}` : "/ofertas";
   const offerJsonld = [
-    buildOfferProduct({ ...vm, href: offerPageHref }),
+    encerrada ? null : buildOfferProduct({ ...vm, href: offerPageHref }),
     buildBreadcrumbList([
       { name: "Início", url: "/" },
       { name: "Ofertas", url: "/ofertas" },
@@ -2650,7 +2667,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
     canonical: offerPageHref,
     image: ogImageForOfferPage(vm.id, vm.thumbUrl),
     jsonld: offerJsonld,
-    noindex,
+    noindex: noindex || encerrada,
   });
   if (offerMap.loader) doc = doc.replace("</body>", `${offerMap.loader}</body>`);
   return doc;

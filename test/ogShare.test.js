@@ -245,7 +245,7 @@ test("origem-swap marca a foto do destino e restaura data-dest-src; nao troca po
 });
 
 test("seletor Saindo de atualiza o rotulo da origem e esconde o preco; foto do destino fica", () => {
-  const html = renderOfferPage(offerById("gru-fln"), { related: [] });
+  const html = renderOfferPage(offerById("gru-fln"), { related: [], hoje: "2026-08-01" });
   assert.match(html, /data-origin-city-label>São Paulo</);
   assert.match(html, /data-origin-iata-label>GRU</);
   assert.match(html, /data-city="Recife"/);

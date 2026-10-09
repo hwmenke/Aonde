@@ -228,7 +228,7 @@ test("Foz e Congonhas (CGH), nunca GRU; BRC e POA-MVD sao 1 parada", () => {
 
 test("USD nao vira reais; consulta fica ao lado de Reservar", () => {
   for (const lock of LOCKS) {
-    const html = renderOfferPage(offerById(lock.id), { related: [] });
+    const html = renderOfferPage(offerById(lock.id), { related: [], hoje: "2026-08-01" });
     const n = lock.usd.replace(/[^\d]/g, "");
     assert.doesNotMatch(html, new RegExp(`R\\$\\s*${n}\\b`));
     const buy = (html.match(/<div class="det-buy">([\s\S]*?)<p class="det-buy-perks">/) || [])[1] || "";
