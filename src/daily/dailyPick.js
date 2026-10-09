@@ -19,6 +19,7 @@
 
 import { OFFERS, GUIDES, melhorMesDoGuia } from "../render/aondeContent.js";
 import { cidadeDoIata } from "../render/aeroportos.js";
+import { ofertaEncerrada } from "../offerDeparture.js";
 
 /**
  * Data como "AAAA-MM-DD" no fuso local.
@@ -132,11 +133,12 @@ export function guiaDaOferta(offer, guides = GUIDES) {
  */
 export function escolhaDoDia(data = new Date(), { quantidade = 2, offers = OFFERS, guides = GUIDES } = {}) {
   const chave = chaveDoDia(data);
+  const noAr = (offer) => offer && !ofertaEncerrada(offer, chave);
   
   // LOCK para 21 de agosto de 2026: mostra GRU-EZE com o roteiro de Buenos Aires.
   if (chave === "2026-08-21") {
     const gruEze = offers.find((o) => o.id === "gru-eze");
-    if (gruEze) {
+    if (noAr(gruEze)) {
       const guide = guides.buenosaires;
       return [{ offer: gruEze, guide }];
     }
@@ -145,7 +147,7 @@ export function escolhaDoDia(data = new Date(), { quantidade = 2, offers = OFFER
   // LOCK para 22 de agosto de 2026: mostra GRU-FLN com o roteiro de Florianópolis.
   if (chave === "2026-08-22") {
     const gruFln = offers.find((o) => o.id === "gru-fln");
-    if (gruFln) {
+    if (noAr(gruFln)) {
       const guide = guides.florianopolis;
       return [{ offer: gruFln, guide }];
     }
@@ -154,7 +156,7 @@ export function escolhaDoDia(data = new Date(), { quantidade = 2, offers = OFFER
   // LOCK para 23 de agosto de 2026: mostra GIG-SSA com o roteiro de Salvador.
   if (chave === "2026-08-23") {
     const gigSsa = offers.find((o) => o.id === "gig-ssa");
-    if (gigSsa) {
+    if (noAr(gigSsa)) {
       const guide = guides.salvador;
       return [{ offer: gigSsa, guide }];
     }
@@ -164,7 +166,8 @@ export function escolhaDoDia(data = new Date(), { quantidade = 2, offers = OFFER
     .map((offer) => ({ offer, guide: guiaDaOferta(offer, guides) }))
     .filter((c) => c.guide) // so entra quem tem roteiro de verdade
     .filter((c) => c.offer.aviasalesUrl || c.offer.affiliate_url || c.offer.affiliateUrl) // e so entra quem e RESERVAVEL (tem wrap do Aviasales)
-    .filter((c) => HOJE_LOCK_IDS.has(c.offer.id)); // for-ssa e inventario, nao /hoje
+    .filter((c) => HOJE_LOCK_IDS.has(c.offer.id)) // for-ssa e inventario, nao /hoje
+    .filter((c) => noAr(c.offer)); // ida ja passou: some da rotacao (inclui os locks)
 
   if (!candidatos.length) return [];
 

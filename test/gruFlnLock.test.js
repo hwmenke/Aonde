@@ -69,7 +69,7 @@ test("GET /ofertas/gru-fln mostra consulta Google Flights 10 set, sem Buy invent
   assert.doesNotMatch(html, /R\$\s*158\b/, "nao imprime $158 como reais");
   assert.doesNotMatch(html, /R\$\s*153\b/, "nao imprime o $153 antigo como reais");
   assert.doesNotMatch(html, /Reservar no Aviasales/, "sem Buy, CTA nao finge reserva");
-  assert.match(html, /Ver busca no Aviasales/, "leave path honesto: wrap existe, sem Buy");
+  assert.match(html, /Esta oferta já encerrou/, "ida de 27 set ja passou: sem CTA de busca");
   assert.doesNotMatch(html, /Tarifa ao vivo/);
   assert.doesNotMatch(html, /ao vivo no Aviasales/);
   assert.doesNotMatch(html, /encontramos (hoje|esta manhã|esta manha)/i);
@@ -117,16 +117,15 @@ test("GET /hoje para 2026-08-22 mostra GRU-FLN com roteiro de Florianópolis", a
   assert.doesNotMatch(html, /Henrique Veras do Nascimento/, "/hoje nao cresce a semana lock");
 });
 
-test("GET /ofertas/gru-fln mostra seletor de origem", async (t) => {
+test("GET /ofertas/gru-fln encerrada nao mostra seletor de origem", async (t) => {
   const { baseUrl } = await withServer(t);
   const res = await fetch(`${baseUrl}/ofertas/gru-fln`);
   assert.strictEqual(res.status, 200, "deve devolver 200 OK");
   const html = await res.text();
 
-  assert.ok(html.includes("data-origin-selector"), "deve ter seletor de origem");
-  assert.ok(html.includes("Saindo de"), "deve ter rotulo 'Saindo de'");
-  assert.ok(html.includes('value="GRU"'), "deve ter GRU como opcao");
-  assert.ok(html.includes('value="REC"'), "deve ter REC como opcao");
+  assert.ok(html.includes("Esta oferta já encerrou"), "ida ja passou");
+  assert.ok(!html.includes('id="origem-gru-fln"'), "sem seletor de reserva numa oferta encerrada");
+  assert.ok(!html.includes('class="origin-selector"'), "sem seletor de reserva numa oferta encerrada");
 });
 
 const offerById = (id) => OFFERS.find((o) => o.id === id);
@@ -273,7 +272,7 @@ test("GET /guias/florianopolis nao tem a semana lock; GET /ofertas/gru-fln tem, 
 });
 
 test("lock GRU-FLN abre na semana datada, consulta ao lado de Reservar, sem countdown", () => {
-  const html = renderOfferPage(offerById("gru-fln"), { related: [] });
+  const html = renderOfferPage(offerById("gru-fln"), { related: [], hoje: "2026-08-01" });
 
   const weekAt = html.indexOf('id="semana-gru-fln"');
   const flexAt = html.indexOf("Datas com o preço disponível");

@@ -92,7 +92,7 @@ test("preco em dolar aparece como US$ no card, no hero e no buy box", () => {
 });
 
 test("JSON-LD continua em USD com o numero certo (dado estruturado nao muda)", () => {
-  const html = renderOfferPage(byId("for-ssa"), { related: [] });
+  const html = renderOfferPage(byId("for-ssa"), { related: [], hoje: "2026-08-01" });
   const ld = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1]));
   const product = ld.find((j) => j["@type"] === "Product");
   assert.ok(product && product.offers, "Product com offers");
@@ -130,7 +130,7 @@ test("card sem link de parceiro leva ao detalhe e nao promete parceiro", () => {
 test("card sem botao Buy (gru-fln) nao finge reserva", () => {
   const fln = byId("gru-fln");
   assert.equal(fln.aviasalesBuy, false, "premissa: gru-fln e so busca");
-  const feed = renderOffersPage([]);
+  const feed = renderOffersPage([], { hoje: "2026-08-01" });
   const card = feed.match(/<a class="of-card[^"]*" href="\/saida\/gru-fln">[\s\S]*?<\/a>/);
   assert.ok(card, "card do gru-fln no feed");
   assert.match(card[0], /Ver busca no Aviasales →/);
@@ -150,7 +150,7 @@ test("card so mostra 'Visto no ...' quando a oferta traz fonte/data", () => {
 // ---------------------------------------------------------------------------
 
 test("detalhe com parceiro: passo claro antes do CTA e preco explicado", () => {
-  const html = renderOfferPage(byId("for-ssa"), { related: [] });
+  const html = renderOfferPage(byId("for-ssa"), { related: [], hoje: "2026-08-01" });
   const buy = (html.match(/<div class="det-buy">([\s\S]*?)<p class="det-buy-perks">/) || [])[1] || "";
   const passoAt = buy.indexOf("Você finaliza a compra no site do parceiro");
   const ctaAt = buy.indexOf("Reservar no Aviasales");
@@ -165,7 +165,7 @@ test("detalhe com parceiro: passo claro antes do CTA e preco explicado", () => {
 });
 
 test("detalhe sem botao Buy descreve uma busca, nao uma compra", () => {
-  const html = renderOfferPage(byId("gru-fln"), { related: [] });
+  const html = renderOfferPage(byId("gru-fln"), { related: [], hoje: "2026-08-01" });
   assert.match(html, /Este botão abre uma busca no Aviasales/);
   assert.doesNotMatch(html, /Reservar no Aviasales/);
   assert.doesNotMatch(html, /Você finaliza a compra no site do parceiro/);
@@ -205,13 +205,14 @@ test("/ofertas tem formulario de busca com role=search e sem JavaScript", () => 
 });
 
 test("busca ignora acento e caixa, e acha por cidade, pais ou companhia", () => {
-  const todos = cardsDe(renderOffersPage([])).length;
-  const flo = cardsDe(renderOffersPage([], { q: "FLORIANOPOLIS" }));
+  const catalogo = { hoje: "2026-08-01" };
+  const todos = cardsDe(renderOffersPage([], catalogo)).length;
+  const flo = cardsDe(renderOffersPage([], { q: "FLORIANOPOLIS", ...catalogo }));
   assert.ok(flo.length > 0 && flo.length < todos);
   for (const c of flo) assert.match(c, /Florianópolis/);
-  const pais = cardsDe(renderOffersPage([], { q: "portugal" }));
+  const pais = cardsDe(renderOffersPage([], { q: "portugal", ...catalogo }));
   assert.ok(pais.some((c) => /Lisboa/.test(c)));
-  const cia = cardsDe(renderOffersPage([], { q: "swiss" }));
+  const cia = cardsDe(renderOffersPage([], { q: "swiss", ...catalogo }));
   assert.ok(cia.length > 0);
   for (const c of cia) assert.match(c, /SWISS/);
 });

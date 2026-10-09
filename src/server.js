@@ -66,6 +66,7 @@ import {
 } from "./render/htmlRenderer.js";
 import { renderExitFlightPage, buildAviasalesSearchUrl } from "./render/exitFlight.js";
 import { OFFERS as CONTENT_OFFERS, GUIDES, RESULTS_ROUTE } from "./render/aondeContent.js";
+import { ofertaEncerrada, ofertasAtivas } from "./offerDeparture.js";
 import { resolveAeroporto } from "./render/aeroportos.js";
 import { buscarVoosAoVivo } from "./flights/buscarVoos.js";
 import { pacoteDoDia, chaveDoDia } from "./daily/dailyPick.js";
@@ -552,14 +553,16 @@ function handleOfferHtml(res, id) {
   const apiKey = getConfig().googleMaps.apiKey;
   const live = getOffer(id);
   if (live) {
-    const related = relatedOffers(publishedLiveOffers(), live);
-    sendHtml(res, 200, renderOfferPage(live, { related, apiKey }));
+    const encerrada = ofertaEncerrada(live);
+    const related = relatedOffers(ofertasAtivas(publishedLiveOffers()), live);
+    sendHtml(res, 200, renderOfferPage(live, { related, apiKey, noindex: encerrada }), encerrada ? NOINDEX_HEADERS : undefined);
     return;
   }
   const editorial = CONTENT_OFFERS.find((o) => o.id === id);
   if (editorial) {
-    const related = relatedOffers(CONTENT_OFFERS, editorial);
-    sendHtml(res, 200, renderOfferPage(editorial, { related, apiKey }));
+    const encerrada = ofertaEncerrada(editorial);
+    const related = relatedOffers(ofertasAtivas(CONTENT_OFFERS), editorial);
+    sendHtml(res, 200, renderOfferPage(editorial, { related, apiKey, noindex: encerrada }), encerrada ? NOINDEX_HEADERS : undefined);
     return;
   }
   // Nao encontrada: devolve o feed de ofertas com 404 (pagina util, nao um JSON seco).
@@ -686,7 +689,7 @@ function handleSitemap(res) {
   const base = siteBaseUrl();
   const paths = ["/", "/hoje", "/ofertas", "/guias", "/mapa", "/resultados", "/ajuda", "/cancelamentos", "/alertas"];
   for (const id of Object.keys(GUIDES)) paths.push(`/guias/${encodeURIComponent(id)}`);
-  for (const o of CONTENT_OFFERS) paths.push(`/ofertas/${encodeURIComponent(o.id)}`);
+  for (const o of ofertasAtivas(CONTENT_OFFERS)) paths.push(`/ofertas/${encodeURIComponent(o.id)}`);
   const xml =
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +

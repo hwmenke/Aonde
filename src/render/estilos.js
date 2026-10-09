@@ -1047,6 +1047,8 @@ export function pageStyles() {
   .feed-aviso{background:#fff7ed;border:1px solid #fed7aa;border-radius:var(--r);padding:14px 18px;font-size:15px;line-height:1.55;color:#7c2d12;}
   .feed-aviso strong{color:#9a3412;}
   .feed-aviso code{font-size:13px;word-break:break-all;}
+  .det-encerrada{background:#fff7ed;border:1px solid #fed7aa;border-radius:var(--r);padding:14px 18px;font-size:15px;line-height:1.55;color:#7c2d12;margin:0 0 20px;}
+  .det-encerrada a{font-weight:700;text-decoration:underline;color:#9a3412;}
   .feed-vazio a{text-decoration:underline;}
   .det-buy-passo{margin:0 0 12px;font-size:14px;line-height:1.5;font-weight:600;color:var(--text);}
   .det-preco-info{margin:14px 0 0;border:1px solid var(--border);border-radius:12px;background:var(--bg);font-size:13px;line-height:1.55;color:var(--muted);}
