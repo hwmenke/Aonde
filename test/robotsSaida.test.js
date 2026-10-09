@@ -39,8 +39,8 @@ async function withServer(t, { marker } = {}) {
 }
 
 test("renderOfferPage so emite noindex quando pedido", () => {
-  const offer = CONTENT_OFFERS.find((o) => o.id === "gru-fln");
-  assert.ok(offer, "oferta gru-fln precisa existir no catalogo");
+  const offer = CONTENT_OFFERS.find((o) => o.id === "gig-ssa");
+  assert.ok(offer, "oferta gig-ssa precisa existir no catalogo");
   assert.doesNotMatch(renderOfferPage(offer, {}), /name="robots"/);
   assert.match(renderOfferPage(offer, { noindex: true }), META_NOINDEX);
 });
@@ -65,10 +65,10 @@ test("GET /saida/gru-fln COM marker continua noindex e com o mesmo link tp.media
   assert.ok(html.includes("tp.media/r?marker=test-marker-robots.gru-fln"), "logica do marker intacta");
 });
 
-test("GET /ofertas/gru-fln continua indexavel com e sem marker", async (t) => {
+test("GET /ofertas/gig-ssa continua indexavel com e sem marker", async (t) => {
   for (const marker of [undefined, "test-marker-robots"]) {
     const { baseUrl } = await withServer(t, { marker });
-    const res = await fetch(`${baseUrl}/ofertas/gru-fln`);
+    const res = await fetch(`${baseUrl}/ofertas/gig-ssa`);
     assert.equal(res.status, 200);
     assert.equal(res.headers.get("x-robots-tag"), null);
     assert.doesNotMatch(await res.text(), /name="robots"/);

@@ -68,6 +68,7 @@ import {
 } from "./render/htmlRenderer.js";
 import { renderExitFlightPage, montarBuscaAviasales } from "./render/exitFlight.js";
 import { OFFERS as CONTENT_OFFERS, GUIDES } from "./render/aondeContent.js";
+import { ofertaEncerrada, ofertasAtivas } from "./offerDeparture.js";
 import { buscarVoosAoVivo } from "./flights/buscarVoos.js";
 import { pacoteDoDia, chaveDoDia } from "./daily/dailyPick.js";
 import { listRoutes } from "./store/priceHistory.js";
@@ -717,14 +718,16 @@ function handleOfferHtml(req, res, id) {
     return;
   }
   if (live) {
-    const related = relatedOffers(offersParaEscolha(listOffers(), CONTENT_OFFERS), live);
-    sendHtml(res, 200, renderOfferPage(live, { related, apiKey }));
+    const encerrada = ofertaEncerrada(live);
+    const related = relatedOffers(ofertasAtivas(offersParaEscolha(listOffers(), CONTENT_OFFERS)), live);
+    sendHtml(res, 200, renderOfferPage(live, { related, apiKey, noindex: encerrada }), encerrada ? NOINDEX_HEADERS : undefined);
     return;
   }
   const editorial = CONTENT_OFFERS.find((o) => o.id === id);
   if (editorial) {
-    const related = relatedOffers(offersParaEscolha(listOffers(), CONTENT_OFFERS), editorial);
-    sendHtml(res, 200, renderOfferPage(editorial, { related, apiKey }));
+    const encerrada = ofertaEncerrada(editorial);
+    const related = relatedOffers(ofertasAtivas(offersParaEscolha(listOffers(), CONTENT_OFFERS)), editorial);
+    sendHtml(res, 200, renderOfferPage(editorial, { related, apiKey, noindex: encerrada }), encerrada ? NOINDEX_HEADERS : undefined);
     return;
   }
   // Nao encontrada: devolve o feed de ofertas com 404 (pagina util, nao um JSON seco).
@@ -883,7 +886,7 @@ function handleSitemap(res) {
   }
   const vistos = new Set();
   for (const o of ofertas) {
-    if (!o || !o.id || vistos.has(o.id) || !viagemAindaVale(o, hoje)) continue;
+    if (!o || !o.id || vistos.has(o.id) || !viagemAindaVale(o, hoje) || ofertaEncerrada(o, hoje)) continue;
     vistos.add(o.id);
     const lastmod = dataPublicacao(o.publicadoEm) || dataPublicacao(o.updated_at) || dataPublicacao(o.fontePrecoEm);
     entradas.push({ loc: `/ofertas/${encodeURIComponent(o.id)}`, lastmod });

@@ -84,7 +84,8 @@ test("/hoje: o card leva à oferta correspondente, não pula para o parceiro", (
 });
 
 test("página da oferta guarda o botão do parceiro e o canonical da própria página", () => {
-  const fln = renderOfferPage(byId("gru-fln"), { related: [byId("gru-eze")] });
+  const noAr = { hoje: "2026-08-01" };
+  const fln = renderOfferPage(byId("gru-fln"), { related: [byId("gru-eze")], ...noAr });
   assert.match(fln, /href="\/saida\/gru-fln"/);
   assert.match(fln, /Ver busca no Aviasales →/);
   assert.match(fln, /rel="canonical" href="https:\/\/aonde\.com\.br\/ofertas\/gru-fln"/);
@@ -93,7 +94,7 @@ test("página da oferta guarda o botão do parceiro e o canonical da própria p�
   assert.match(fln, /Ver esta oferta →/);
   assert.doesNotMatch(fln, /class="rel-card" href="\/saida\//);
 
-  const eze = renderOfferPage(byId("gru-eze"), { related: [] });
+  const eze = renderOfferPage(byId("gru-eze"), { related: [], ...noAr });
   assert.match(eze, /href="\/saida\/gru-eze"/);
   assert.match(eze, /Reservar no Aviasales →/);
   assert.match(eze, /rel="canonical" href="https:\/\/aonde\.com\.br\/ofertas\/gru-eze"/);

@@ -156,8 +156,8 @@ test("pagina /ofertas/for-ssa mostra USD $242 no Aviasales, nao R$ 287 nem R$ 24
   assert.match(html, /1h50/);
   assert.match(html, /Fortaleza/);
   assert.match(html, /Salvador/);
-  assert.match(html, /Reservar no Aviasales/);
-  assert.ok(html.includes('href="/saida/for-ssa"'), "CTA Buy passa por /saida");
+  assert.match(html, /Esta oferta já encerrou/, "ida de 3 out ja passou: sem CTA de reserva");
+  assert.doesNotMatch(html, /class="btn btn-green det-buy-cta"/);
 
   assert.doesNotMatch(html, /R\$\s*287/);
   assert.doesNotMatch(html, /R\$\s*242/);
