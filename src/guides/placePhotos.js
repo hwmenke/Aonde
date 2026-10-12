@@ -84,6 +84,13 @@ export function buildPhotoMediaUrl(photoName, { maxWidthPx = 800, maxHeightPx, a
   if (!photoName || typeof photoName !== "string" || photoName.trim() === "") {
     throw new Error("photoName e obrigatorio para buildPhotoMediaUrl");
   }
+  const resourceName = photoName.trim();
+  // Only resource path segments: reject URL delimiters, encoded traversal
+  // and dot segments before appending the media endpoint and credentials.
+  const match = /^places\/([^\s/?#%\\]+)\/photos\/([^\s/?#%\\]+)$/.exec(resourceName);
+  if (!match || match.slice(1).some((segment) => segment === "." || segment === "..")) {
+    throw new Error("photoName invalido para buildPhotoMediaUrl");
+  }
   const key = apiKey || getConfig().googleMaps.apiKey;
   if (!key) {
     throw new Error(NO_API_KEY_ERROR);
@@ -96,7 +103,7 @@ export function buildPhotoMediaUrl(photoName, { maxWidthPx = 800, maxHeightPx, a
 
   // photoName ja e um path de recurso ("places/.../photos/..."); nao o
   // encodamos inteiro (as barras sao significativas), so o anexamos ao /v1/.
-  return `${PLACES_MEDIA_BASE}${photoName.trim()}/media?${params.toString()}`;
+  return `${PLACES_MEDIA_BASE}${resourceName}/media?${params.toString()}`;
 }
 
 /**

@@ -128,6 +128,25 @@ test("buildPhotoMediaUrl lanca sem photoName", () => {
   assert.throws(() => buildPhotoMediaUrl("", { apiKey: "k" }), /photoName/);
 });
 
+test("nomes de recurso invalidos nao geram URLs nem chamadas de fotos", withApiKey("fake-key", async () => {
+  let calls = 0;
+  setFetchImpl(async () => {
+    calls++;
+    return jsonResponse({ photoUri: "https://example.com/photo.jpg" });
+  });
+  for (const name of ["not-a-resource", "places/a/photos/", "places/a/photos/..", "places/../photos/x", "places/a/photos/x/extra", "places/a/photos/x?other=1", "places/a/photos/x#fragment", "places/a/photos/%2e%2e", "places/a/photos/x\\other", "places/a/photos/x y"]) {
+    assert.throws(() => buildPhotoMediaUrl(name, { apiKey: "k" }), /photoName/, name);
+    assert.equal(firstPhotoFrom({ photos: [{ name }] }, { apiKey: "k" }), null, name);
+    const result = await resolvePhotoUri(name);
+    assert.equal(result.ok, false, name);
+    assert.match(result.error, /photoName/);
+  }
+  assert.equal(calls, 0);
+  const valid = new URL(buildPhotoMediaUrl("  places/place-1/photos/PHOTO_1  ", { apiKey: "k" }));
+  assert.equal(valid.pathname, "/v1/places/place-1/photos/PHOTO_1/media");
+  assert.equal(valid.searchParams.get("key"), "k");
+}));
+
 test("buildPhotoMediaUrl lanca sem apiKey", withApiKey(undefined, async () => {
   assert.throws(() => buildPhotoMediaUrl("places/abc/photos/xyz"), /GOOGLE_MAPS_API_KEY/);
 }));
