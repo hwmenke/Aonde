@@ -313,6 +313,18 @@ test("matchAlerts ignora tarifas ausentes ou invalidas, com e sem preco-alvo", (
   }
 });
 
+test("matchAlerts ignora ofertas com codigos de rota ausentes ou malformados", () => {
+  const subscribers = [{ id: "sub", double_optin_confirmed: true }];
+  const rules = [{ subscriber_id: "sub", origem: "GRU" }];
+  for (const invalid of [undefined, null, "", " ", "LI", "LIS1", 123, ["LIS"]]) {
+    assert.equal(matchAlerts({ origem: "GRU", destino: invalid, preco_centavos: 100 }, { rules, subscribers }).length, 0);
+    assert.equal(matchAlerts({ origem: invalid, destino: "LIS", preco_centavos: 100 }, {
+      rules: [{ subscriber_id: "sub", origem: invalid }], subscribers,
+    }).length, 0);
+  }
+  assert.equal(matchAlerts({ origem: "gru", destino: "lis", preco_centavos: 100 }, { rules, subscribers }).length, 1);
+});
+
 test("matchAlerts ignora preco-alvo malformado em regras persistidas", () => {
   const subscribers = [{ id: "confirmed", double_optin_confirmed: true }];
   const offer = { origem: "GRU", destino: "LIS", preco_centavos: 100 };

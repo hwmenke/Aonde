@@ -20,6 +20,7 @@ import { appendFileSync, readFileSync } from "node:fs";
 import { resolveDataDir, ensureDir } from "../store/dataDir.js";
 import { listSubscribers, hashEmail } from "./subscriberStore.js";
 import { listAlertRules } from "./alertRules.js";
+import { isIataCode } from "../validate.js";
 
 /**
  * Casa um conjunto de ofertas/regras. Puro e testavel.
@@ -37,6 +38,8 @@ import { listAlertRules } from "./alertRules.js";
  */
 export function matchAlerts(offer, { rules = [], subscribers = [] } = {}) {
   if (!offer) return [];
+  // Uma tarifa sem rota valida nao deve gerar uma notificacao.
+  if (!isIataCode(offer.origem) || !isIataCode(offer.destino)) return [];
 
   const offerOrigem = String(offer.origem || "").toUpperCase();
   const offerDestino = String(offer.destino || "").toUpperCase();
