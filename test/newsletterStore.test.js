@@ -370,6 +370,35 @@ test("dispatchAlerts preserva cooldown depois de entradas malformadas na fila", 
   assert.equal(await readFile(queuePath, "utf-8"), 'invalid-json\nnull\n42\n"text"\n[]\n' + original);
 });
 
+test("dispatchAlerts libera alerta no limite do cooldown e reinicia a janela", async (t) => {
+  const dir = await withTempDataDir(t);
+  const subscriber = subscribeAndConfirm();
+  assert.equal(addAlertRule({ subscriberId: subscriber.id, origem: "GRU" }).ok, true);
+  // Tarifa sintetica usada apenas como fixture de teste.
+  const offer = { id: "cooldown-boundary-fixture", origem: "GRU", destino: "LIS", preco_centavos: 100 };
+  const agora = Date.UTC(2026, 0, 1);
+  const cooldownMs = 60_000;
+  const sendAt = (time) => dispatchAlerts([offer], { agora: time, cooldownMs });
+
+  assert.equal(sendAt(agora).queued, 1);
+  const before = sendAt(agora + cooldownMs - 1);
+  assert.equal(before.queued, 0);
+  assert.equal(before.suprimidos, 1);
+  const boundary = sendAt(agora + cooldownMs);
+  assert.equal(boundary.queued, 1);
+  assert.equal(boundary.suprimidos, 0);
+  const after = sendAt(agora + cooldownMs + 1);
+  assert.equal(after.queued, 0);
+  assert.equal(after.suprimidos, 1);
+
+  const content = await readFile(path.join(dir, "alert_queue.jsonl"), "utf-8");
+  const items = content.trim().split("\n").map((line) => JSON.parse(line));
+  assert.deepEqual(items.map((item) => item.queuedAt), [
+    new Date(agora).toISOString(),
+    new Date(agora + cooldownMs).toISOString(),
+  ]);
+});
+
 test("dispatchAlerts respeita setSenderImpl (ponto de integracao)", async (t) => {
   await withTempDataDir(t);
   const sub = subscribeAndConfirm("l@example.com");
