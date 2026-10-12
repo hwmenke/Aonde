@@ -40,3 +40,34 @@ test("sub-unit windows retain the default window and reset at its boundary", (t)
   at = 60000;
   assert.equal(limiter.take("ip").ok, true);
 });
+
+test("quotas are isolated by key and instance, with selective and full resets", (t) => {
+  configure(t, {
+    AONDE_INBOUND_RATE_LIMIT_MAX: "1",
+    AONDE_INBOUND_RATE_LIMIT_WINDOW_MS: "60000",
+  });
+  const limiter = createInboundRateLimiter({ now: () => 0 });
+  const otherServer = createInboundRateLimiter({ now: () => 0 });
+  const blocked = { ok: false, retryAfterMs: 60000 };
+  const allowed = { ok: true, retryAfterMs: 0 };
+
+  for (const key of ["subscribe:client-a", "subscribe:client-b", "click:client-a"]) {
+    assert.deepEqual(limiter.take(key), allowed);
+    assert.deepEqual(limiter.take(key), blocked);
+  }
+  assert.deepEqual(otherServer.take("subscribe:client-a"), allowed);
+  assert.deepEqual(otherServer.take("subscribe:client-a"), blocked);
+
+  limiter.reset("subscribe:client-a");
+  assert.deepEqual(limiter.take("subscribe:client-a"), allowed);
+  assert.deepEqual(limiter.take("subscribe:client-a"), blocked);
+  assert.deepEqual(limiter.take("subscribe:client-b"), blocked);
+  assert.deepEqual(limiter.take("click:client-a"), blocked);
+
+  limiter.reset();
+  for (const key of ["subscribe:client-a", "subscribe:client-b", "click:client-a"]) {
+    assert.deepEqual(limiter.take(key), allowed);
+    assert.deepEqual(limiter.take(key), blocked);
+  }
+  assert.deepEqual(otherServer.take("subscribe:client-a"), blocked);
+});
