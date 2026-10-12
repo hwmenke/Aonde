@@ -147,6 +147,15 @@ export async function resolvePhotoUri(photoName, { maxWidthPx = 800, maxHeightPx
   if (!photoUri) {
     return { ok: false, error: "Resposta do Place Photo sem photoUri" };
   }
+  try {
+    if (typeof photoUri !== "string") throw new Error("Invalid photoUri");
+    const parsed = new URL(photoUri);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+      throw new Error("Invalid photoUri protocol");
+    }
+  } catch {
+    return { ok: false, error: "Resposta do Place Photo com photoUri invalida" };
+  }
   return { ok: true, photoUri };
 }
 

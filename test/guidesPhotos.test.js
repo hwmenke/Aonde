@@ -196,6 +196,16 @@ test(
   })
 );
 
+test("resolvePhotoUri rejeita photoUri malformada", withApiKey("fake-key", async () => {
+  for (const photoUri of [true, 123, {}, [], "   ", "not a URL", "/relative.jpg", "javascript:alert(1)", "data:image/png;base64,AAAA"]) {
+    setFetchImpl(async () => jsonResponse({ photoUri }));
+    const res = await resolvePhotoUri("places/abc/photos/xyz");
+    assert.equal(res.ok, false, JSON.stringify(photoUri));
+    assert.match(res.error, /photoUri/);
+    assert.equal(res.photoUri, undefined);
+  }
+}));
+
 test("resolvePhotoUri sem API key retorna ok:false com instrucao", withApiKey(undefined, async () => {
   const res = await resolvePhotoUri("places/abc/photos/xyz");
   assert.equal(res.ok, false);
