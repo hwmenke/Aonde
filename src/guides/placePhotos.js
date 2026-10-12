@@ -167,7 +167,7 @@ export async function resolvePhotoUri(photoName, { maxWidthPx = 800, maxHeightPx
 }
 
 /**
- * Extrai a PRIMEIRA foto de um `place` (do searchPlaces, com `photos[]` cru) e
+ * Extrai a PRIMEIRA foto valida de um `place` (do searchPlaces, com `photos[]` cru) e
  * devolve um objeto pronto para o roteiro — com a URL de midia (via
  * buildPhotoMediaUrl, SEM rede) e a atribuicao obrigatoria do autor.
  *
@@ -188,17 +188,20 @@ export function firstPhotoFrom(place, { maxWidthPx = 800, maxHeightPx, apiKey } 
   const photos = place && Array.isArray(place.photos) ? place.photos : [];
   if (photos.length === 0) return null;
 
-  const photo = photos[0];
-  const photoName = photo && typeof photo.name === "string" ? photo.name : null;
-  if (!photoName) return null;
-
+  let photo;
   let mediaUrl;
-  try {
-    mediaUrl = buildPhotoMediaUrl(photoName, { maxWidthPx, maxHeightPx, apiKey });
-  } catch {
-    // Sem API key (ou name invalido): sem foto exibivel — degrada para null.
-    return null;
+  for (const candidate of photos) {
+    if (!candidate || typeof candidate.name !== "string") continue;
+    try {
+      mediaUrl = buildPhotoMediaUrl(candidate.name, { maxWidthPx, maxHeightPx, apiKey });
+      photo = candidate;
+      break;
+    } catch {
+      // Uma entrada invalida nao deve esconder fotos validas posteriores.
+      continue;
+    }
   }
+  if (!photo) return null;
 
   const attr = Array.isArray(photo.authorAttributions) ? photo.authorAttributions[0] : null;
   const attribution = {

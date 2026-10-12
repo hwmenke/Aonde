@@ -172,6 +172,18 @@ test("firstPhotoFrom extrai url + atribuicao da 1a foto", () => {
   assert.equal(foto.heightPx, 3024);
 });
 
+test("firstPhotoFrom skips unusable entries and preserves the selected photo credit", () => {
+  const valid = makePhotos(2)[0];
+  const invalid = [null, {}, { name: 123 }, { name: "places/../photos/bad" }];
+  const foto = firstPhotoFrom({ photos: [...invalid, valid, ...makePhotos(3)] }, { apiKey: "k" });
+  assert.ok(foto);
+  assert.match(foto.mediaUrl, /places\/place-2\/photos\/PHOTO_RESOURCE_2\/media/);
+  assert.deepEqual(foto.attribution, { text: "Autor 2", uri: "https://maps.google.com/author/2" });
+  assert.equal(foto.widthPx, valid.widthPx);
+  assert.equal(foto.heightPx, valid.heightPx);
+  assert.equal(firstPhotoFrom({ photos: invalid }, { apiKey: "k" }), null);
+});
+
 test("firstPhotoFrom retorna null quando o place nao tem fotos", () => {
   assert.equal(firstPhotoFrom({ photos: [] }, { apiKey: "k" }), null);
   assert.equal(firstPhotoFrom({}, { apiKey: "k" }), null);
