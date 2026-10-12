@@ -78,6 +78,32 @@ test("cache hit nao refaz o fetch (URL da Data API, GET 200)", async (t) => {
   assert.equal(second.fromCache, true);
 });
 
+test("mutacoes em respostas iniciais e cacheadas nao alteram o cache", async (t) => {
+  const payload = { results: [{ route: { origin: "GRU", destination: "LIS" } }] };
+  let calls = 0;
+  setFetchImpl(async () => {
+    calls++;
+    return jsonResponse(payload);
+  });
+  t.after(() => resetFetchImpl());
+
+  const first = await httpRequest(AVIASALES);
+  assert.equal(first.ok, true);
+  first.data.results[0].route.origin = "GIG";
+  first.data.results.push({ route: { origin: "SSA", destination: "LIS" } });
+
+  const second = await httpRequest(AVIASALES);
+  assert.equal(second.fromCache, true);
+  assert.deepEqual(second.data, payload);
+  second.data.results[0].route.destination = "MAD";
+  second.data.results.length = 0;
+
+  const third = await httpRequest(AVIASALES);
+  assert.equal(third.fromCache, true);
+  assert.deepEqual(third.data, payload);
+  assert.equal(calls, 1);
+});
+
 test("cache expira no instante do TTL e refaz o fetch", async (t) => {
   const clock = { t: 0 };
   let calls = 0;
