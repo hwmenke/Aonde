@@ -20,7 +20,7 @@ import { appendFileSync, readFileSync } from "node:fs";
 import { resolveDataDir, ensureDir } from "../store/dataDir.js";
 import { listSubscribers, hashEmail } from "./subscriberStore.js";
 import { listAlertRules } from "./alertRules.js";
-import { isIataCode } from "../validate.js";
+import { isIataCode, normalizeIata } from "../validate.js";
 
 /**
  * Casa um conjunto de ofertas/regras. Puro e testavel.
@@ -41,8 +41,8 @@ export function matchAlerts(offer, { rules = [], subscribers = [] } = {}) {
   // Uma tarifa sem rota valida nao deve gerar uma notificacao.
   if (!isIataCode(offer.origem) || !isIataCode(offer.destino)) return [];
 
-  const offerOrigem = String(offer.origem || "").toUpperCase();
-  const offerDestino = String(offer.destino || "").toUpperCase();
+  const offerOrigem = normalizeIata(offer.origem);
+  const offerDestino = normalizeIata(offer.destino);
   const offerPreco = offer.preco_centavos;
   // Sem uma tarifa real e positiva, nao ha oferta de preco para notificar.
   if (typeof offerPreco !== "number" || !Number.isFinite(offerPreco) || offerPreco <= 0) return [];
@@ -62,11 +62,11 @@ export function matchAlerts(offer, { rules = [], subscribers = [] } = {}) {
     const subscriber = eligibleById.get(rule.subscriber_id);
     if (!subscriber) continue; // nao confirmado / descadastrado / inexistente
 
-    if (String(rule.origem || "").toUpperCase() !== offerOrigem) continue;
+    if (normalizeIata(rule.origem) !== offerOrigem) continue;
 
     const hasDestino = rule.destino !== undefined && rule.destino !== null && rule.destino !== "";
     if (hasDestino && !isIataCode(rule.destino)) continue;
-    const ruleDestino = hasDestino ? rule.destino.toUpperCase() : null;
+    const ruleDestino = hasDestino ? normalizeIata(rule.destino) : null;
     if (ruleDestino && ruleDestino !== offerDestino) continue;
 
     const target = rule.preco_alvo_centavos;
@@ -180,7 +180,7 @@ export function dispatchAlerts(offers = [], { cooldownMs = COOLDOWN_PADRAO_MS, a
   for (const offer of list) {
     const matches = matchAlerts(offer, { rules, subscribers });
     for (const { subscriber, canal } of matches) {
-      const rota = `${String(offer.origem || "").toUpperCase()}-${String(offer.destino || "").toUpperCase()}`;
+      const rota = `${normalizeIata(offer.origem)}-${normalizeIata(offer.destino)}`;
       const chave = `${hashEmail(subscriber.email)}|${rota}|${canal}`;
       const ultimo = enviados.get(chave);
       if (ultimo !== undefined && agora - ultimo < cooldownMs) {
@@ -193,7 +193,7 @@ export function dispatchAlerts(offers = [], { cooldownMs = COOLDOWN_PADRAO_MS, a
         subscriberEmailHash: hashEmail(subscriber.email),
         canal,
         offerId: offer.id || null,
-        offerRoute: `${String(offer.origem || "").toUpperCase()}-${String(offer.destino || "").toUpperCase()}`,
+        offerRoute: rota,
         precoCentavos: offer.preco_centavos ?? null,
       };
       // Ponto de integracao: sender real substituiria o default via setSenderImpl.

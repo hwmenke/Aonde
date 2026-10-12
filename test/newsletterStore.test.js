@@ -325,6 +325,20 @@ test("matchAlerts ignora ofertas com codigos de rota ausentes ou malformados", (
   assert.equal(matchAlerts({ origem: "gru", destino: "lis", preco_centavos: 100 }, { rules, subscribers }).length, 1);
 });
 
+test("matchAlerts normaliza espacos e caixa nos codigos de ofertas e regras", () => {
+  const subscribers = [{ id: "confirmed", double_optin_confirmed: true }];
+  const rules = [{ subscriber_id: "confirmed", origem: "GRU", destino: "LIS" }];
+  assert.equal(matchAlerts({ origem: " GRu ", destino: " liS ", preco_centavos: 100 }, {
+    rules, subscribers,
+  }).length, 1);
+  assert.equal(matchAlerts({ origem: "GRU", destino: "LIS", preco_centavos: 100 }, {
+    rules: [{ subscriber_id: "confirmed", origem: " gru ", destino: " lis " }], subscribers,
+  }).length, 1);
+  assert.equal(matchAlerts({ origem: "GRU", destino: "MAD", preco_centavos: 100 }, {
+    rules, subscribers,
+  }).length, 0);
+});
+
 test("matchAlerts rejeita destinos malformados em regras persistidas", () => {
   const subscribers = [{ id: "confirmed", double_optin_confirmed: true }];
   const offer = { origem: "GRU", destino: "LIS", preco_centavos: 100 };
@@ -376,6 +390,22 @@ test("dispatchAlerts enfileira em JSONL com HASH do e-mail (nao o e-mail em clar
   assert.equal(line.offerId, "gru-lis");
   assert.equal(line.offerRoute, "GRU-LIS");
   assert.equal(line.precoCentavos, 250000);
+});
+
+test("dispatchAlerts usa rota normalizada na fila e no cooldown", async (t) => {
+  const dir = await withTempDataDir(t);
+  const subscriber = subscribeAndConfirm();
+  addAlertRule({ subscriberId: subscriber.id, origem: "GRU", destino: "LIS" });
+  const agora = Date.UTC(2026, 0, 1);
+  const first = dispatchAlerts([{ origem: " gru ", destino: " lis ", preco_centavos: 100 }], { agora });
+  assert.equal(first.queued, 1);
+  assert.equal(first.items[0].offerRoute, "GRU-LIS");
+  const next = dispatchAlerts([{ origem: "GRU", destino: "LIS", preco_centavos: 100 }], { agora: agora + 1000 });
+  assert.equal(next.queued, 0);
+  assert.equal(next.suprimidos, 1);
+  const lines = (await readFile(path.join(dir, "alert_queue.jsonl"), "utf-8")).trim().split("\n");
+  assert.equal(lines.length, 1);
+  assert.equal(JSON.parse(lines[0]).offerRoute, "GRU-LIS");
 });
 
 test("dispatchAlerts preserva cooldown depois de entradas malformadas na fila", async (t) => {
