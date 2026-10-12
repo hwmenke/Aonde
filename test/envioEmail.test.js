@@ -37,6 +37,45 @@ function comProvedor(t, vars = {}) {
 
 const MSG = { para: "pessoa@exemplo.com", assunto: "Preço caiu", textoPlano: "texto", html: "<p>html</p>" };
 
+test("o worker retoma a falha temporaria sem perder nem repetir alertas", async (t) => {
+  const dir = comDataDir(t);
+  comProvedor(t, { AONDE_EMAIL_PROVIDER: "resend", AONDE_EMAIL_API_KEY: "k", AONDE_EMAIL_FROM: "a@b.com" });
+  const { subscribe, confirm, hashEmail } = await import("../src/newsletter/subscriberStore.js");
+  const emails = ["primeiro@exemplo.com", "retentar@exemplo.com", "ultimo@exemplo.com"];
+  for (const email of emails) confirm(subscribe({ email, origem: "GRU" }).token);
+  const fila = emails.map((email) => JSON.stringify({
+    subscriberEmailHash: hashEmail(email), canal: "email",
+    offerRoute: "GRU-REC", precoCentavos: 50000,
+  }));
+  writeFileSync(path.join(dir, "alert_queue.jsonl"), fila.join("\n") + "\n");
+  const destinatarios = [];
+  let indisponivel = true;
+  setFetchImpl(async (_url, options) => {
+    const email = JSON.parse(options.body).to[0];
+    destinatarios.push(email);
+    const falha = indisponivel && email === emails[1];
+    return { ok: !falha, status: falha ? 503 : 200, headers: new Map(), text: async () => "{}" };
+  });
+  t.after(() => resetFetchImpl());
+  const { processarFila } = await import("../src/newsletter/worker.js");
+  const primeira = await processarFila();
+  assert.equal(primeira.enviados, 1);
+  assert.equal(primeira.falhas, 1);
+  assert.equal(primeira.pendentesRestantes, 2);
+  assert.equal(readFileSync(path.join(dir, "alert_queue.checkpoint"), "utf-8"), "1");
+  assert.deepEqual(destinatarios, [emails[0], emails[1], emails[1], emails[1]]);
+
+  indisponivel = false;
+  const segunda = await processarFila();
+  assert.equal(segunda.enviados, 2);
+  assert.equal(segunda.falhas, 0);
+  assert.equal(segunda.pendentesRestantes, 0);
+  assert.equal(readFileSync(path.join(dir, "alert_queue.checkpoint"), "utf-8"), "3");
+  assert.deepEqual(destinatarios.slice(4), emails.slice(1));
+  assert.equal((await processarFila()).enviados, 0);
+  assert.equal(destinatarios.length, 6);
+});
+
 test("o worker envia apenas entradas do canal email", async (t) => {
   const dir = comDataDir(t);
   comProvedor(t, { AONDE_EMAIL_PROVIDER: "resend", AONDE_EMAIL_API_KEY: "k", AONDE_EMAIL_FROM: "a@b.com" });
