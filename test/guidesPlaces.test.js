@@ -1,12 +1,27 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { searchPlaces } from "../src/guides/placesClient.js";
+import { searchPlaces, normalizePlace } from "../src/guides/placesClient.js";
 import { setFetchImpl, resetFetchImpl } from "../src/http.js";
 
 // -----------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------
+
+test("normalizePlace omite notas e contagens invalidas sem inventar avaliacoes", () => {
+  for (const rating of [NaN, Infinity, -Infinity, -1, 5.1, "4.5", null]) {
+    assert.equal(normalizePlace({ rating }).rating, null, String(rating));
+  }
+  for (const userRatingCount of [NaN, Infinity, -Infinity, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, "100", null]) {
+    assert.equal(normalizePlace({ userRatingCount }).ratingCount, null, String(userRatingCount));
+  }
+  for (const rating of [0, 4.5, 5]) {
+    assert.equal(normalizePlace({ rating }).rating, rating);
+  }
+  for (const userRatingCount of [0, 100]) {
+    assert.equal(normalizePlace({ userRatingCount }).ratingCount, userRatingCount);
+  }
+});
 
 function jsonResponse(payload, status = 200) {
   return new Response(JSON.stringify(payload), {

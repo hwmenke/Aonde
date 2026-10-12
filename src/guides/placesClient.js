@@ -109,9 +109,13 @@ function normalizePlace(place) {
     address: place.formattedAddress || null,
     lat: typeof location.latitude === "number" ? location.latitude : null,
     lng: typeof location.longitude === "number" ? location.longitude : null,
-    rating: typeof place.rating === "number" ? place.rating : null,
+    // Dados invalidos ficam ausentes para nao corromper a ordenacao ponderada
+    // nem exibir uma nota ou contagem de avaliacoes impossivel.
+    rating: Number.isFinite(place.rating) && place.rating >= 0 && place.rating <= 5
+      ? place.rating : null,
     ratingCount:
-      typeof place.userRatingCount === "number" ? place.userRatingCount : null,
+      Number.isSafeInteger(place.userRatingCount) && place.userRatingCount >= 0
+        ? place.userRatingCount : null,
     // editorialSummary vem como { text, languageCode }; ausente em muitos
     // lugares — nesse caso `summary` fica null (nao inventamos texto).
     summary: place.editorialSummary?.text || null,
