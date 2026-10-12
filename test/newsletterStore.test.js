@@ -170,6 +170,18 @@ test("re-subscribe de e-mail pendente regenera o token", async (t) => {
   assert.notEqual(first.token, second.token);
   // Apenas um registro (nao duplica por e-mail).
   assert.equal(listSubscribers().length, 1);
+  // O link anterior nao pode confirmar nem registrar consentimento.
+  assert.equal(confirm(first.token).ok, false);
+  const pending = getSubscriberByEmail("e@example.com");
+  assert.equal(pending.double_optin_confirmed, false);
+  assert.equal(pending.consent_lgpd_at, null);
+  assert.equal(pending.optin_token, second.token);
+
+  assert.equal(confirm(second.token).ok, true);
+  const confirmed = getSubscriberByEmail("e@example.com");
+  assert.equal(confirmed.double_optin_confirmed, true);
+  assert.ok(confirmed.consent_lgpd_at);
+  assert.equal(listSubscribers().length, 1);
 });
 
 test("unsubscribe apaga a PII mas mantem o registro (LGPD + auditoria)", async (t) => {
