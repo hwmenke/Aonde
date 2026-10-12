@@ -99,6 +99,12 @@ export async function processarFila({ limite = 200, agora = new Date() } = {}) {
       continue;
     }
 
+    // Revalida tarifas persistidas antes de montar o e-mail de preco.
+    if (typeof item.precoCentavos !== "number" || !Number.isFinite(item.precoCentavos) || item.precoCentavos <= 0) {
+      pulados++;
+      continue;
+    }
+
     const sub = assinantePorHash(item.subscriberEmailHash, assinantes);
     // Revalida o consentimento no envio, mesmo para alertas ja enfileirados.
     // Assinante pendente, apagado ou descadastrado deve ser pulado.

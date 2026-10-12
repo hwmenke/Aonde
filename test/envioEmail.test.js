@@ -199,7 +199,7 @@ test("o worker exige double opt-in ao enviar e continua depois de assinante pend
   const ativo = subscribe({ email: "ativo@exemplo.com", origem: "GRU" });
   confirm(ativo.token);
   const fila = ["pendente@exemplo.com", "ativo@exemplo.com"].map((email) => JSON.stringify({
-    subscriberEmailHash: hashEmail(email), canal: "email", offerRoute: "GRU-REC",
+    subscriberEmailHash: hashEmail(email), canal: "email", offerRoute: "GRU-REC", precoCentavos: 50000,
   }));
   writeFileSync(path.join(dir, "alert_queue.jsonl"), fila.join("\n") + "\n");
   const destinatarios = [];
@@ -234,7 +234,7 @@ test("valores JSON malformados nao bloqueiam alertas validos nem o checkpoint", 
   const s = subscribe({ email: "fila@exemplo.com", origem: "GRU" });
   confirm(s.token);
   const invalidos = [null, [], true, 42, "texto"];
-  const alerta = { subscriberEmailHash: hashEmail("fila@exemplo.com"), canal: "email", offerRoute: "GRU-REC" };
+  const alerta = { subscriberEmailHash: hashEmail("fila@exemplo.com"), canal: "email", offerRoute: "GRU-REC", precoCentavos: 50000 };
   writeFileSync(path.join(dir, "alert_queue.jsonl"), [...invalidos, alerta].map((item) => JSON.stringify(item)).join("\n") + "\n");
 
   let enviados = 0;
@@ -249,6 +249,38 @@ test("valores JSON malformados nao bloqueiam alertas validos nem o checkpoint", 
   assert.equal(r.enviados, 1);
   assert.equal(r.pendentesRestantes, 0);
   assert.equal(readFileSync(path.join(dir, "alert_queue.checkpoint"), "utf-8"), "6");
+  assert.equal((await processarFila()).enviados, 0);
+  assert.equal(enviados, 1);
+});
+
+
+test("o worker pula precos invalidos na fila e envia somente a tarifa valida", async (t) => {
+  const dir = comDataDir(t);
+  comProvedor(t, { AONDE_EMAIL_PROVIDER: "resend", AONDE_EMAIL_API_KEY: "k", AONDE_EMAIL_FROM: "a@b.com" });
+  const { subscribe, confirm, hashEmail } = await import("../src/newsletter/subscriberStore.js");
+  const s = subscribe({ email: "preco@exemplo.com", origem: "GRU" });
+  confirm(s.token);
+  const invalidos = [undefined, null, "50000", 0, -1, true, [], {}];
+  const fila = [...invalidos, 50000].map((precoCentavos) => JSON.stringify({
+    subscriberEmailHash: hashEmail("preco@exemplo.com"), canal: "email",
+    offerRoute: "GRU-REC", precoCentavos,
+  }));
+  // JSON.parse aceita este numero como Infinity, embora nao seja uma tarifa valida.
+  fila.splice(invalidos.length, 0, fila.at(-1).replace('"precoCentavos":50000', '"precoCentavos":1e400'));
+  writeFileSync(path.join(dir, "alert_queue.jsonl"), fila.join("\n") + "\n");
+  let enviados = 0;
+  setFetchImpl(async () => {
+    enviados++;
+    return { ok: true, status: 200, headers: new Map(), text: async () => "{}" };
+  });
+  t.after(() => resetFetchImpl());
+  const { processarFila } = await import("../src/newsletter/worker.js");
+  const r = await processarFila();
+  assert.equal(r.pulados, invalidos.length + 1);
+  assert.equal(r.enviados, 1);
+  assert.equal(enviados, 1);
+  assert.equal(r.pendentesRestantes, 0);
+  assert.equal(readFileSync(path.join(dir, "alert_queue.checkpoint"), "utf-8"), String(fila.length));
   assert.equal((await processarFila()).enviados, 0);
   assert.equal(enviados, 1);
 });
