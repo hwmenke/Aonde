@@ -151,6 +151,35 @@ test("faz retry em 429 e respeita o header Retry-After", async (t) => {
   assert.equal(delays[0], 2000); // Retry-After: 2s respeitado (em ms)
 });
 
+test("Retry-After em HTTP-date usa o relogio e limita a espera", async (t) => {
+  const now = Date.UTC(2026, 0, 1);
+  let calls = 0;
+  setFetchImpl(async () => {
+    calls++;
+    if (calls <= 2) {
+      const waitMs = calls === 1 ? 2000 : 120_000;
+      return jsonResponse({ e: "unavailable" }, {
+        status: 503,
+        headers: { "Retry-After": new Date(now + waitMs).toUTCString() },
+      });
+    }
+    return jsonResponse({ ok: true });
+  });
+  setClockImpl(() => now);
+  t.after(() => resetFetchImpl());
+
+  const delays = [];
+  const res = await httpRequest(NEUTRAL, {
+    retryAfterCapMs: 5000,
+    jitterFn: () => 0,
+    sleepImpl: async (ms) => delays.push(ms),
+  });
+
+  assert.deepEqual(res, { ok: true, status: 200, data: { ok: true }, error: null });
+  assert.equal(calls, 3);
+  assert.deepEqual(delays, [2000, 5000]);
+});
+
 test("esgota os retries e retorna o ultimo erro", async (t) => {
   let calls = 0;
   setFetchImpl(async () => {
