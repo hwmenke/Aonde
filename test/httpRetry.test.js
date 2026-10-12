@@ -58,6 +58,43 @@ test("retry em erro de rede (throw) ate obter sucesso", async (t) => {
   assert.equal(calls, 2);
 });
 
+test("timeout durante leitura do corpo aborta e respeita o limite de retries", async (t) => {
+  const signals = [];
+  setFetchImpl(async (_url, { signal }) => {
+    signals.push(signal);
+    return {
+      ok: true,
+      status: 200,
+      text: () => new Promise((_resolve, reject) => {
+        signal.addEventListener("abort", () => {
+          reject(new DOMException("Aborted", "AbortError"));
+        }, { once: true });
+      }),
+    };
+  });
+  t.after(() => resetFetchImpl());
+
+  const delays = [];
+  const res = await httpRequest(NEUTRAL, {
+    timeoutMs: 5,
+    retries: 1,
+    retryBaseMs: 100,
+    jitterFn: () => 0,
+    sleepImpl: async (ms) => delays.push(ms),
+  });
+
+  assert.deepEqual(res, {
+    ok: false,
+    status: 0,
+    data: null,
+    error: `Tempo limite excedido (5ms) ao chamar ${NEUTRAL}`,
+  });
+  assert.equal(signals.length, 2);
+  assert.notEqual(signals[0], signals[1]);
+  assert.ok(signals.every((signal) => signal.aborted));
+  assert.deepEqual(delays, [50]);
+});
+
 test("backoff exponencial: os atrasos crescem a cada tentativa", async (t) => {
   setFetchImpl(async () => jsonResponse({ e: "x" }, { status: 500 }));
   t.after(() => resetFetchImpl());
