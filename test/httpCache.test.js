@@ -35,6 +35,38 @@ function jsonResponse(obj) {
   return new Response(JSON.stringify(obj), { status: 200 });
 }
 
+for (const [label, fail] of [
+  ["HTTP 503", () => new Response('{"error":"unavailable"}', { status: 503 })],
+  ["JSON invalido", () => new Response("invalid JSON", { status: 200 })],
+  ["erro de rede", () => { throw new Error("network unavailable"); }],
+]) {
+  test(`cache nao guarda ${label} e permite recuperacao do provedor`, async (t) => {
+    let calls = 0;
+    const payload = { results: [] };
+    setFetchImpl(async () => {
+      calls++;
+      return calls === 1 ? fail() : jsonResponse(payload);
+    });
+    t.after(() => resetFetchImpl());
+
+    const failed = await httpRequest(AVIASALES, { retries: 0 });
+    assert.equal(failed.ok, false);
+    assert.equal(calls, 1);
+
+    const recovered = await httpRequest(AVIASALES, { retries: 0 });
+    assert.equal(recovered.ok, true);
+    assert.notEqual(recovered.fromCache, true);
+    assert.deepEqual(recovered.data, payload);
+    assert.equal(calls, 2);
+
+    const cached = await httpRequest(AVIASALES, { retries: 0 });
+    assert.equal(cached.ok, true);
+    assert.equal(cached.fromCache, true);
+    assert.deepEqual(cached.data, payload);
+    assert.equal(calls, 2);
+  });
+}
+
 for (const [label, makeHeaders] of [
   ["Headers", (token) => new Headers({ Authorization: token })],
   ["tuplas", (token) => [["Authorization", token]]],
