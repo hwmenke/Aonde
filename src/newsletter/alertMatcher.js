@@ -64,7 +64,9 @@ export function matchAlerts(offer, { rules = [], subscribers = [] } = {}) {
 
     if (String(rule.origem || "").toUpperCase() !== offerOrigem) continue;
 
-    const ruleDestino = rule.destino ? String(rule.destino).toUpperCase() : null;
+    const hasDestino = rule.destino !== undefined && rule.destino !== null && rule.destino !== "";
+    if (hasDestino && !isIataCode(rule.destino)) continue;
+    const ruleDestino = hasDestino ? rule.destino.toUpperCase() : null;
     if (ruleDestino && ruleDestino !== offerDestino) continue;
 
     const target = rule.preco_alvo_centavos;

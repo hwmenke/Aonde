@@ -325,6 +325,21 @@ test("matchAlerts ignora ofertas com codigos de rota ausentes ou malformados", (
   assert.equal(matchAlerts({ origem: "gru", destino: "lis", preco_centavos: 100 }, { rules, subscribers }).length, 1);
 });
 
+test("matchAlerts rejeita destinos malformados em regras persistidas", () => {
+  const subscribers = [{ id: "confirmed", double_optin_confirmed: true }];
+  const offer = { origem: "GRU", destino: "LIS", preco_centavos: 100 };
+  const match = (destino) => matchAlerts(offer, {
+    rules: [{ subscriber_id: "confirmed", origem: "GRU", destino }], subscribers,
+  });
+  for (const destino of [false, 0, true, [], ["LIS"], {}, "LI", "LIS1"]) {
+    assert.deepEqual(match(destino), []);
+  }
+  for (const destino of [undefined, null, "", "lis"]) {
+    assert.equal(match(destino).length, 1);
+  }
+  assert.deepEqual(match("MAD"), []);
+});
+
 test("matchAlerts ignora preco-alvo malformado em regras persistidas", () => {
   const subscribers = [{ id: "confirmed", double_optin_confirmed: true }];
   const offer = { origem: "GRU", destino: "LIS", preco_centavos: 100 };
