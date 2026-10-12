@@ -217,6 +217,42 @@ test(
 );
 
 // -----------------------------------------------------------------------
+// Falha na busca opcional de restaurantes preserva os pontos turisticos
+// -----------------------------------------------------------------------
+
+test(
+  "buildItinerary preserva o roteiro quando a busca opcional de restaurantes falha",
+  withApiKey(async () => {
+    const searches = [];
+    setFetchImpl(async (_url, options) => {
+      const body = JSON.parse(options.body);
+      searches.push(body.includedType);
+      if (body.includedType === "restaurant") {
+        return jsonResponse({ error: { message: "busca indisponivel" } }, 400);
+      }
+      return jsonResponse({ places: [makeAttraction(1), makeAttraction(2)] });
+    });
+
+    const it = await buildItinerary({ destination: "Recife", days: 2 });
+
+    assert.deepEqual(searches, ["tourist_attraction", "restaurant"]);
+    assert.equal(it.ok, true);
+    assert.equal(it.destination, "Recife");
+    assert.equal(it.days.length, 2);
+    assert.deepEqual(it.days.flatMap((day) => day.pontos.map((p) => p.nome)), [
+      "Atracao 1", "Atracao 2",
+    ]);
+    assert.ok(it.days.every((day) => !Object.hasOwn(day, "restaurante")));
+    assert.equal(it.attribution, "Dados de lugares: Google");
+    const markdown = renderItineraryMarkdown(it);
+    assert.match(markdown, /Atracao 1/);
+    assert.match(markdown, /Atracao 2/);
+    assert.match(markdown, /Dados de lugares: Google/);
+    assert.doesNotMatch(markdown, /Sugestao de restaurante|undefined/);
+  })
+);
+
+// -----------------------------------------------------------------------
 // Sem API key => ok:false com instrucao
 // -----------------------------------------------------------------------
 
