@@ -101,5 +101,14 @@ export function validateSearchOptions(options = {}) {
     normalized.dateTo = String(dateTo).trim();
   }
 
+  if (normalized.dateFrom && normalized.dateTo) {
+    // Um mes inteiro pode se sobrepor a qualquer dia desse mesmo mes.
+    // Compare dias apenas quando as duas datas tiverem essa precisao.
+    const precision = Math.min(normalized.dateFrom.length, normalized.dateTo.length);
+    if (normalized.dateFrom.slice(0, precision) > normalized.dateTo.slice(0, precision)) {
+      return { ok: false, error: "dateTo nao pode ser anterior a dateFrom" };
+    }
+  }
+
   return { ok: true, normalized };
 }

@@ -191,6 +191,32 @@ test("o worker nao manda para quem descadastrou", async (t) => {
   assert.equal(r.pulados, 1);
 });
 
+test("o worker exige double opt-in ao enviar e continua depois de assinante pendente", async (t) => {
+  const dir = comDataDir(t);
+  comProvedor(t, { AONDE_EMAIL_PROVIDER: "resend", AONDE_EMAIL_API_KEY: "k", AONDE_EMAIL_FROM: "a@b.com" });
+  const { subscribe, confirm, hashEmail } = await import("../src/newsletter/subscriberStore.js");
+  subscribe({ email: "pendente@exemplo.com", origem: "GRU" });
+  const ativo = subscribe({ email: "ativo@exemplo.com", origem: "GRU" });
+  confirm(ativo.token);
+  const fila = ["pendente@exemplo.com", "ativo@exemplo.com"].map((email) => JSON.stringify({
+    subscriberEmailHash: hashEmail(email), canal: "email", offerRoute: "GRU-REC",
+  }));
+  writeFileSync(path.join(dir, "alert_queue.jsonl"), fila.join("\n") + "\n");
+  const destinatarios = [];
+  setFetchImpl(async (_url, options) => {
+    destinatarios.push(JSON.parse(options.body).to);
+    return { ok: true, status: 200, headers: new Map(), text: async () => "{}" };
+  });
+  t.after(() => resetFetchImpl());
+  const { processarFila } = await import("../src/newsletter/worker.js");
+  const r = await processarFila();
+  assert.equal(r.pulados, 1);
+  assert.equal(r.enviados, 1);
+  assert.deepEqual(destinatarios, [["ativo@exemplo.com"]]);
+  assert.equal(readFileSync(path.join(dir, "alert_queue.checkpoint"), "utf-8"), "2");
+  assert.equal((await processarFila()).enviados, 0);
+});
+
 test("linha corrompida na fila nao trava as outras", async (t) => {
   const dir = comDataDir(t);
   comProvedor(t, {});
@@ -199,4 +225,30 @@ test("linha corrompida na fila nao trava as outras", async (t) => {
   const r = await processarFila();
   assert.equal(r.ok, true);
   assert.equal(r.modo, "registro");
+});
+
+test("valores JSON malformados nao bloqueiam alertas validos nem o checkpoint", async (t) => {
+  const dir = comDataDir(t);
+  comProvedor(t, { AONDE_EMAIL_PROVIDER: "resend", AONDE_EMAIL_API_KEY: "k", AONDE_EMAIL_FROM: "a@b.com" });
+  const { subscribe, confirm, hashEmail } = await import("../src/newsletter/subscriberStore.js");
+  const s = subscribe({ email: "fila@exemplo.com", origem: "GRU" });
+  confirm(s.token);
+  const invalidos = [null, [], true, 42, "texto"];
+  const alerta = { subscriberEmailHash: hashEmail("fila@exemplo.com"), canal: "email", offerRoute: "GRU-REC" };
+  writeFileSync(path.join(dir, "alert_queue.jsonl"), [...invalidos, alerta].map((item) => JSON.stringify(item)).join("\n") + "\n");
+
+  let enviados = 0;
+  setFetchImpl(async () => {
+    enviados++;
+    return { ok: true, status: 200, headers: new Map(), text: async () => "{}", json: async () => ({}) };
+  });
+  t.after(() => resetFetchImpl());
+  const { processarFila } = await import("../src/newsletter/worker.js");
+  const r = await processarFila();
+  assert.equal(r.pulados, invalidos.length);
+  assert.equal(r.enviados, 1);
+  assert.equal(r.pendentesRestantes, 0);
+  assert.equal(readFileSync(path.join(dir, "alert_queue.checkpoint"), "utf-8"), "6");
+  assert.equal((await processarFila()).enviados, 0);
+  assert.equal(enviados, 1);
 });

@@ -80,3 +80,25 @@ test("reset() zera o estado do balde", () => {
   limiter.reset("k");
   assert.equal(limiter.take("k", cfg).ok, true); // balde recriado cheio
 });
+
+test("reduzir capacity limita as fichas mesmo sem avancar o relogio", () => {
+  const clock = fakeClock();
+  const limiter = createRateLimiter({ now: clock.now });
+  limiter.take("k", { capacity: 5, windowMs: 5_000 });
+
+  const cfg = { capacity: 1, windowMs: 5_000 };
+  assert.deepEqual(limiter.take("k", cfg), { ok: true, retryAfterMs: 0, remaining: 0 });
+  assert.deepEqual(limiter.take("k", cfg), { ok: false, retryAfterMs: 5_000, remaining: 0 });
+});
+
+test("reconfigurar a taxa preserva a recarga anterior e usa a nova no futuro", () => {
+  const clock = fakeClock();
+  const limiter = createRateLimiter({ now: clock.now });
+  limiter.take("k", { capacity: 1, windowMs: 10_000 });
+  clock.advance(5_000); // meia ficha pela taxa anterior
+
+  const cfg = { capacity: 1, windowMs: 1_000 };
+  assert.deepEqual(limiter.take("k", cfg), { ok: false, retryAfterMs: 500, remaining: 0 });
+  clock.advance(500);
+  assert.deepEqual(limiter.take("k", cfg), { ok: true, retryAfterMs: 0, remaining: 0 });
+});

@@ -96,12 +96,12 @@ export function resolveTrackedLink({
 
   const safeRegistry = registry && typeof registry === "object" ? registry : {};
 
-  if (offerId && safeRegistry[offerId]) {
+  if (offerId && Object.hasOwn(safeRegistry, offerId) && safeRegistry[offerId]) {
     return { url: safeRegistry[offerId], source: "registry:offerId" };
   }
 
   const routeKey = buildRouteKey(origin, destination);
-  if (routeKey && safeRegistry[routeKey]) {
+  if (routeKey && Object.hasOwn(safeRegistry, routeKey) && safeRegistry[routeKey]) {
     return { url: safeRegistry[routeKey], source: "registry:route" };
   }
 

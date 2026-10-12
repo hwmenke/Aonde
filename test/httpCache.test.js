@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { makeCacheKey } from "../src/httpCache.js";
 
 import {
   httpRequest,
@@ -14,8 +15,49 @@ import {
 const AVIASALES = "https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=GRU&destination=LIS";
 const NEUTRAL = "https://example.com/data";
 
+test("cache separa tokens que colidiam no hash antigo", () => {
+  assert.notEqual(
+    makeCacheKey(AVIASALES, { Authorization: "Aa" }),
+    makeCacheKey(AVIASALES, { Authorization: "B@" }),
+  );
+});
+
+test("cache considera ambos os headers de auth sem depender de ordem ou capitalizacao", () => {
+  const first = makeCacheKey(AVIASALES, { Authorization: "Bearer A", "X-Access-Token": "tokenA" });
+  assert.notEqual(first, makeCacheKey(AVIASALES, { Authorization: "Bearer A", "X-Access-Token": "tokenB" }));
+  assert.notEqual(first, makeCacheKey(AVIASALES, { Authorization: "Bearer B", "X-Access-Token": "tokenA" }));
+  assert.equal(first, makeCacheKey(AVIASALES, { "x-access-token": "tokenA", authorization: "Bearer A" }));
+  assert.equal(first.includes("tokenA"), false);
+  assert.equal(first.includes("Bearer A"), false);
+});
+
 function jsonResponse(obj) {
   return new Response(JSON.stringify(obj), { status: 200 });
+}
+
+for (const [label, makeHeaders] of [
+  ["Headers", (token) => new Headers({ Authorization: token })],
+  ["tuplas", (token) => [["Authorization", token]]],
+]) {
+  test(`cache isola credenciais em ${label} e chamadas anonimas`, async (t) => {
+    let calls = 0;
+    setFetchImpl(async () => jsonResponse({ call: ++calls }));
+    t.after(() => resetFetchImpl());
+
+    const anonymous = await httpRequest(AVIASALES);
+    const a = await httpRequest(AVIASALES, { headers: makeHeaders("Bearer A") });
+    const b = await httpRequest(AVIASALES, { headers: makeHeaders("Bearer B") });
+    assert.equal(calls, 3);
+    assert.notDeepEqual(a.data, anonymous.data);
+    assert.notDeepEqual(a.data, b.data);
+
+    const again = await httpRequest(AVIASALES, { headers: makeHeaders("Bearer A") });
+    assert.equal(calls, 3);
+    assert.equal(again.fromCache, true);
+    assert.deepEqual(again.data, a.data);
+    assert.equal(makeCacheKey(AVIASALES, makeHeaders("Bearer A")),
+      makeCacheKey(AVIASALES, { Authorization: "Bearer A" }));
+  });
 }
 
 test("cache hit nao refaz o fetch (URL da Data API, GET 200)", async (t) => {
@@ -36,7 +78,7 @@ test("cache hit nao refaz o fetch (URL da Data API, GET 200)", async (t) => {
   assert.equal(second.fromCache, true);
 });
 
-test("cache expira apos o TTL e refaz o fetch", async (t) => {
+test("cache expira no instante do TTL e refaz o fetch", async (t) => {
   const clock = { t: 0 };
   let calls = 0;
   setFetchImpl(async () => {
@@ -57,8 +99,8 @@ test("cache expira apos o TTL e refaz o fetch", async (t) => {
   await httpRequest(AVIASALES, { headers: { "X-Access-Token": "tokenA" } });
   assert.equal(calls, 1);
 
-  // Depois do TTL: refaz o fetch.
-  clock.t = 900_001;
+  // No instante do TTL: refaz o fetch.
+  clock.t = 900_000;
   const after = await httpRequest(AVIASALES, { headers: { "X-Access-Token": "tokenA" } });
   assert.equal(calls, 2);
   assert.notEqual(after.fromCache, true);

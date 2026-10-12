@@ -102,3 +102,29 @@ test("validateSearchOptions rejeita data invalida com formato esperado na mensag
   assert.match(r.error, /dateFrom/);
   assert.match(r.error, /YYYY-MM/);
 });
+
+test("validateSearchOptions rejeita intervalos de datas invertidos", () => {
+  for (const [dateFrom, dateTo] of [
+    ["2026-09-16", "2026-09-15"],
+    [" 2027-01-01 ", " 2026-12-31 "],
+    ["2026-10", "2026-09"],
+    ["2026-10-01", "2026-09"],
+    ["2026-10", "2026-09-30"],
+  ]) {
+    const result = validateSearchOptions({ origin: "GRU", destination: "LIS", dateFrom, dateTo });
+    assert.equal(result.ok, false, `${dateFrom} / ${dateTo}`);
+    assert.match(result.error, /dateTo.*dateFrom/);
+  }
+});
+
+test("validateSearchOptions aceita datas iguais e meses sobrepostos", () => {
+  for (const [dateFrom, dateTo] of [
+    ["2026-09-15", "2026-09-15"],
+    ["2026-09", "2026-09"],
+    ["2026-09-15", "2026-09"],
+    ["2026-09", "2026-09-15"],
+    ["2026-09-30", "2026-10-01"],
+  ]) {
+    assert.equal(validateSearchOptions({ origin: "GRU", destination: "LIS", dateFrom, dateTo }).ok, true);
+  }
+});

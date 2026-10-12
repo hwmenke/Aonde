@@ -68,6 +68,19 @@ test("subscribe rejeita e-mail invalido e origem invalida", async (t) => {
   assert.equal(subscribe({ email: "ok@example.com", origem: "XX" }).ok, false);
 });
 
+test("subscribe valida o preco-alvo depois de arredondar para centavos", async (t) => {
+  await withTempDataDir(t);
+  for (const precoAlvoCentavos of [0.1, "0.1", Number.MAX_SAFE_INTEGER + 1]) {
+    const result = subscribe({ email: "target@example.com", origem: "GRU", precoAlvoCentavos });
+    assert.equal(result.ok, false);
+    assert.equal(result.field, "preco");
+    assert.equal(getSubscriberByEmail("target@example.com"), null);
+  }
+  const result = subscribe({ email: "target@example.com", origem: "GRU", precoAlvoCentavos: "1.5" });
+  assert.equal(result.ok, true);
+  assert.equal(result.subscriber.pending_alert.preco_alvo_centavos, 2);
+});
+
 test("confirm registra consentimento LGPD e apaga o token", async (t) => {
   await withTempDataDir(t);
   const { token } = subscribe({ email: "b@example.com", origem: "GRU" });
@@ -94,6 +107,24 @@ test("confirm com token expirado falha", async (t) => {
   const result = confirm(token);
   assert.equal(result.ok, false);
   assert.match(result.error, /expirad/i);
+});
+
+test("confirm rejeita token exatamente no prazo sem registrar consentimento", async (t) => {
+  await withTempDataDir(t);
+  const { token, subscriber } = subscribe({ email: "deadline@example.com", origem: "GRU" });
+  const expiresAt = Date.parse(subscriber.optin_token_expires_at);
+  t.mock.method(Date, "now", () => expiresAt);
+
+  const result = confirm(token);
+  assert.equal(result.ok, false);
+  assert.match(result.error, /expirad/i);
+  const pending = getSubscriberByEmail(subscriber.email);
+  assert.equal(pending.double_optin_confirmed, false);
+  assert.equal(pending.consent_lgpd_at, null);
+
+  // O mesmo token ainda e valido um milissegundo antes do prazo.
+  t.mock.method(Date, "now", () => expiresAt - 1);
+  assert.equal(confirm(token).ok, true);
 });
 
 test("re-subscribe de e-mail ja confirmado -> already_confirmed", async (t) => {
@@ -148,6 +179,29 @@ test("unsubscribe de e-mail inexistente nao vaza existencia (sempre ok)", async 
   const result = unsubscribe("nao-existe@example.com");
   assert.equal(result.ok, true);
   assert.equal(listSubscribers().length, 0);
+});
+
+test("unsubscribe invalida o link pendente e impede reativacao por token antigo", async (t) => {
+  const dir = await withTempDataDir(t);
+  const { token } = subscribe({ email: "pending@example.com", origem: "GRU" });
+  unsubscribe("pending@example.com");
+
+  const unsubscribed = listSubscribers()[0];
+  assert.equal(unsubscribed.optin_token, null);
+  assert.equal(unsubscribed.optin_token_expires_at, null);
+  assert.equal(confirm(token).ok, false);
+  assert.deepEqual(listSubscribers({ confirmedOnly: true }), []);
+
+  // Registros antigos podem ainda conter um token valido depois do descadastro.
+  const file = path.join(dir, "subscribers.json");
+  await writeFile(file, JSON.stringify([{
+    ...unsubscribed,
+    optin_token: token,
+    optin_token_expires_at: new Date(Date.now() + 60_000).toISOString(),
+  }]));
+  assert.equal(confirm(token).ok, false);
+  assert.equal(listSubscribers()[0].unsubscribed_at, unsubscribed.unsubscribed_at);
+  assert.deepEqual(listSubscribers({ confirmedOnly: true }), []);
 });
 
 test("addAlertRule exige assinante confirmado", async (t) => {
@@ -209,6 +263,30 @@ test("matchAlerts: regra sem destino casa qualquer destino; sem preco casa qualq
   assert.equal(matchAlerts({ origem: "GRU", destino: "MAD", preco_centavos: 100 }, { rules, subscribers }).length, 1);
 });
 
+test("matchAlerts ignora tarifas ausentes ou invalidas, com e sem preco-alvo", () => {
+  const subscribers = [{ id: "confirmed", double_optin_confirmed: true }];
+  for (const preco_alvo_centavos of [null, 300000]) {
+    const rules = [{ subscriber_id: "confirmed", origem: "GRU", preco_alvo_centavos }];
+    for (const preco_centavos of [undefined, null, "100", 0, -100, NaN, Infinity, -Infinity]) {
+      assert.equal(matchAlerts({ origem: "GRU", destino: "LIS", preco_centavos }, { rules, subscribers }).length, 0);
+    }
+    assert.equal(matchAlerts({ origem: "GRU", destino: "LIS", preco_centavos: 100 }, { rules, subscribers }).length, 1);
+  }
+});
+
+test("matchAlerts ignora preco-alvo malformado em regras persistidas", () => {
+  const subscribers = [{ id: "confirmed", double_optin_confirmed: true }];
+  const offer = { origem: "GRU", destino: "LIS", preco_centavos: 100 };
+  for (const preco_alvo_centavos of ["100", Infinity, -Infinity, NaN, 0, -100, true, [], [100], {}]) {
+    const rules = [{ subscriber_id: "confirmed", origem: "GRU", preco_alvo_centavos }];
+    assert.equal(matchAlerts(offer, { rules, subscribers }).length, 0);
+  }
+  for (const preco_alvo_centavos of [undefined, null, 100]) {
+    const rules = [{ subscriber_id: "confirmed", origem: "GRU", preco_alvo_centavos }];
+    assert.equal(matchAlerts(offer, { rules, subscribers }).length, 1);
+  }
+});
+
 test("dispatchAlerts enfileira em JSONL com HASH do e-mail (nao o e-mail em claro)", async (t) => {
   const dir = await withTempDataDir(t);
   const email = "k@example.com";
@@ -232,6 +310,25 @@ test("dispatchAlerts enfileira em JSONL com HASH do e-mail (nao o e-mail em clar
   assert.equal(line.offerId, "gru-lis");
   assert.equal(line.offerRoute, "GRU-LIS");
   assert.equal(line.precoCentavos, 250000);
+});
+
+test("dispatchAlerts preserva cooldown depois de entradas malformadas na fila", async (t) => {
+  const dir = await withTempDataDir(t);
+  const subscriber = subscribeAndConfirm();
+  assert.equal(addAlertRule({ subscriberId: subscriber.id, origem: "GRU" }).ok, true);
+  // Tarifa sintetica usada apenas como fixture de teste.
+  const offer = { id: "cooldown-fixture", origem: "GRU", destino: "LIS", preco_centavos: 100 };
+  const agora = Date.UTC(2026, 0, 1);
+  assert.equal(dispatchAlerts([offer], { agora }).queued, 1);
+
+  const queuePath = path.join(dir, "alert_queue.jsonl");
+  const original = await readFile(queuePath, "utf-8");
+  await writeFile(queuePath, 'invalid-json\nnull\n42\n"text"\n[]\n' + original);
+
+  const result = dispatchAlerts([offer], { agora: agora + 1000 });
+  assert.equal(result.queued, 0);
+  assert.equal(result.suprimidos, 1);
+  assert.equal(await readFile(queuePath, "utf-8"), 'invalid-json\nnull\n42\n"text"\n[]\n' + original);
 });
 
 test("dispatchAlerts respeita setSenderImpl (ponto de integracao)", async (t) => {

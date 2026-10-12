@@ -94,10 +94,15 @@ export async function processarFila({ limite = 200, agora = new Date() } = {}) {
       continue; // linha corrompida nao trava a fila
     }
 
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      pulados++;
+      continue;
+    }
+
     const sub = assinantePorHash(item.subscriberEmailHash, assinantes);
-    // Assinante apagado, descadastrado ou com a PII removida: nao ha para quem
-    // mandar, e isso NAO e falha — e o sistema respeitando o descadastro.
-    if (!sub || !sub.email || sub.unsubscribed_at) {
+    // Revalida o consentimento no envio, mesmo para alertas ja enfileirados.
+    // Assinante pendente, apagado ou descadastrado deve ser pulado.
+    if (!sub || !sub.email || !sub.double_optin_confirmed || sub.unsubscribed_at) {
       pulados++;
       continue;
     }

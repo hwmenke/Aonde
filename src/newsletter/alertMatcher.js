@@ -25,6 +25,7 @@ import { listAlertRules } from "./alertRules.js";
  * Casa um conjunto de ofertas/regras. Puro e testavel.
  *
  * Uma regra casa uma oferta quando:
+ *   - offer.preco_centavos e um numero finito maior que zero
  *   - offer.origem === rule.origem (IATA, case-insensitive)
  *   - rule.destino ausente OU igual a offer.destino
  *   - rule.preco_alvo_centavos ausente OU offer.preco_centavos <= alvo
@@ -40,6 +41,8 @@ export function matchAlerts(offer, { rules = [], subscribers = [] } = {}) {
   const offerOrigem = String(offer.origem || "").toUpperCase();
   const offerDestino = String(offer.destino || "").toUpperCase();
   const offerPreco = offer.preco_centavos;
+  // Sem uma tarifa real e positiva, nao ha oferta de preco para notificar.
+  if (typeof offerPreco !== "number" || !Number.isFinite(offerPreco) || offerPreco <= 0) return [];
 
   // Indexa assinantes elegiveis (confirmados e ativos) por id.
   const eligibleById = new Map();
@@ -61,12 +64,12 @@ export function matchAlerts(offer, { rules = [], subscribers = [] } = {}) {
     const ruleDestino = rule.destino ? String(rule.destino).toUpperCase() : null;
     if (ruleDestino && ruleDestino !== offerDestino) continue;
 
-    if (
-      rule.preco_alvo_centavos !== undefined &&
-      rule.preco_alvo_centavos !== null &&
-      !(typeof offerPreco === "number" && offerPreco <= rule.preco_alvo_centavos)
-    ) {
-      continue;
+    const target = rule.preco_alvo_centavos;
+    if (target !== undefined && target !== null) {
+      // Regras persistidas tambem precisam da validacao aplicada na criacao.
+      if (typeof target !== "number" || !Number.isFinite(target) || target <= 0 || offerPreco > target) {
+        continue;
+      }
     }
 
     const canais = Array.isArray(rule.canais) && rule.canais.length > 0 ? rule.canais : ["email"];
@@ -136,6 +139,7 @@ function ultimosEnvios() {
       } catch {
         continue; // linha corrompida nao invalida o resto da fila
       }
+      if (!item || typeof item !== "object" || Array.isArray(item)) continue;
       const chave = `${item.subscriberEmailHash}|${item.offerRoute}|${item.canal}`;
       const t = Date.parse(item.queuedAt || "");
       if (!Number.isFinite(t)) continue;
