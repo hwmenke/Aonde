@@ -119,12 +119,13 @@ export function getRouteStats(origin, destination, options = {}) {
   const all = readJsonSafe(file, []);
   const observations = Array.isArray(all) ? all : [];
 
-  const cutoff = Date.now() - windowDays * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const cutoff = now - windowDays * 24 * 60 * 60 * 1000;
   const centavos = [];
   for (const obs of observations) {
     if (!obs) continue;
     const ts = Date.parse(obs.observedAt);
-    if (Number.isNaN(ts) || ts < cutoff) continue;
+    if (Number.isNaN(ts) || ts < cutoff || ts > now) continue;
     const c = priceToCentavos(obs.price);
     if (c === null) continue;
     centavos.push(c);
@@ -193,12 +194,13 @@ export function getRouteSeries(origin, destination, options = {}) {
   const all = readJsonSafe(file, []);
   const observations = Array.isArray(all) ? all : [];
 
-  const cutoff = Date.now() - windowDays * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const cutoff = now - windowDays * 24 * 60 * 60 * 1000;
   const points = [];
   for (const obs of observations) {
     if (!obs) continue;
     const ts = Date.parse(obs.observedAt);
-    if (Number.isNaN(ts) || ts < cutoff) continue;
+    if (Number.isNaN(ts) || ts < cutoff || ts > now) continue;
     const c = priceToCentavos(obs.price);
     if (c === null) continue;
     points.push({ observedAt: obs.observedAt, ts, priceCentavos: c });
