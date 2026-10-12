@@ -195,8 +195,9 @@ export async function searchPlaces({
     };
   }
 
-  // Resposta ok mas em formato inesperado (sem o array `places`).
-  if (!res.data || typeof res.data !== "object") {
+  // Ausencia de `places` e valida; um campo presente precisa ser um array.
+  if (!res.data || typeof res.data !== "object" || Array.isArray(res.data) ||
+      (Object.hasOwn(res.data, "places") && !Array.isArray(res.data.places))) {
     return {
       ok: false,
       places: [],

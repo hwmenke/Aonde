@@ -197,6 +197,25 @@ test(
 // -----------------------------------------------------------------------
 
 test(
+  "searchPlaces rejeita formatos inesperados sem confundir com busca vazia",
+  withApiKey("fake-key", async () => {
+    for (const payload of [[], { places: null }, { places: {} }, { places: "invalid" }]) {
+      setFetchImpl(async () => jsonResponse(payload));
+      const res = await searchPlaces({ query: "x" });
+      assert.equal(res.ok, false, JSON.stringify(payload));
+      assert.deepEqual(res.places, []);
+      assert.match(res.error, /formato inesperado/);
+    }
+    for (const payload of [{}, { places: [] }]) {
+      setFetchImpl(async () => jsonResponse(payload));
+      const res = await searchPlaces({ query: "x" });
+      assert.equal(res.ok, true);
+      assert.deepEqual(res.places, []);
+    }
+  })
+);
+
+test(
   "searchPlaces retorna ok:false em erro HTTP (com corpo resumido)",
   withApiKey("fake-key", async () => {
     setFetchImpl(async () =>
