@@ -119,7 +119,8 @@ export function subscribe({ email, whatsapp, origem, destino, precoAlvoCentavos 
     return { ok: false, field: "destino", error: "Destino inválido para o alerta. Use o código de 3 letras do aeroporto, como REC." };
   }
   const hasPreco = precoAlvoCentavos !== undefined && precoAlvoCentavos !== null && precoAlvoCentavos !== "";
-  const precoArredondado = hasPreco ? Math.round(Number(precoAlvoCentavos)) : null;
+  const isPrecoNumeric = typeof precoAlvoCentavos === "number" || typeof precoAlvoCentavos === "string";
+  const precoArredondado = hasPreco && isPrecoNumeric ? Math.round(Number(precoAlvoCentavos)) : null;
   if (hasPreco && !(Number.isSafeInteger(precoArredondado) && precoArredondado > 0)) {
     return { ok: false, field: "preco", error: "Preço-alvo inválido. Informe um valor maior que zero." };
   }

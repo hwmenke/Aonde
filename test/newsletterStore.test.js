@@ -81,6 +81,17 @@ test("subscribe valida o preco-alvo depois de arredondar para centavos", async (
   assert.equal(result.subscriber.pending_alert.preco_alvo_centavos, 2);
 });
 
+test("subscribe rejeita tipos de preco-alvo que nao sao numeros nem strings", async (t) => {
+  const dir = await withTempDataDir(t);
+  for (const precoAlvoCentavos of [true, false, [], [100], {}, Symbol("invalid"), 100n]) {
+    const result = subscribe({ email: "invalid-target@example.com", origem: "GRU", precoAlvoCentavos });
+    assert.equal(result.ok, false);
+    assert.equal(result.field, "preco");
+    assert.deepEqual(listSubscribers(), []);
+    assert.equal(existsSync(path.join(dir, "subscribers.json")), false);
+  }
+});
+
 test("confirm registra consentimento LGPD e apaga o token", async (t) => {
   await withTempDataDir(t);
   const { token } = subscribe({ email: "b@example.com", origem: "GRU" });
