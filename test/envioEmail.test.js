@@ -37,6 +37,35 @@ function comProvedor(t, vars = {}) {
 
 const MSG = { para: "pessoa@exemplo.com", assunto: "Preço caiu", textoPlano: "texto", html: "<p>html</p>" };
 
+test("o worker envia apenas entradas do canal email", async (t) => {
+  const dir = comDataDir(t);
+  comProvedor(t, { AONDE_EMAIL_PROVIDER: "resend", AONDE_EMAIL_API_KEY: "k", AONDE_EMAIL_FROM: "a@b.com" });
+  const { subscribe, confirm, hashEmail } = await import("../src/newsletter/subscriberStore.js");
+  const s = subscribe({ email: "canal@exemplo.com", origem: "GRU" });
+  confirm(s.token);
+  const canais = ["whatsapp", "sms", null, undefined, "email"];
+  const fila = canais.map((canal) => JSON.stringify({
+    subscriberEmailHash: hashEmail("canal@exemplo.com"), canal,
+    offerRoute: "GRU-REC", precoCentavos: 50000,
+  }));
+  writeFileSync(path.join(dir, "alert_queue.jsonl"), fila.join("\n") + "\n");
+  let enviados = 0;
+  setFetchImpl(async () => {
+    enviados++;
+    return { ok: true, status: 200, headers: new Map(), text: async () => "{}" };
+  });
+  t.after(() => resetFetchImpl());
+  const { processarFila } = await import("../src/newsletter/worker.js");
+  const r = await processarFila();
+  assert.equal(r.enviados, 1);
+  assert.equal(r.pulados, 4);
+  assert.equal(enviados, 1);
+  assert.equal(r.pendentesRestantes, 0);
+  assert.equal(readFileSync(path.join(dir, "alert_queue.checkpoint"), "utf-8"), "5");
+  assert.equal((await processarFila()).enviados, 0);
+  assert.equal(enviados, 1);
+});
+
 test("sem provedor configurado, NAO finge que enviou", async (t) => {
   comDataDir(t);
   comProvedor(t, {});
