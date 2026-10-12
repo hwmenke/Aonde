@@ -161,6 +161,28 @@ test(
 // -----------------------------------------------------------------------
 
 test(
+  "buildItinerary coloca pontos sem coordenadas por ultimo mesmo com poucos pontos geograficos",
+  withApiKey(async () => {
+    for (const geoCount of [1, 2]) {
+      const attractions = [
+        makeAttraction(1, { geo: false }),
+        ...Array.from({ length: geoCount }, (_, i) => makeAttraction(i + 2)),
+        makeAttraction(geoCount + 2, { geo: false }),
+      ];
+      installFetch({ attractions });
+      const it = await buildItinerary({ destination: "Recife", days: 1, withRestaurants: false });
+
+      assert.equal(it.ok, true);
+      assert.deepEqual(it.days[0].pontos.map((p) => p.nome), [
+        ...Array.from({ length: geoCount }, (_, i) => `Atracao ${i + 2}`),
+        "Atracao 1",
+        `Atracao ${geoCount + 2}`,
+      ]);
+    }
+  })
+);
+
+test(
   "buildItinerary omite resumo quando o lugar nao tem editorialSummary",
   withApiKey(async () => {
     const attractions = [

@@ -56,7 +56,7 @@ function orderByProximity(points) {
   const withGeo = points.filter((p) => p.lat != null && p.lng != null);
   const withoutGeo = points.filter((p) => p.lat == null || p.lng == null);
 
-  if (withGeo.length <= 2) return points; // nada a ganhar reordenando
+  if (withGeo.length <= 2) return [...withGeo, ...withoutGeo];
 
   const cLat = withGeo.reduce((s, p) => s + p.lat, 0) / withGeo.length;
   const cLng = withGeo.reduce((s, p) => s + p.lng, 0) / withGeo.length;
