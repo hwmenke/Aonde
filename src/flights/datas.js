@@ -16,6 +16,18 @@ const MESES = {
   out: "10",
   nov: "11",
   dez: "12",
+  janeiro: "01",
+  fevereiro: "02",
+  marco: "03",
+  abril: "04",
+  maio: "05",
+  junho: "06",
+  julho: "07",
+  agosto: "08",
+  setembro: "09",
+  outubro: "10",
+  novembro: "11",
+  dezembro: "12",
 };
 
 const ISO_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -52,7 +64,7 @@ export function parseDataPtBr(raw) {
   const pt = PT_RE.exec(str);
   if (pt) {
     const [, d, mesRaw, y] = pt;
-    const chave = removeAcentos(mesRaw.slice(0, 3).toLowerCase());
+    const chave = removeAcentos(mesRaw.toLowerCase());
     const mm = MESES[chave];
     if (!mm) return null;
     const dd = d.padStart(2, "0");
