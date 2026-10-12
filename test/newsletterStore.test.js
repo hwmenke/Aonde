@@ -109,6 +109,22 @@ test("confirm com token expirado falha", async (t) => {
   assert.match(result.error, /expirad/i);
 });
 
+test("confirm rejeita prazo malformado sem registrar consentimento", async (t) => {
+  const dir = await withTempDataDir(t);
+  const { token } = subscribe({ email: "invalid-expiry@example.com", origem: "GRU" });
+  const file = path.join(dir, "subscribers.json");
+  const all = JSON.parse(await readFile(file, "utf-8"));
+  all[0].optin_token_expires_at = "invalid-date";
+  await writeFile(file, JSON.stringify(all));
+
+  const result = confirm(token);
+  assert.equal(result.ok, false);
+  assert.match(result.error, /expirad/i);
+  const stored = JSON.parse(await readFile(file, "utf-8"))[0];
+  assert.equal(stored.double_optin_confirmed, false);
+  assert.equal(stored.consent_lgpd_at, null);
+});
+
 test("confirm rejeita token exatamente no prazo sem registrar consentimento", async (t) => {
   await withTempDataDir(t);
   const { token, subscriber } = subscribe({ email: "deadline@example.com", origem: "GRU" });
