@@ -107,8 +107,11 @@ function normalizePlace(place) {
     // displayName vem como { text, languageCode } na Places API (New).
     name: place.displayName?.text || place.displayName || null,
     address: place.formattedAddress || null,
-    lat: typeof location.latitude === "number" ? location.latitude : null,
-    lng: typeof location.longitude === "number" ? location.longitude : null,
+    // Coordenadas impossiveis nao devem entrar na ordenacao por proximidade.
+    lat: Number.isFinite(location.latitude) && Math.abs(location.latitude) <= 90
+      ? location.latitude : null,
+    lng: Number.isFinite(location.longitude) && Math.abs(location.longitude) <= 180
+      ? location.longitude : null,
     // Dados invalidos ficam ausentes para nao corromper a ordenacao ponderada
     // nem exibir uma nota ou contagem de avaliacoes impossivel.
     rating: Number.isFinite(place.rating) && place.rating >= 0 && place.rating <= 5
