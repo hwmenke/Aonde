@@ -37,6 +37,47 @@ function comProvedor(t, vars = {}) {
 
 const MSG = { para: "pessoa@exemplo.com", assunto: "Preço caiu", textoPlano: "texto", html: "<p>html</p>" };
 
+test("o worker respeita o limite e retoma os lotes sem perder ou repetir alertas", async (t) => {
+  const dir = comDataDir(t);
+  comProvedor(t, { AONDE_EMAIL_PROVIDER: "resend", AONDE_EMAIL_API_KEY: "k", AONDE_EMAIL_FROM: "a@b.com" });
+  const { subscribe, confirm, hashEmail } = await import("../src/newsletter/subscriberStore.js");
+  const emails = ["lote1@exemplo.com", "lote2@exemplo.com", "lote3@exemplo.com"];
+  for (const email of emails) confirm(subscribe({ email, origem: "GRU" }).token);
+  const fila = emails.map((email) => JSON.stringify({
+    subscriberEmailHash: hashEmail(email), canal: "email",
+    offerRoute: "GRU-REC", precoCentavos: 50000,
+  }));
+  // A skipped record also consumes one slot and must advance the checkpoint.
+  fila.splice(1, 0, "invalid JSON");
+  writeFileSync(path.join(dir, "alert_queue.jsonl"), fila.join("\n") + "\n");
+  const destinatarios = [];
+  setFetchImpl(async (_url, options) => {
+    destinatarios.push(JSON.parse(options.body).to[0]);
+    return { ok: true, status: 200, headers: new Map(), text: async () => "{}" };
+  });
+  t.after(() => resetFetchImpl());
+  const { processarFila } = await import("../src/newsletter/worker.js");
+
+  const primeira = await processarFila({ limite: 2 });
+  assert.equal(primeira.lidos, 2);
+  assert.equal(primeira.enviados, 1);
+  assert.equal(primeira.pulados, 1);
+  assert.equal(primeira.pendentesRestantes, 2);
+  assert.equal(readFileSync(path.join(dir, "alert_queue.checkpoint"), "utf-8"), "2");
+  assert.deepEqual(destinatarios, emails.slice(0, 1));
+
+  const segunda = await processarFila({ limite: 2 });
+  assert.equal(segunda.lidos, 2);
+  assert.equal(segunda.enviados, 2);
+  assert.equal(segunda.pulados, 0);
+  assert.equal(segunda.pendentesRestantes, 0);
+  assert.equal(readFileSync(path.join(dir, "alert_queue.checkpoint"), "utf-8"), "4");
+  assert.deepEqual(destinatarios, emails);
+
+  assert.equal((await processarFila({ limite: 2 })).lidos, 0);
+  assert.deepEqual(destinatarios, emails);
+});
+
 test("o worker pula rotas malformadas sem perder o alerta valido seguinte", async (t) => {
   const dir = comDataDir(t);
   comProvedor(t, { AONDE_EMAIL_PROVIDER: "resend", AONDE_EMAIL_API_KEY: "k", AONDE_EMAIL_FROM: "a@b.com" });
