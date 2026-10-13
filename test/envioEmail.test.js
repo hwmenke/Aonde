@@ -146,6 +146,40 @@ test("o worker retoma a falha temporaria sem perder nem repetir alertas", async 
   assert.equal(destinatarios.length, 6);
 });
 
+test("o worker avanca apos falha permanente e entrega o alerta seguinte", async (t) => {
+  const dir = comDataDir(t);
+  comProvedor(t, { AONDE_EMAIL_PROVIDER: "resend", AONDE_EMAIL_API_KEY: "k", AONDE_EMAIL_FROM: "a@b.com" });
+  const { subscribe, confirm, hashEmail } = await import("../src/newsletter/subscriberStore.js");
+  const emails = ["recusado@exemplo.com", "seguinte@exemplo.com"];
+  for (const email of emails) confirm(subscribe({ email, origem: "GRU" }).token);
+  const fila = emails.map((email) => JSON.stringify({
+    subscriberEmailHash: hashEmail(email), canal: "email",
+    offerRoute: "GRU-REC", precoCentavos: 50000,
+  }));
+  writeFileSync(path.join(dir, "alert_queue.jsonl"), fila.join("\n") + "\n");
+  const destinatarios = [];
+  setFetchImpl(async (_url, options) => {
+    const email = JSON.parse(options.body).to[0];
+    destinatarios.push(email);
+    const recusado = email === emails[0];
+    return { ok: !recusado, status: recusado ? 422 : 200, headers: new Map(), text: async () => "{}" };
+  });
+  t.after(() => resetFetchImpl());
+  const { processarFila } = await import("../src/newsletter/worker.js");
+  const { estaSuprimido } = await import("../src/newsletter/sender.js");
+
+  const resultado = await processarFila();
+  assert.equal(resultado.enviados, 1);
+  assert.equal(resultado.pulados, 1);
+  assert.equal(resultado.falhas, 0);
+  assert.equal(resultado.pendentesRestantes, 0);
+  assert.deepEqual(destinatarios, emails);
+  assert.equal(estaSuprimido(emails[0]), true);
+  assert.equal(readFileSync(path.join(dir, "alert_queue.checkpoint"), "utf-8"), "2");
+  assert.equal((await processarFila()).lidos, 0);
+  assert.deepEqual(destinatarios, emails);
+});
+
 test("o worker envia apenas entradas do canal email", async (t) => {
   const dir = comDataDir(t);
   comProvedor(t, { AONDE_EMAIL_PROVIDER: "resend", AONDE_EMAIL_API_KEY: "k", AONDE_EMAIL_FROM: "a@b.com" });
