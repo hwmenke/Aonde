@@ -459,7 +459,7 @@ test("o worker pula precos invalidos na fila e envia somente a tarifa valida", a
   const { subscribe, confirm, hashEmail } = await import("../src/newsletter/subscriberStore.js");
   const s = subscribe({ email: "preco@exemplo.com", origem: "GRU" });
   confirm(s.token);
-  const invalidos = [undefined, null, "50000", 0, -1, true, [], {}];
+  const invalidos = [undefined, null, "50000", 0, -1, 0.5, 50000.5, Number.MAX_SAFE_INTEGER + 1, true, [], {}];
   const fila = [...invalidos, 50000].map((precoCentavos) => JSON.stringify({
     subscriberEmailHash: hashEmail("preco@exemplo.com"), canal: "email",
     offerRoute: "GRU-REC", precoCentavos,

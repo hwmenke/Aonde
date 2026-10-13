@@ -110,7 +110,7 @@ export async function processarFila({ limite = 200, agora = new Date() } = {}) {
     }
 
     // Revalida tarifas persistidas antes de montar o e-mail de preco.
-    if (typeof item.precoCentavos !== "number" || !Number.isFinite(item.precoCentavos) || item.precoCentavos <= 0) {
+    if (!Number.isSafeInteger(item.precoCentavos) || item.precoCentavos <= 0) {
       pulados++;
       continue;
     }
