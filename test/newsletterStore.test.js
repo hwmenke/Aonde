@@ -411,6 +411,30 @@ test("dispatchAlerts enfileira em JSONL com HASH do e-mail (nao o e-mail em clar
   assert.equal(line.precoCentavos, 250000);
 });
 
+test("dispatchAlerts rejeita centavos fracionarios e inseguros sem consumir cooldown", async (t) => {
+  const dir = await withTempDataDir(t);
+  const subscriber = subscribeAndConfirm();
+  assert.equal(addAlertRule({ subscriberId: subscriber.id, origem: "GRU" }).ok, true);
+  const sent = [];
+  setSenderImpl((item) => sent.push(item));
+  t.after(() => resetSenderImpl());
+  const agora = Date.UTC(2026, 0, 1);
+  // Valores sinteticos usados somente como fixtures de teste.
+  for (const preco_centavos of [0.5, 100.5, Number.MAX_SAFE_INTEGER + 1]) {
+    const result = dispatchAlerts([{ origem: "GRU", destino: "LIS", preco_centavos }], { agora });
+    assert.equal(result.queued, 0);
+    assert.equal(result.suprimidos, 0);
+  }
+  assert.equal(sent.length, 0);
+  assert.equal(existsSync(path.join(dir, "alert_queue.jsonl")), false);
+  const valid = dispatchAlerts([{ origem: "GRU", destino: "LIS", preco_centavos: 100 }], { agora });
+  assert.equal(valid.queued, 1);
+  assert.equal(sent.length, 1);
+  const lines = (await readFile(path.join(dir, "alert_queue.jsonl"), "utf-8")).trim().split("\n");
+  assert.equal(lines.length, 1);
+  assert.equal(JSON.parse(lines[0]).precoCentavos, 100);
+});
+
 test("dispatchAlerts usa rota normalizada na fila e no cooldown", async (t) => {
   const dir = await withTempDataDir(t);
   const subscriber = subscribeAndConfirm();

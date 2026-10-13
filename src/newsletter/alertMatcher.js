@@ -26,7 +26,7 @@ import { isIataCode, normalizeIata } from "../validate.js";
  * Casa um conjunto de ofertas/regras. Puro e testavel.
  *
  * Uma regra casa uma oferta quando:
- *   - offer.preco_centavos e um numero finito maior que zero
+ *   - offer.preco_centavos e um inteiro seguro maior que zero
  *   - offer.origem === rule.origem (IATA, case-insensitive)
  *   - rule.destino ausente OU igual a offer.destino
  *   - rule.preco_alvo_centavos ausente OU offer.preco_centavos <= alvo
@@ -45,7 +45,7 @@ export function matchAlerts(offer, { rules = [], subscribers = [] } = {}) {
   const offerDestino = normalizeIata(offer.destino);
   const offerPreco = offer.preco_centavos;
   // Sem uma tarifa real e positiva, nao ha oferta de preco para notificar.
-  if (typeof offerPreco !== "number" || !Number.isFinite(offerPreco) || offerPreco <= 0) return [];
+  if (!Number.isSafeInteger(offerPreco) || offerPreco <= 0) return [];
 
   // Indexa assinantes elegiveis (confirmados e ativos) por id.
   const eligibleById = new Map();
