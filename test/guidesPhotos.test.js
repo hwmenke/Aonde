@@ -184,6 +184,27 @@ test("firstPhotoFrom skips unusable entries and preserves the selected photo cre
   assert.equal(firstPhotoFrom({ photos: invalid }, { apiKey: "k" }), null);
 });
 
+test("firstPhotoFrom only preserves positive safe integer photo dimensions", () => {
+  const invalid = [undefined, null, "800", true, 0, -1, 1.5, NaN, Infinity, -Infinity, Number.MAX_SAFE_INTEGER + 1];
+  for (const dimension of invalid) {
+    for (const field of ["widthPx", "heightPx"]) {
+      const photo = { ...makePhotos(1)[0], [field]: dimension };
+      const result = firstPhotoFrom({ photos: [photo] }, { apiKey: "k" });
+      assert.ok(result.mediaUrl);
+      assert.equal(result[field], null, `${field}: ${String(dimension)}`);
+      const other = field === "widthPx" ? "heightPx" : "widthPx";
+      assert.equal(result[other], photo[other]);
+      assert.equal(result.attribution.text, "Autor 1");
+    }
+  }
+  for (const dimension of [1, 4032, 6000, Number.MAX_SAFE_INTEGER]) {
+    const photo = { ...makePhotos(1)[0], widthPx: dimension, heightPx: dimension };
+    const result = firstPhotoFrom({ photos: [photo] }, { apiKey: "k" });
+    assert.equal(result.widthPx, dimension);
+    assert.equal(result.heightPx, dimension);
+  }
+});
+
 test("firstPhotoFrom retorna null quando o place nao tem fotos", () => {
   assert.equal(firstPhotoFrom({ photos: [] }, { apiKey: "k" }), null);
   assert.equal(firstPhotoFrom({}, { apiKey: "k" }), null);

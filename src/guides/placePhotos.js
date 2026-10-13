@@ -213,7 +213,7 @@ export function firstPhotoFrom(place, { maxWidthPx = 800, maxHeightPx, apiKey } 
   return {
     mediaUrl,
     attribution,
-    widthPx: typeof photo.widthPx === "number" ? photo.widthPx : null,
-    heightPx: typeof photo.heightPx === "number" ? photo.heightPx : null,
+    widthPx: Number.isSafeInteger(photo.widthPx) && photo.widthPx > 0 ? photo.widthPx : null,
+    heightPx: Number.isSafeInteger(photo.heightPx) && photo.heightPx > 0 ? photo.heightPx : null,
   };
 }
