@@ -165,6 +165,19 @@ test("buildOfferProduct nao trata USD $242 como reais", () => {
   assert.notEqual(product.offers.priceCurrency, "BRL");
 });
 
+test("buildOfferProduct omite ofertas com tarifas zero ou negativas", () => {
+  for (const preco of ["R$ 0", "R$ 0,00", "R$ -10,50", "USD $0", "USD -$10.50"]) {
+    const product = buildOfferProduct({
+      cidade: "Recife",
+      preco,
+      affiliateUrl: "https://example.com/offer",
+      href: "/ofertas/x",
+    });
+    assert.equal(product["@type"], "Product");
+    assert.equal(product.offers, undefined, preco);
+  }
+});
+
 test("buildOfferProduct devolve null sem destino", () => {
   assert.equal(buildOfferProduct(null), null);
   assert.equal(buildOfferProduct({ preco: "R$ 10" }), null);
