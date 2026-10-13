@@ -276,3 +276,43 @@ test("clearHttpCache() invalida o cache", async (t) => {
   await httpRequest(AVIASALES, { headers: { "X-Access-Token": "tokenA" } });
   assert.equal(calls, 2);
 });
+
+test("cache hits preservam a cota e continuam disponiveis com o balde esgotado", async (t) => {
+  const url = "https://api.awin.com/publishers/1/linkbuilder/generate";
+  const original = process.env.AONDE_RATE_LIMIT;
+  delete process.env.AONDE_RATE_LIMIT;
+  let calls = 0;
+  setFetchImpl(async () => jsonResponse({ call: ++calls }));
+  setClockImpl(() => 0);
+  t.after(() => {
+    resetFetchImpl();
+    if (original === undefined) delete process.env.AONDE_RATE_LIMIT;
+    else process.env.AONDE_RATE_LIMIT = original;
+  });
+
+  const cachedOptions = { cacheTtlMs: 60_000 };
+  const first = await httpRequest(url, cachedOptions);
+  assert.equal(first.ok, true);
+  for (let i = 0; i < 25; i++) {
+    const hit = await httpRequest(url, cachedOptions);
+    assert.equal(hit.fromCache, true);
+    assert.deepEqual(hit.data, first.data);
+  }
+  assert.equal(calls, 1);
+
+  // Awin permite 20 requisicoes: a primeira consumiu apenas uma ficha.
+  for (let i = 0; i < 19; i++) {
+    const fetched = await httpRequest(url, { cacheTtlMs: 0 });
+    assert.equal(fetched.ok, true);
+    assert.notEqual(fetched.fromCache, true);
+  }
+  const blocked = await httpRequest(url, { cacheTtlMs: 0 });
+  assert.equal(blocked.rateLimited, true);
+  assert.equal(calls, 20);
+
+  const hit = await httpRequest(url, cachedOptions);
+  assert.equal(hit.ok, true);
+  assert.equal(hit.fromCache, true);
+  assert.deepEqual(hit.data, first.data);
+  assert.equal(calls, 20);
+});
