@@ -475,6 +475,43 @@ test("dispatchAlerts libera alerta no limite do cooldown e reinicia a janela", a
   ]);
 });
 
+test("dispatchAlerts deduplica regras e ofertas no mesmo lote sem suprimir outros destinatarios ou rotas", async (t) => {
+  const dir = await withTempDataDir(t);
+  const first = subscribeAndConfirm("batch-first@example.com");
+  const second = subscribeAndConfirm("batch-second@example.com");
+  for (const subscriber of [first, second]) {
+    assert.equal(addAlertRule({ subscriberId: subscriber.id, origem: "GRU", canais: ["email", "whatsapp"] }).ok, true);
+    assert.equal(addAlertRule({ subscriberId: subscriber.id, origem: "GRU", destino: "LIS", canais: ["email", "whatsapp"] }).ok, true);
+  }
+  const sent = [];
+  setSenderImpl((item) => sent.push(item));
+  t.after(() => resetSenderImpl());
+  // Valores sinteticos usados somente como fixtures de teste.
+  const offers = [
+    { id: "batch-lis", origem: "GRU", destino: "LIS", preco_centavos: 100 },
+    { id: "batch-lis-repeat", origem: " gru ", destino: " lis ", preco_centavos: 100 },
+    { id: "batch-mad", origem: "GRU", destino: "MAD", preco_centavos: 100 },
+  ];
+  const agora = Date.UTC(2026, 0, 1);
+  const result = dispatchAlerts(offers, { agora });
+  const expected = [first.email, second.email].flatMap((email) => {
+    const hash = crypto.createHash("sha256").update(email).digest("hex");
+    return ["GRU-LIS", "GRU-MAD"].flatMap((route) =>
+      ["email", "whatsapp"].map((channel) => `${hash}|${route}|${channel}`));
+  }).sort();
+  const keys = (items) => items.map((item) =>
+    `${item.subscriberEmailHash}|${item.offerRoute}|${item.canal}`).sort();
+  assert.equal(result.queued, 8);
+  assert.equal(result.suprimidos, 12);
+  assert.deepEqual(keys(result.items), expected);
+  assert.deepEqual(sent, result.items);
+  const persisted = (await readFile(path.join(dir, "alert_queue.jsonl"), "utf-8"))
+    .trim().split("\n").map((line) => JSON.parse(line));
+  assert.deepEqual(persisted, result.items);
+  assert.equal(dispatchAlerts(offers, { agora: agora + 1 }).queued, 0);
+  assert.equal(sent.length, 8);
+});
+
 test("dispatchAlerts respeita setSenderImpl (ponto de integracao)", async (t) => {
   await withTempDataDir(t);
   const sub = subscribeAndConfirm("l@example.com");
