@@ -263,6 +263,25 @@ test("addAlertRule exige assinante confirmado", async (t) => {
   assert.equal(listAlertRules().length, 0);
 });
 
+test("addAlertRule rejeita destinos não textuais sem persistir regras", async (t) => {
+  await withTempDataDir(t);
+  const sub = subscribeAndConfirm("destination-validation@example.com");
+  for (const destino of [[], [""], ["LIS"], false, 0, {}, Object.create(null)]) {
+    const result = addAlertRule({ subscriberId: sub.id, origem: "GRU", destino });
+    assert.equal(result.ok, false);
+    assert.match(result.error, /Destino inválido/);
+    assert.deepEqual(listAlertRules(), []);
+  }
+  for (const destino of [undefined, null, "", "   "]) {
+    const result = addAlertRule({ subscriberId: sub.id, origem: "GRU", destino });
+    assert.equal(result.ok, true);
+    assert.equal(result.rule.destino, null);
+  }
+  const result = addAlertRule({ subscriberId: sub.id, origem: "GRU", destino: " lis " });
+  assert.equal(result.ok, true);
+  assert.equal(result.rule.destino, "LIS");
+});
+
 test("matchAlerts casa por origem/destino/preco e ignora nao-confirmados", async (t) => {
   await withTempDataDir(t);
   const sub = subscribeAndConfirm("i@example.com");
