@@ -72,6 +72,9 @@ function assinantePorHash(hash, assinantes) {
  * @returns {Promise<{ok:boolean, lidos:number, enviados:number, pulados:number, falhas:number, modo:string}>}
  */
 export async function processarFila({ limite = 200, agora = new Date() } = {}) {
+  if (!Number.isSafeInteger(limite) || limite < 0) {
+    throw new RangeError("O limite deve ser um inteiro seguro maior ou igual a zero.");
+  }
   const linhas = lerFila();
   const jaFeitos = lerCheckpoint();
   const pendentes = linhas.slice(jaFeitos, jaFeitos + limite);

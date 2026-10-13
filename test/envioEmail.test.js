@@ -37,6 +37,33 @@ function comProvedor(t, vars = {}) {
 
 const MSG = { para: "pessoa@exemplo.com", assunto: "Preço caiu", textoPlano: "texto", html: "<p>html</p>" };
 
+test("o worker rejeita limites invalidos sem avancar o checkpoint", async (t) => {
+  const dir = comDataDir(t);
+  comProvedor(t, {});
+  const checkpoint = path.join(dir, "alert_queue.checkpoint");
+  const fila = path.join(dir, "alert_queue.jsonl");
+  const conteudo = "null\nnull\nnull\nnull\n";
+  writeFileSync(fila, conteudo);
+  writeFileSync(checkpoint, "2");
+  const { processarFila } = await import("../src/newsletter/worker.js");
+
+  for (const limite of ["2", -1, 1.5, NaN, Infinity, null, true, [], {}, Number.MAX_SAFE_INTEGER + 1]) {
+    await assert.rejects(processarFila({ limite }), RangeError);
+    assert.equal(readFileSync(checkpoint, "utf-8"), "2");
+    assert.equal(readFileSync(fila, "utf-8"), conteudo);
+  }
+
+  const pausada = await processarFila({ limite: 0 });
+  assert.equal(pausada.lidos, 0);
+  assert.equal(pausada.pendentesRestantes, 2);
+  assert.equal(readFileSync(checkpoint, "utf-8"), "2");
+  const retomada = await processarFila({ limite: 1 });
+  assert.equal(retomada.lidos, 1);
+  assert.equal(retomada.pulados, 1);
+  assert.equal(retomada.pendentesRestantes, 1);
+  assert.equal(readFileSync(checkpoint, "utf-8"), "3");
+});
+
 test("o worker respeita o limite e retoma os lotes sem perder ou repetir alertas", async (t) => {
   const dir = comDataDir(t);
   comProvedor(t, { AONDE_EMAIL_PROVIDER: "resend", AONDE_EMAIL_API_KEY: "k", AONDE_EMAIL_FROM: "a@b.com" });
