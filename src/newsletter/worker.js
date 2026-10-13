@@ -19,6 +19,7 @@ import { enviarEmail, provedorConfigurado } from "./sender.js";
 import { buildPriceAlertEmail } from "./emailTemplates.js";
 import { listSubscribers, hashEmail } from "./subscriberStore.js";
 import { getConfig } from "../config.js";
+import { isIataCode, normalizeIata } from "../validate.js";
 
 function arquivoFila() {
   return path.join(resolveDataDir(), "alert_queue.jsonl");
@@ -111,6 +112,13 @@ export async function processarFila({ limite = 200, agora = new Date() } = {}) {
       continue;
     }
 
+    // A rota persistida precisa conter exatamente dois codigos IATA validos.
+    const rota = typeof item.offerRoute === "string" ? item.offerRoute.split("-") : [];
+    if (rota.length !== 2 || !rota.every(isIataCode)) {
+      pulados++;
+      continue;
+    }
+
     const sub = assinantePorHash(item.subscriberEmailHash, assinantes);
     // Revalida o consentimento no envio, mesmo para alertas ja enfileirados.
     // Assinante pendente, apagado ou descadastrado deve ser pulado.
@@ -122,8 +130,8 @@ export async function processarFila({ limite = 200, agora = new Date() } = {}) {
     const base = getConfig().siteUrl;
     const { assunto, textoPlano, html } = buildPriceAlertEmail({
       email: sub.email,
-      origem: item.offerRoute ? String(item.offerRoute).split("-")[0] : sub.origem_preferida,
-      destino: item.offerRoute ? String(item.offerRoute).split("-")[1] : null,
+      origem: normalizeIata(rota[0]),
+      destino: normalizeIata(rota[1]),
       precoCentavos: item.precoCentavos,
       offerUrl: item.offerId ? `${base}/ofertas/${encodeURIComponent(item.offerId)}` : base,
       unsubscribeUrl: `${base}/api/newsletter/unsubscribe?email=${encodeURIComponent(sub.email)}`,

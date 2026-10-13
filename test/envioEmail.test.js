@@ -37,6 +37,35 @@ function comProvedor(t, vars = {}) {
 
 const MSG = { para: "pessoa@exemplo.com", assunto: "Preço caiu", textoPlano: "texto", html: "<p>html</p>" };
 
+test("o worker pula rotas malformadas sem perder o alerta valido seguinte", async (t) => {
+  const dir = comDataDir(t);
+  comProvedor(t, { AONDE_EMAIL_PROVIDER: "resend", AONDE_EMAIL_API_KEY: "k", AONDE_EMAIL_FROM: "a@b.com" });
+  const { subscribe, confirm, hashEmail } = await import("../src/newsletter/subscriberStore.js");
+  confirm(subscribe({ email: "rota@exemplo.com", origem: "GRU" }).token);
+  const invalidos = [undefined, null, "", "GRU", "GRU-", "-REC", "GR-REC", "GRU-REC-extra", 123, ["GRU-REC"], {}];
+  const fila = [...invalidos, " gru - rec "].map((offerRoute) => JSON.stringify({
+    subscriberEmailHash: hashEmail("rota@exemplo.com"), canal: "email",
+    offerRoute, precoCentavos: 50000,
+  }));
+  writeFileSync(path.join(dir, "alert_queue.jsonl"), fila.join("\n") + "\n");
+  const mensagens = [];
+  setFetchImpl(async (_url, options) => {
+    mensagens.push(JSON.parse(options.body));
+    return { ok: true, status: 200, headers: new Map(), text: async () => "{}" };
+  });
+  t.after(() => resetFetchImpl());
+  const { processarFila } = await import("../src/newsletter/worker.js");
+  const r = await processarFila();
+  assert.equal(r.pulados, invalidos.length);
+  assert.equal(r.enviados, 1);
+  assert.equal(mensagens.length, 1);
+  assert.match(mensagens[0].subject, /GRU.*REC/);
+  assert.equal(r.pendentesRestantes, 0);
+  assert.equal(readFileSync(path.join(dir, "alert_queue.checkpoint"), "utf-8"), String(fila.length));
+  assert.equal((await processarFila()).enviados, 0);
+  assert.equal(mensagens.length, 1);
+});
+
 test("o worker retoma a falha temporaria sem perder nem repetir alertas", async (t) => {
   const dir = comDataDir(t);
   comProvedor(t, { AONDE_EMAIL_PROVIDER: "resend", AONDE_EMAIL_API_KEY: "k", AONDE_EMAIL_FROM: "a@b.com" });
