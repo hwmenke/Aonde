@@ -213,6 +213,36 @@ test("cacheTtlMs por chamada habilita cache em URL arbitraria", async (t) => {
   assert.equal(second.fromCache, true);
 });
 
+test("POST ignora e preserva o cache GET mesmo com TTL explicito", async (t) => {
+  const requests = [];
+  setFetchImpl(async (_url, { method, body }) => {
+    requests.push({ method, body });
+    return jsonResponse({ call: requests.length });
+  });
+  t.after(() => resetFetchImpl());
+
+  const options = { cacheTtlMs: 60_000 };
+  const firstGet = await httpRequest(NEUTRAL, options);
+  assert.equal(firstGet.ok, true);
+
+  for (const body of ['{"action":"first"}', '{"action":"second"}']) {
+    const post = await httpRequest(NEUTRAL, { ...options, method: "POST", body });
+    assert.equal(post.ok, true);
+    assert.notEqual(post.fromCache, true);
+    assert.equal(post.data.call, requests.length);
+  }
+  assert.deepEqual(requests, [
+    { method: "GET", body: undefined },
+    { method: "POST", body: '{"action":"first"}' },
+    { method: "POST", body: '{"action":"second"}' },
+  ]);
+
+  const cachedGet = await httpRequest(NEUTRAL, options);
+  assert.equal(cachedGet.fromCache, true);
+  assert.deepEqual(cachedGet.data, firstGet.data);
+  assert.equal(requests.length, 3);
+});
+
 test("AONDE_CACHE_TTL_MS=0 desliga o cache", async (t) => {
   const original = process.env.AONDE_CACHE_TTL_MS;
   process.env.AONDE_CACHE_TTL_MS = "0";
