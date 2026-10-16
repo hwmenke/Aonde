@@ -55,6 +55,21 @@ test("subscribe cria assinante pendente com token e sem consentimento", async (t
   assert.ok(sub.created_at);
 });
 
+test("subscribe rejeita destinos não textuais sem persistir assinantes", async (t) => {
+  await withTempDataDir(t);
+  for (const destino of [[], [""], ["LIS"], false, 0, {}, Object.create(null), Symbol("destino")]) {
+    const result = subscribe({ email: "destination@example.com", origem: "GRU", destino });
+    assert.equal(result.ok, false);
+    assert.equal(result.field, "destino");
+    assert.deepEqual(listSubscribers(), []);
+  }
+  for (const [index, destino] of [undefined, null, "", "   ", " lis "].entries()) {
+    const result = subscribe({ email: `destination-${index}@example.com`, origem: "GRU", destino });
+    assert.equal(result.ok, true);
+    assert.equal(result.subscriber.pending_alert?.destino ?? null, index === 4 ? "LIS" : null);
+  }
+});
+
 test("subscribe com whatsapp adiciona o canal", async (t) => {
   await withTempDataDir(t);
   const result = subscribe({ email: "z@example.com", whatsapp: "+5511999999999", origem: "GRU" });

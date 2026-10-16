@@ -114,7 +114,10 @@ export function subscribe({ email, whatsapp, origem, destino, precoAlvoCentavos 
   // Alerta de rota/preco OPCIONAL — mesmas regras de alertRules. Se `destino`
   // ou `precoAlvoCentavos` vierem, guardamos um `pending_alert` que o confirm()
   // transforma em AlertRule real assim que o double opt-in acontece.
-  const hasDestino = destino !== undefined && destino !== null && String(destino).trim() !== "";
+  if (destino !== undefined && destino !== null && typeof destino !== "string") {
+    return { ok: false, field: "destino", error: "Destino inválido para o alerta. Use o código de 3 letras do aeroporto, como REC." };
+  }
+  const hasDestino = destino !== undefined && destino !== null && destino.trim() !== "";
   if (hasDestino && !isIataCode(destino)) {
     return { ok: false, field: "destino", error: "Destino inválido para o alerta. Use o código de 3 letras do aeroporto, como REC." };
   }
