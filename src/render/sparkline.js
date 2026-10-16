@@ -223,7 +223,8 @@ export function renderLabeledSparkline(series, options = {}) {
   const padX = 16;
   const padTop = 16;
   const padBottom = 46;
-  const chartHeight = height - padTop - padBottom;
+  // scalePoints aplica padTop nas duas bordas da area acima dos rotulos.
+  const chartHeight = height - padBottom - 2 * padTop;
 
   const coords = scalePoints(series, width, height - padBottom, padX, padTop);
   const polylinePoints = coords.map(([x, y]) => `${x},${y}`).join(" ");

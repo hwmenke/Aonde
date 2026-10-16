@@ -84,6 +84,13 @@ export function buildPhotoMediaUrl(photoName, { maxWidthPx = 800, maxHeightPx, a
   if (!photoName || typeof photoName !== "string" || photoName.trim() === "") {
     throw new Error("photoName e obrigatorio para buildPhotoMediaUrl");
   }
+  const resourceName = photoName.trim();
+  // Only resource path segments: reject URL delimiters, encoded traversal
+  // and dot segments before appending the media endpoint and credentials.
+  const match = /^places\/([^\s/?#%\\]+)\/photos\/([^\s/?#%\\]+)$/.exec(resourceName);
+  if (!match || match.slice(1).some((segment) => segment === "." || segment === "..")) {
+    throw new Error("photoName invalido para buildPhotoMediaUrl");
+  }
   const key = apiKey || getConfig().googleMaps.apiKey;
   if (!key) {
     throw new Error(NO_API_KEY_ERROR);
@@ -96,7 +103,7 @@ export function buildPhotoMediaUrl(photoName, { maxWidthPx = 800, maxHeightPx, a
 
   // photoName ja e um path de recurso ("places/.../photos/..."); nao o
   // encodamos inteiro (as barras sao significativas), so o anexamos ao /v1/.
-  return `${PLACES_MEDIA_BASE}${photoName.trim()}/media?${params.toString()}`;
+  return `${PLACES_MEDIA_BASE}${resourceName}/media?${params.toString()}`;
 }
 
 /**
@@ -147,11 +154,20 @@ export async function resolvePhotoUri(photoName, { maxWidthPx = 800, maxHeightPx
   if (!photoUri) {
     return { ok: false, error: "Resposta do Place Photo sem photoUri" };
   }
+  try {
+    if (typeof photoUri !== "string") throw new Error("Invalid photoUri");
+    const parsed = new URL(photoUri);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+      throw new Error("Invalid photoUri protocol");
+    }
+  } catch {
+    return { ok: false, error: "Resposta do Place Photo com photoUri invalida" };
+  }
   return { ok: true, photoUri };
 }
 
 /**
- * Extrai a PRIMEIRA foto de um `place` (do searchPlaces, com `photos[]` cru) e
+ * Extrai a PRIMEIRA foto valida de um `place` (do searchPlaces, com `photos[]` cru) e
  * devolve um objeto pronto para o roteiro — com a URL de midia (via
  * buildPhotoMediaUrl, SEM rede) e a atribuicao obrigatoria do autor.
  *
@@ -172,17 +188,20 @@ export function firstPhotoFrom(place, { maxWidthPx = 800, maxHeightPx, apiKey } 
   const photos = place && Array.isArray(place.photos) ? place.photos : [];
   if (photos.length === 0) return null;
 
-  const photo = photos[0];
-  const photoName = photo && typeof photo.name === "string" ? photo.name : null;
-  if (!photoName) return null;
-
+  let photo;
   let mediaUrl;
-  try {
-    mediaUrl = buildPhotoMediaUrl(photoName, { maxWidthPx, maxHeightPx, apiKey });
-  } catch {
-    // Sem API key (ou name invalido): sem foto exibivel — degrada para null.
-    return null;
+  for (const candidate of photos) {
+    if (!candidate || typeof candidate.name !== "string") continue;
+    try {
+      mediaUrl = buildPhotoMediaUrl(candidate.name, { maxWidthPx, maxHeightPx, apiKey });
+      photo = candidate;
+      break;
+    } catch {
+      // Uma entrada invalida nao deve esconder fotos validas posteriores.
+      continue;
+    }
   }
+  if (!photo) return null;
 
   const attr = Array.isArray(photo.authorAttributions) ? photo.authorAttributions[0] : null;
   const attribution = {
@@ -194,7 +213,7 @@ export function firstPhotoFrom(place, { maxWidthPx = 800, maxHeightPx, apiKey } 
   return {
     mediaUrl,
     attribution,
-    widthPx: typeof photo.widthPx === "number" ? photo.widthPx : null,
-    heightPx: typeof photo.heightPx === "number" ? photo.heightPx : null,
+    widthPx: Number.isSafeInteger(photo.widthPx) && photo.widthPx > 0 ? photo.widthPx : null,
+    heightPx: Number.isSafeInteger(photo.heightPx) && photo.heightPx > 0 ? photo.heightPx : null,
   };
 }

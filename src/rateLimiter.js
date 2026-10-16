@@ -55,10 +55,12 @@ export function createRateLimiter({ now = () => Date.now() } = {}) {
       bucket = { tokens: capacity, capacity, refillPerMs, last: at };
       buckets.set(key, bucket);
     } else {
+      // O tempo ja decorrido usa a taxa anterior; a nova vale daqui em diante.
+      refill(bucket, at);
       // Mantem a config atualizada (capacity/taxa podem ter mudado).
       bucket.capacity = capacity;
       bucket.refillPerMs = refillPerMs;
-      refill(bucket, at);
+      bucket.tokens = Math.min(bucket.tokens, capacity);
     }
 
     if (bucket.tokens >= 1) {

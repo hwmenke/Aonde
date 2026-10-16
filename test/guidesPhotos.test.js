@@ -128,6 +128,25 @@ test("buildPhotoMediaUrl lanca sem photoName", () => {
   assert.throws(() => buildPhotoMediaUrl("", { apiKey: "k" }), /photoName/);
 });
 
+test("nomes de recurso invalidos nao geram URLs nem chamadas de fotos", withApiKey("fake-key", async () => {
+  let calls = 0;
+  setFetchImpl(async () => {
+    calls++;
+    return jsonResponse({ photoUri: "https://example.com/photo.jpg" });
+  });
+  for (const name of ["not-a-resource", "places/a/photos/", "places/a/photos/..", "places/../photos/x", "places/a/photos/x/extra", "places/a/photos/x?other=1", "places/a/photos/x#fragment", "places/a/photos/%2e%2e", "places/a/photos/x\\other", "places/a/photos/x y"]) {
+    assert.throws(() => buildPhotoMediaUrl(name, { apiKey: "k" }), /photoName/, name);
+    assert.equal(firstPhotoFrom({ photos: [{ name }] }, { apiKey: "k" }), null, name);
+    const result = await resolvePhotoUri(name);
+    assert.equal(result.ok, false, name);
+    assert.match(result.error, /photoName/);
+  }
+  assert.equal(calls, 0);
+  const valid = new URL(buildPhotoMediaUrl("  places/place-1/photos/PHOTO_1  ", { apiKey: "k" }));
+  assert.equal(valid.pathname, "/v1/places/place-1/photos/PHOTO_1/media");
+  assert.equal(valid.searchParams.get("key"), "k");
+}));
+
 test("buildPhotoMediaUrl lanca sem apiKey", withApiKey(undefined, async () => {
   assert.throws(() => buildPhotoMediaUrl("places/abc/photos/xyz"), /GOOGLE_MAPS_API_KEY/);
 }));
@@ -151,6 +170,39 @@ test("firstPhotoFrom extrai url + atribuicao da 1a foto", () => {
   assert.equal(foto.attribution.uri, "https://maps.google.com/author/2");
   assert.equal(foto.widthPx, 4032);
   assert.equal(foto.heightPx, 3024);
+});
+
+test("firstPhotoFrom skips unusable entries and preserves the selected photo credit", () => {
+  const valid = makePhotos(2)[0];
+  const invalid = [null, {}, { name: 123 }, { name: "places/../photos/bad" }];
+  const foto = firstPhotoFrom({ photos: [...invalid, valid, ...makePhotos(3)] }, { apiKey: "k" });
+  assert.ok(foto);
+  assert.match(foto.mediaUrl, /places\/place-2\/photos\/PHOTO_RESOURCE_2\/media/);
+  assert.deepEqual(foto.attribution, { text: "Autor 2", uri: "https://maps.google.com/author/2" });
+  assert.equal(foto.widthPx, valid.widthPx);
+  assert.equal(foto.heightPx, valid.heightPx);
+  assert.equal(firstPhotoFrom({ photos: invalid }, { apiKey: "k" }), null);
+});
+
+test("firstPhotoFrom only preserves positive safe integer photo dimensions", () => {
+  const invalid = [undefined, null, "800", true, 0, -1, 1.5, NaN, Infinity, -Infinity, Number.MAX_SAFE_INTEGER + 1];
+  for (const dimension of invalid) {
+    for (const field of ["widthPx", "heightPx"]) {
+      const photo = { ...makePhotos(1)[0], [field]: dimension };
+      const result = firstPhotoFrom({ photos: [photo] }, { apiKey: "k" });
+      assert.ok(result.mediaUrl);
+      assert.equal(result[field], null, `${field}: ${String(dimension)}`);
+      const other = field === "widthPx" ? "heightPx" : "widthPx";
+      assert.equal(result[other], photo[other]);
+      assert.equal(result.attribution.text, "Autor 1");
+    }
+  }
+  for (const dimension of [1, 4032, 6000, Number.MAX_SAFE_INTEGER]) {
+    const photo = { ...makePhotos(1)[0], widthPx: dimension, heightPx: dimension };
+    const result = firstPhotoFrom({ photos: [photo] }, { apiKey: "k" });
+    assert.equal(result.widthPx, dimension);
+    assert.equal(result.heightPx, dimension);
+  }
 });
 
 test("firstPhotoFrom retorna null quando o place nao tem fotos", () => {
@@ -195,6 +247,16 @@ test(
     assert.match(capturedUrl, /\/media\?/);
   })
 );
+
+test("resolvePhotoUri rejeita photoUri malformada", withApiKey("fake-key", async () => {
+  for (const photoUri of [true, 123, {}, [], "   ", "not a URL", "/relative.jpg", "javascript:alert(1)", "data:image/png;base64,AAAA"]) {
+    setFetchImpl(async () => jsonResponse({ photoUri }));
+    const res = await resolvePhotoUri("places/abc/photos/xyz");
+    assert.equal(res.ok, false, JSON.stringify(photoUri));
+    assert.match(res.error, /photoUri/);
+    assert.equal(res.photoUri, undefined);
+  }
+}));
 
 test("resolvePhotoUri sem API key retorna ok:false com instrucao", withApiKey(undefined, async () => {
   const res = await resolvePhotoUri("places/abc/photos/xyz");

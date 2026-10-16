@@ -7,6 +7,32 @@ import {
   resolveTrackedLink,
 } from "../src/manualLinkRegistry.js";
 
+test("resolveTrackedLink: inherited offer IDs do not count as configured links", () => {
+  for (const offerId of ["toString", "constructor", "__proto__"]) {
+    assert.equal(resolveTrackedLink({ registry: {}, offerId }), null);
+    assert.deepEqual(resolveTrackedLink({
+      registry: { "GRU-LIS": "https://exemplo.com/por-rota" },
+      offerId,
+      origin: "GRU",
+      destination: "LIS",
+    }), { url: "https://exemplo.com/por-rota", source: "registry:route" });
+  }
+});
+
+test("resolveTrackedLink: inherited routes fall back, but own special keys resolve", () => {
+  assert.deepEqual(resolveTrackedLink({
+    registry: Object.create({ "GRU-LIS": "https://exemplo.com/herdado" }),
+    origin: "GRU",
+    destination: "LIS",
+    fallbackLink: "https://exemplo.com/fallback",
+  }), { url: "https://exemplo.com/fallback", source: "fallback-global" });
+
+  const registry = parseLinkRegistry('{"__proto__":"https://exemplo.com/oferta"}');
+  assert.deepEqual(resolveTrackedLink({ registry, offerId: "__proto__" }), {
+    url: "https://exemplo.com/oferta", source: "registry:offerId",
+  });
+});
+
 // ---------------------------------------------------------------------------
 // parseLinkRegistry
 // ---------------------------------------------------------------------------

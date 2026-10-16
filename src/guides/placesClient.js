@@ -107,11 +107,18 @@ function normalizePlace(place) {
     // displayName vem como { text, languageCode } na Places API (New).
     name: place.displayName?.text || place.displayName || null,
     address: place.formattedAddress || null,
-    lat: typeof location.latitude === "number" ? location.latitude : null,
-    lng: typeof location.longitude === "number" ? location.longitude : null,
-    rating: typeof place.rating === "number" ? place.rating : null,
+    // Coordenadas impossiveis nao devem entrar na ordenacao por proximidade.
+    lat: Number.isFinite(location.latitude) && Math.abs(location.latitude) <= 90
+      ? location.latitude : null,
+    lng: Number.isFinite(location.longitude) && Math.abs(location.longitude) <= 180
+      ? location.longitude : null,
+    // Dados invalidos ficam ausentes para nao corromper a ordenacao ponderada
+    // nem exibir uma nota ou contagem de avaliacoes impossivel.
+    rating: Number.isFinite(place.rating) && place.rating >= 0 && place.rating <= 5
+      ? place.rating : null,
     ratingCount:
-      typeof place.userRatingCount === "number" ? place.userRatingCount : null,
+      Number.isSafeInteger(place.userRatingCount) && place.userRatingCount >= 0
+        ? place.userRatingCount : null,
     // editorialSummary vem como { text, languageCode }; ausente em muitos
     // lugares — nesse caso `summary` fica null (nao inventamos texto).
     summary: place.editorialSummary?.text || null,
@@ -195,8 +202,9 @@ export async function searchPlaces({
     };
   }
 
-  // Resposta ok mas em formato inesperado (sem o array `places`).
-  if (!res.data || typeof res.data !== "object") {
+  // Ausencia de `places` e valida; um campo presente precisa ser um array.
+  if (!res.data || typeof res.data !== "object" || Array.isArray(res.data) ||
+      (Object.hasOwn(res.data, "places") && !Array.isArray(res.data.places))) {
     return {
       ok: false,
       places: [],

@@ -1,12 +1,47 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { searchPlaces } from "../src/guides/placesClient.js";
+import { searchPlaces, normalizePlace } from "../src/guides/placesClient.js";
 import { setFetchImpl, resetFetchImpl } from "../src/http.js";
 
 // -----------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------
+
+test("normalizePlace omite coordenadas invalidas e preserva limites geograficos", () => {
+  for (const latitude of [NaN, Infinity, -Infinity, -90.1, 90.1, "0", null, undefined]) {
+    const place = normalizePlace({ location: { latitude, longitude: 0 } });
+    assert.equal(place.lat, null, String(latitude));
+    assert.equal(place.lng, 0);
+  }
+  for (const longitude of [NaN, Infinity, -Infinity, -180.1, 180.1, "0", null, undefined]) {
+    const place = normalizePlace({ location: { latitude: 0, longitude } });
+    assert.equal(place.lng, null, String(longitude));
+    assert.equal(place.lat, 0);
+  }
+  for (const [latitude, longitude] of [[-90, -180], [0, 0], [90, 180], [-8.05, -34.9]]) {
+    const place = normalizePlace({ location: { latitude, longitude } });
+    assert.equal(place.lat, latitude);
+    assert.equal(place.lng, longitude);
+  }
+  assert.equal(normalizePlace({}).lat, null);
+  assert.equal(normalizePlace({}).lng, null);
+});
+
+test("normalizePlace omite notas e contagens invalidas sem inventar avaliacoes", () => {
+  for (const rating of [NaN, Infinity, -Infinity, -1, 5.1, "4.5", null]) {
+    assert.equal(normalizePlace({ rating }).rating, null, String(rating));
+  }
+  for (const userRatingCount of [NaN, Infinity, -Infinity, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, "100", null]) {
+    assert.equal(normalizePlace({ userRatingCount }).ratingCount, null, String(userRatingCount));
+  }
+  for (const rating of [0, 4.5, 5]) {
+    assert.equal(normalizePlace({ rating }).rating, rating);
+  }
+  for (const userRatingCount of [0, 100]) {
+    assert.equal(normalizePlace({ userRatingCount }).ratingCount, userRatingCount);
+  }
+});
 
 function jsonResponse(payload, status = 200) {
   return new Response(JSON.stringify(payload), {
@@ -195,6 +230,25 @@ test(
 // -----------------------------------------------------------------------
 // Erro HTTP => ok:false
 // -----------------------------------------------------------------------
+
+test(
+  "searchPlaces rejeita formatos inesperados sem confundir com busca vazia",
+  withApiKey("fake-key", async () => {
+    for (const payload of [[], { places: null }, { places: {} }, { places: "invalid" }]) {
+      setFetchImpl(async () => jsonResponse(payload));
+      const res = await searchPlaces({ query: "x" });
+      assert.equal(res.ok, false, JSON.stringify(payload));
+      assert.deepEqual(res.places, []);
+      assert.match(res.error, /formato inesperado/);
+    }
+    for (const payload of [{}, { places: [] }]) {
+      setFetchImpl(async () => jsonResponse(payload));
+      const res = await searchPlaces({ query: "x" });
+      assert.equal(res.ok, true);
+      assert.deepEqual(res.places, []);
+    }
+  })
+);
 
 test(
   "searchPlaces retorna ok:false em erro HTTP (com corpo resumido)",

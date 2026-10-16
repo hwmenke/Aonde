@@ -58,6 +58,43 @@ test("retry em erro de rede (throw) ate obter sucesso", async (t) => {
   assert.equal(calls, 2);
 });
 
+test("timeout durante leitura do corpo aborta e respeita o limite de retries", async (t) => {
+  const signals = [];
+  setFetchImpl(async (_url, { signal }) => {
+    signals.push(signal);
+    return {
+      ok: true,
+      status: 200,
+      text: () => new Promise((_resolve, reject) => {
+        signal.addEventListener("abort", () => {
+          reject(new DOMException("Aborted", "AbortError"));
+        }, { once: true });
+      }),
+    };
+  });
+  t.after(() => resetFetchImpl());
+
+  const delays = [];
+  const res = await httpRequest(NEUTRAL, {
+    timeoutMs: 5,
+    retries: 1,
+    retryBaseMs: 100,
+    jitterFn: () => 0,
+    sleepImpl: async (ms) => delays.push(ms),
+  });
+
+  assert.deepEqual(res, {
+    ok: false,
+    status: 0,
+    data: null,
+    error: `Tempo limite excedido (5ms) ao chamar ${NEUTRAL}`,
+  });
+  assert.equal(signals.length, 2);
+  assert.notEqual(signals[0], signals[1]);
+  assert.ok(signals.every((signal) => signal.aborted));
+  assert.deepEqual(delays, [50]);
+});
+
 test("backoff exponencial: os atrasos crescem a cada tentativa", async (t) => {
   setFetchImpl(async () => jsonResponse({ e: "x" }, { status: 500 }));
   t.after(() => resetFetchImpl());
@@ -112,6 +149,35 @@ test("faz retry em 429 e respeita o header Retry-After", async (t) => {
   assert.equal(res.ok, true);
   assert.equal(calls, 2);
   assert.equal(delays[0], 2000); // Retry-After: 2s respeitado (em ms)
+});
+
+test("Retry-After em HTTP-date usa o relogio e limita a espera", async (t) => {
+  const now = Date.UTC(2026, 0, 1);
+  let calls = 0;
+  setFetchImpl(async () => {
+    calls++;
+    if (calls <= 2) {
+      const waitMs = calls === 1 ? 2000 : 120_000;
+      return jsonResponse({ e: "unavailable" }, {
+        status: 503,
+        headers: { "Retry-After": new Date(now + waitMs).toUTCString() },
+      });
+    }
+    return jsonResponse({ ok: true });
+  });
+  setClockImpl(() => now);
+  t.after(() => resetFetchImpl());
+
+  const delays = [];
+  const res = await httpRequest(NEUTRAL, {
+    retryAfterCapMs: 5000,
+    jitterFn: () => 0,
+    sleepImpl: async (ms) => delays.push(ms),
+  });
+
+  assert.deepEqual(res, { ok: true, status: 200, data: { ok: true }, error: null });
+  assert.equal(calls, 3);
+  assert.deepEqual(delays, [2000, 5000]);
 });
 
 test("esgota os retries e retorna o ultimo erro", async (t) => {

@@ -56,7 +56,7 @@ const PARTNER_HANDLERS = {
  * @returns {Promise<{ok: boolean, url?: string, partner: string, method: string, error?: string}>}
  */
 export async function getDealLink(partner, options = {}) {
-  const handler = PARTNER_HANDLERS[partner];
+  const handler = Object.hasOwn(PARTNER_HANDLERS, partner) ? PARTNER_HANDLERS[partner] : undefined;
 
   if (!handler) {
     return {

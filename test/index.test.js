@@ -33,6 +33,17 @@ test("getDealLink retorna ok:false para parceiro desconhecido", async () => {
   assert.match(result.error, /Parceiro desconhecido/);
 });
 
+test("getDealLink rejeita nomes herdados de Object.prototype como parceiros desconhecidos", async () => {
+  for (const partner of ["toString", "constructor", "valueOf", "hasOwnProperty", "__proto__"]) {
+    const result = await getDealLink(partner, {});
+    assert.equal(result.ok, false, partner);
+    assert.equal(result.partner, partner);
+    assert.equal(result.method, "unknown");
+    assert.match(result.error, /Parceiro desconhecido/);
+    assert.equal(result.url, undefined);
+  }
+});
+
 test("getAllDealLinks roda os 4 parceiros e isola falhas individuais", async (t) => {
   const snap = snapshotEnv();
   for (const key of ENV_KEYS) delete process.env[key];

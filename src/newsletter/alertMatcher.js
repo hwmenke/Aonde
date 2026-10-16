@@ -20,11 +20,13 @@ import { appendFileSync, readFileSync } from "node:fs";
 import { resolveDataDir, ensureDir } from "../store/dataDir.js";
 import { listSubscribers, hashEmail } from "./subscriberStore.js";
 import { listAlertRules } from "./alertRules.js";
+import { isIataCode, normalizeIata } from "../validate.js";
 
 /**
  * Casa um conjunto de ofertas/regras. Puro e testavel.
  *
  * Uma regra casa uma oferta quando:
+ *   - offer.preco_centavos e um inteiro seguro maior que zero
  *   - offer.origem === rule.origem (IATA, case-insensitive)
  *   - rule.destino ausente OU igual a offer.destino
  *   - rule.preco_alvo_centavos ausente OU offer.preco_centavos <= alvo
@@ -36,10 +38,14 @@ import { listAlertRules } from "./alertRules.js";
  */
 export function matchAlerts(offer, { rules = [], subscribers = [] } = {}) {
   if (!offer) return [];
+  // Uma tarifa sem rota valida nao deve gerar uma notificacao.
+  if (!isIataCode(offer.origem) || !isIataCode(offer.destino)) return [];
 
-  const offerOrigem = String(offer.origem || "").toUpperCase();
-  const offerDestino = String(offer.destino || "").toUpperCase();
+  const offerOrigem = normalizeIata(offer.origem);
+  const offerDestino = normalizeIata(offer.destino);
   const offerPreco = offer.preco_centavos;
+  // Sem uma tarifa real e positiva, nao ha oferta de preco para notificar.
+  if (!Number.isSafeInteger(offerPreco) || offerPreco <= 0) return [];
 
   // Indexa assinantes elegiveis (confirmados e ativos) por id.
   const eligibleById = new Map();
@@ -56,17 +62,19 @@ export function matchAlerts(offer, { rules = [], subscribers = [] } = {}) {
     const subscriber = eligibleById.get(rule.subscriber_id);
     if (!subscriber) continue; // nao confirmado / descadastrado / inexistente
 
-    if (String(rule.origem || "").toUpperCase() !== offerOrigem) continue;
+    if (normalizeIata(rule.origem) !== offerOrigem) continue;
 
-    const ruleDestino = rule.destino ? String(rule.destino).toUpperCase() : null;
+    const hasDestino = rule.destino !== undefined && rule.destino !== null && rule.destino !== "";
+    if (hasDestino && !isIataCode(rule.destino)) continue;
+    const ruleDestino = hasDestino ? normalizeIata(rule.destino) : null;
     if (ruleDestino && ruleDestino !== offerDestino) continue;
 
-    if (
-      rule.preco_alvo_centavos !== undefined &&
-      rule.preco_alvo_centavos !== null &&
-      !(typeof offerPreco === "number" && offerPreco <= rule.preco_alvo_centavos)
-    ) {
-      continue;
+    const target = rule.preco_alvo_centavos;
+    if (target !== undefined && target !== null) {
+      // Regras persistidas tambem precisam da validacao aplicada na criacao.
+      if (typeof target !== "number" || !Number.isFinite(target) || target <= 0 || offerPreco > target) {
+        continue;
+      }
     }
 
     const canais = Array.isArray(rule.canais) && rule.canais.length > 0 ? rule.canais : ["email"];
@@ -136,6 +144,7 @@ function ultimosEnvios() {
       } catch {
         continue; // linha corrompida nao invalida o resto da fila
       }
+      if (!item || typeof item !== "object" || Array.isArray(item)) continue;
       const chave = `${item.subscriberEmailHash}|${item.offerRoute}|${item.canal}`;
       const t = Date.parse(item.queuedAt || "");
       if (!Number.isFinite(t)) continue;
@@ -171,7 +180,7 @@ export function dispatchAlerts(offers = [], { cooldownMs = COOLDOWN_PADRAO_MS, a
   for (const offer of list) {
     const matches = matchAlerts(offer, { rules, subscribers });
     for (const { subscriber, canal } of matches) {
-      const rota = `${String(offer.origem || "").toUpperCase()}-${String(offer.destino || "").toUpperCase()}`;
+      const rota = `${normalizeIata(offer.origem)}-${normalizeIata(offer.destino)}`;
       const chave = `${hashEmail(subscriber.email)}|${rota}|${canal}`;
       const ultimo = enviados.get(chave);
       if (ultimo !== undefined && agora - ultimo < cooldownMs) {
@@ -184,7 +193,7 @@ export function dispatchAlerts(offers = [], { cooldownMs = COOLDOWN_PADRAO_MS, a
         subscriberEmailHash: hashEmail(subscriber.email),
         canal,
         offerId: offer.id || null,
-        offerRoute: `${String(offer.origem || "").toUpperCase()}-${String(offer.destino || "").toUpperCase()}`,
+        offerRoute: rota,
         precoCentavos: offer.preco_centavos ?? null,
       };
       // Ponto de integracao: sender real substituiria o default via setSenderImpl.

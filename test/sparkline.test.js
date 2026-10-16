@@ -97,6 +97,26 @@ test("renderLabeledSparkline devolve SVG bem formado com textos de rotulo", () =
   assert.ok(svg.trim().endsWith("</svg>"));
 });
 
+test("grafico com rotulos alinha media e faixa com a escala dos pontos", () => {
+  for (const height of [160, 220]) {
+    for (const prices of [[500, 750, 1000, 1250, 1500], [1000, 1000, 1000, 1000, 1000]]) {
+      const svg = renderLabeledSparkline(makeSeries(prices), { height });
+      const coords = parseNumericPairs(svg.match(/<polyline points="([^"]+)"/)[1]);
+      const meanY = Number(svg.match(/<line[^>]* y1="([^"]+)"/)[1]);
+      // O terceiro ponto e igual a media nos dois conjuntos.
+      assert.equal(meanY, coords[2][1], "media deve cruzar o ponto de mesmo preco");
+      const band = svg.match(/<rect[^>]* y="([^"]+)"[^>]* height="([^"]+)"/);
+      const bandTop = Number(band[1]);
+      if (prices[0] !== prices[4]) {
+        assert.equal(bandTop, Math.min(...coords.map(([, y]) => y)));
+        assert.equal(bandTop + Number(band[2]), Math.max(...coords.map(([, y]) => y)));
+      } else {
+        assert.equal(bandTop, coords[0][1]);
+      }
+    }
+  }
+});
+
 // ---------------------------------------------------------------------------
 // A curva reflete os dados
 // ---------------------------------------------------------------------------

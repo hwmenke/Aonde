@@ -50,7 +50,10 @@ export function addAlertRule({ subscriberId, origem, destino, precoAlvoCentavos,
       error: `Origem inválida: "${origem}". Use o código IATA de 3 letras (A-Z), por exemplo GRU.`,
     };
   }
-  const hasDestino = destino !== undefined && destino !== null && String(destino).trim() !== "";
+  if (destino !== undefined && destino !== null && typeof destino !== "string") {
+    return { ok: false, error: "Destino inválido. Use o código IATA de 3 letras (A-Z), por exemplo LIS." };
+  }
+  const hasDestino = destino !== undefined && destino !== null && destino.trim() !== "";
   if (hasDestino && !isIataCode(destino)) {
     return {
       ok: false,

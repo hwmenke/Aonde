@@ -48,7 +48,7 @@ function envPositiveInt(name, fallback) {
   const raw = process.env[name];
   if (raw === undefined || raw === null || String(raw).trim() === "") return fallback;
   const n = Number(raw);
-  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : fallback;
 }
 
 function isDisabled() {

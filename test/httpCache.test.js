@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { makeCacheKey } from "../src/httpCache.js";
 
 import {
   httpRequest,
@@ -14,8 +15,81 @@ import {
 const AVIASALES = "https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=GRU&destination=LIS";
 const NEUTRAL = "https://example.com/data";
 
+test("cache separa tokens que colidiam no hash antigo", () => {
+  assert.notEqual(
+    makeCacheKey(AVIASALES, { Authorization: "Aa" }),
+    makeCacheKey(AVIASALES, { Authorization: "B@" }),
+  );
+});
+
+test("cache considera ambos os headers de auth sem depender de ordem ou capitalizacao", () => {
+  const first = makeCacheKey(AVIASALES, { Authorization: "Bearer A", "X-Access-Token": "tokenA" });
+  assert.notEqual(first, makeCacheKey(AVIASALES, { Authorization: "Bearer A", "X-Access-Token": "tokenB" }));
+  assert.notEqual(first, makeCacheKey(AVIASALES, { Authorization: "Bearer B", "X-Access-Token": "tokenA" }));
+  assert.equal(first, makeCacheKey(AVIASALES, { "x-access-token": "tokenA", authorization: "Bearer A" }));
+  assert.equal(first.includes("tokenA"), false);
+  assert.equal(first.includes("Bearer A"), false);
+});
+
 function jsonResponse(obj) {
   return new Response(JSON.stringify(obj), { status: 200 });
+}
+
+for (const [label, fail] of [
+  ["HTTP 503", () => new Response('{"error":"unavailable"}', { status: 503 })],
+  ["JSON invalido", () => new Response("invalid JSON", { status: 200 })],
+  ["erro de rede", () => { throw new Error("network unavailable"); }],
+]) {
+  test(`cache nao guarda ${label} e permite recuperacao do provedor`, async (t) => {
+    let calls = 0;
+    const payload = { results: [] };
+    setFetchImpl(async () => {
+      calls++;
+      return calls === 1 ? fail() : jsonResponse(payload);
+    });
+    t.after(() => resetFetchImpl());
+
+    const failed = await httpRequest(AVIASALES, { retries: 0 });
+    assert.equal(failed.ok, false);
+    assert.equal(calls, 1);
+
+    const recovered = await httpRequest(AVIASALES, { retries: 0 });
+    assert.equal(recovered.ok, true);
+    assert.notEqual(recovered.fromCache, true);
+    assert.deepEqual(recovered.data, payload);
+    assert.equal(calls, 2);
+
+    const cached = await httpRequest(AVIASALES, { retries: 0 });
+    assert.equal(cached.ok, true);
+    assert.equal(cached.fromCache, true);
+    assert.deepEqual(cached.data, payload);
+    assert.equal(calls, 2);
+  });
+}
+
+for (const [label, makeHeaders] of [
+  ["Headers", (token) => new Headers({ Authorization: token })],
+  ["tuplas", (token) => [["Authorization", token]]],
+]) {
+  test(`cache isola credenciais em ${label} e chamadas anonimas`, async (t) => {
+    let calls = 0;
+    setFetchImpl(async () => jsonResponse({ call: ++calls }));
+    t.after(() => resetFetchImpl());
+
+    const anonymous = await httpRequest(AVIASALES);
+    const a = await httpRequest(AVIASALES, { headers: makeHeaders("Bearer A") });
+    const b = await httpRequest(AVIASALES, { headers: makeHeaders("Bearer B") });
+    assert.equal(calls, 3);
+    assert.notDeepEqual(a.data, anonymous.data);
+    assert.notDeepEqual(a.data, b.data);
+
+    const again = await httpRequest(AVIASALES, { headers: makeHeaders("Bearer A") });
+    assert.equal(calls, 3);
+    assert.equal(again.fromCache, true);
+    assert.deepEqual(again.data, a.data);
+    assert.equal(makeCacheKey(AVIASALES, makeHeaders("Bearer A")),
+      makeCacheKey(AVIASALES, { Authorization: "Bearer A" }));
+  });
 }
 
 test("cache hit nao refaz o fetch (URL da Data API, GET 200)", async (t) => {
@@ -36,7 +110,33 @@ test("cache hit nao refaz o fetch (URL da Data API, GET 200)", async (t) => {
   assert.equal(second.fromCache, true);
 });
 
-test("cache expira apos o TTL e refaz o fetch", async (t) => {
+test("mutacoes em respostas iniciais e cacheadas nao alteram o cache", async (t) => {
+  const payload = { results: [{ route: { origin: "GRU", destination: "LIS" } }] };
+  let calls = 0;
+  setFetchImpl(async () => {
+    calls++;
+    return jsonResponse(payload);
+  });
+  t.after(() => resetFetchImpl());
+
+  const first = await httpRequest(AVIASALES);
+  assert.equal(first.ok, true);
+  first.data.results[0].route.origin = "GIG";
+  first.data.results.push({ route: { origin: "SSA", destination: "LIS" } });
+
+  const second = await httpRequest(AVIASALES);
+  assert.equal(second.fromCache, true);
+  assert.deepEqual(second.data, payload);
+  second.data.results[0].route.destination = "MAD";
+  second.data.results.length = 0;
+
+  const third = await httpRequest(AVIASALES);
+  assert.equal(third.fromCache, true);
+  assert.deepEqual(third.data, payload);
+  assert.equal(calls, 1);
+});
+
+test("cache expira no instante do TTL e refaz o fetch", async (t) => {
   const clock = { t: 0 };
   let calls = 0;
   setFetchImpl(async () => {
@@ -57,8 +157,8 @@ test("cache expira apos o TTL e refaz o fetch", async (t) => {
   await httpRequest(AVIASALES, { headers: { "X-Access-Token": "tokenA" } });
   assert.equal(calls, 1);
 
-  // Depois do TTL: refaz o fetch.
-  clock.t = 900_001;
+  // No instante do TTL: refaz o fetch.
+  clock.t = 900_000;
   const after = await httpRequest(AVIASALES, { headers: { "X-Access-Token": "tokenA" } });
   assert.equal(calls, 2);
   assert.notEqual(after.fromCache, true);
@@ -113,6 +213,36 @@ test("cacheTtlMs por chamada habilita cache em URL arbitraria", async (t) => {
   assert.equal(second.fromCache, true);
 });
 
+test("POST ignora e preserva o cache GET mesmo com TTL explicito", async (t) => {
+  const requests = [];
+  setFetchImpl(async (_url, { method, body }) => {
+    requests.push({ method, body });
+    return jsonResponse({ call: requests.length });
+  });
+  t.after(() => resetFetchImpl());
+
+  const options = { cacheTtlMs: 60_000 };
+  const firstGet = await httpRequest(NEUTRAL, options);
+  assert.equal(firstGet.ok, true);
+
+  for (const body of ['{"action":"first"}', '{"action":"second"}']) {
+    const post = await httpRequest(NEUTRAL, { ...options, method: "POST", body });
+    assert.equal(post.ok, true);
+    assert.notEqual(post.fromCache, true);
+    assert.equal(post.data.call, requests.length);
+  }
+  assert.deepEqual(requests, [
+    { method: "GET", body: undefined },
+    { method: "POST", body: '{"action":"first"}' },
+    { method: "POST", body: '{"action":"second"}' },
+  ]);
+
+  const cachedGet = await httpRequest(NEUTRAL, options);
+  assert.equal(cachedGet.fromCache, true);
+  assert.deepEqual(cachedGet.data, firstGet.data);
+  assert.equal(requests.length, 3);
+});
+
 test("AONDE_CACHE_TTL_MS=0 desliga o cache", async (t) => {
   const original = process.env.AONDE_CACHE_TTL_MS;
   process.env.AONDE_CACHE_TTL_MS = "0";
@@ -145,4 +275,44 @@ test("clearHttpCache() invalida o cache", async (t) => {
   clearHttpCache();
   await httpRequest(AVIASALES, { headers: { "X-Access-Token": "tokenA" } });
   assert.equal(calls, 2);
+});
+
+test("cache hits preservam a cota e continuam disponiveis com o balde esgotado", async (t) => {
+  const url = "https://api.awin.com/publishers/1/linkbuilder/generate";
+  const original = process.env.AONDE_RATE_LIMIT;
+  delete process.env.AONDE_RATE_LIMIT;
+  let calls = 0;
+  setFetchImpl(async () => jsonResponse({ call: ++calls }));
+  setClockImpl(() => 0);
+  t.after(() => {
+    resetFetchImpl();
+    if (original === undefined) delete process.env.AONDE_RATE_LIMIT;
+    else process.env.AONDE_RATE_LIMIT = original;
+  });
+
+  const cachedOptions = { cacheTtlMs: 60_000 };
+  const first = await httpRequest(url, cachedOptions);
+  assert.equal(first.ok, true);
+  for (let i = 0; i < 25; i++) {
+    const hit = await httpRequest(url, cachedOptions);
+    assert.equal(hit.fromCache, true);
+    assert.deepEqual(hit.data, first.data);
+  }
+  assert.equal(calls, 1);
+
+  // Awin permite 20 requisicoes: a primeira consumiu apenas uma ficha.
+  for (let i = 0; i < 19; i++) {
+    const fetched = await httpRequest(url, { cacheTtlMs: 0 });
+    assert.equal(fetched.ok, true);
+    assert.notEqual(fetched.fromCache, true);
+  }
+  const blocked = await httpRequest(url, { cacheTtlMs: 0 });
+  assert.equal(blocked.rateLimited, true);
+  assert.equal(calls, 20);
+
+  const hit = await httpRequest(url, cachedOptions);
+  assert.equal(hit.ok, true);
+  assert.equal(hit.fromCache, true);
+  assert.deepEqual(hit.data, first.data);
+  assert.equal(calls, 20);
 });

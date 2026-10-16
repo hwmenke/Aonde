@@ -114,12 +114,17 @@ export function subscribe({ email, whatsapp, origem, destino, precoAlvoCentavos 
   // Alerta de rota/preco OPCIONAL — mesmas regras de alertRules. Se `destino`
   // ou `precoAlvoCentavos` vierem, guardamos um `pending_alert` que o confirm()
   // transforma em AlertRule real assim que o double opt-in acontece.
-  const hasDestino = destino !== undefined && destino !== null && String(destino).trim() !== "";
+  if (destino !== undefined && destino !== null && typeof destino !== "string") {
+    return { ok: false, field: "destino", error: "Destino inválido para o alerta. Use o código de 3 letras do aeroporto, como REC." };
+  }
+  const hasDestino = destino !== undefined && destino !== null && destino.trim() !== "";
   if (hasDestino && !isIataCode(destino)) {
     return { ok: false, field: "destino", error: "Destino inválido para o alerta. Use o código de 3 letras do aeroporto, como REC." };
   }
   const hasPreco = precoAlvoCentavos !== undefined && precoAlvoCentavos !== null && precoAlvoCentavos !== "";
-  if (hasPreco && !(Number.isFinite(Number(precoAlvoCentavos)) && Number(precoAlvoCentavos) > 0)) {
+  const isPrecoNumeric = typeof precoAlvoCentavos === "number" || typeof precoAlvoCentavos === "string";
+  const precoArredondado = hasPreco && isPrecoNumeric ? Math.round(Number(precoAlvoCentavos)) : null;
+  if (hasPreco && !(Number.isSafeInteger(precoArredondado) && precoArredondado > 0)) {
     return { ok: false, field: "preco", error: "Preço-alvo inválido. Informe um valor maior que zero." };
   }
   const hasWhatsapp = whatsapp !== undefined && whatsapp !== null && String(whatsapp).trim() !== "";
@@ -134,7 +139,7 @@ export function subscribe({ email, whatsapp, origem, destino, precoAlvoCentavos 
     hasDestino || hasPreco
       ? {
           destino: hasDestino ? normalizeIata(destino) : null,
-          preco_alvo_centavos: hasPreco ? Math.round(Number(precoAlvoCentavos)) : null,
+          preco_alvo_centavos: precoArredondado,
         }
       : null;
 
@@ -213,7 +218,7 @@ export function confirm(token) {
   }
 
   const all = readAll();
-  const index = all.findIndex((s) => s && s.optin_token === token);
+  const index = all.findIndex((s) => s && !s.unsubscribed_at && s.optin_token === token);
   if (index === -1) {
     return { ok: false, error: "Esse link de confirmação não vale mais: já foi usado ou não existe." };
   }
@@ -222,7 +227,7 @@ export function confirm(token) {
   const expiresAt = subscriber.optin_token_expires_at
     ? new Date(subscriber.optin_token_expires_at).getTime()
     : 0;
-  if (!expiresAt || Date.now() > expiresAt) {
+  if (!expiresAt || Date.now() >= expiresAt) {
     return { ok: false, error: "Esse link de confirmação está expirado (ele vale por 48 horas)." };
   }
 
@@ -275,6 +280,8 @@ export function unsubscribe(email) {
       email: "",
       email_hash: hashEmail(anterior.email),
       whatsapp: "",
+      optin_token: null,
+      optin_token_expires_at: null,
       unsubscribed_at: new Date().toISOString(),
       pii_purged_at: new Date().toISOString(),
     };

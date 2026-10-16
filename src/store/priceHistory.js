@@ -38,17 +38,19 @@ function routeFile(route) {
 
 /**
  * Converte preco (na moeda do deal) para centavos, com o MESMO criterio do
- * offerAdapter (Math.round(price*100)). Retorna null para valores invalidos.
+ * offerAdapter (Math.round(price*100)). Retorna null para precos nao positivos,
+ * nao finitos ou que nao possam ser representados em centavos inteiros seguros.
  */
 export function priceToCentavos(price) {
-  if (typeof price !== "number" || Number.isNaN(price)) return null;
-  return Math.round(price * 100);
+  if (typeof price !== "number" || !Number.isFinite(price) || price <= 0) return null;
+  const centavos = Math.round(price * 100);
+  return Number.isSafeInteger(centavos) && centavos > 0 ? centavos : null;
 }
 
 /**
  * Grava uma observacao por deal do array normalizado do modulo. Agrupa por
  * rota e faz append no arquivo da rota (escrita atomica). Deals sem
- * origin/destination ou sem preco numerico sao ignorados.
+ * origin/destination ou com preco invalido sao ignorados.
  *
  * @param {Array<object>} deals array de deals de searchDeals()/searchDealsTravelpayouts()
  * @param {object} [options]
@@ -67,7 +69,7 @@ export function recordPrices(deals, options = {}) {
   const byRoute = new Map();
   for (const deal of deals) {
     if (!deal || !deal.origin || !deal.destination) continue;
-    if (typeof deal.price !== "number" || Number.isNaN(deal.price)) continue;
+    if (priceToCentavos(deal.price) === null) continue;
 
     const route = routeKey(deal.origin, deal.destination);
     const observation = {
@@ -117,12 +119,13 @@ export function getRouteStats(origin, destination, options = {}) {
   const all = readJsonSafe(file, []);
   const observations = Array.isArray(all) ? all : [];
 
-  const cutoff = Date.now() - windowDays * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const cutoff = now - windowDays * 24 * 60 * 60 * 1000;
   const centavos = [];
   for (const obs of observations) {
     if (!obs) continue;
     const ts = Date.parse(obs.observedAt);
-    if (Number.isNaN(ts) || ts < cutoff) continue;
+    if (Number.isNaN(ts) || ts < cutoff || ts > now) continue;
     const c = priceToCentavos(obs.price);
     if (c === null) continue;
     centavos.push(c);
@@ -191,12 +194,13 @@ export function getRouteSeries(origin, destination, options = {}) {
   const all = readJsonSafe(file, []);
   const observations = Array.isArray(all) ? all : [];
 
-  const cutoff = Date.now() - windowDays * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const cutoff = now - windowDays * 24 * 60 * 60 * 1000;
   const points = [];
   for (const obs of observations) {
     if (!obs) continue;
     const ts = Date.parse(obs.observedAt);
-    if (Number.isNaN(ts) || ts < cutoff) continue;
+    if (Number.isNaN(ts) || ts < cutoff || ts > now) continue;
     const c = priceToCentavos(obs.price);
     if (c === null) continue;
     points.push({ observedAt: obs.observedAt, ts, priceCentavos: c });

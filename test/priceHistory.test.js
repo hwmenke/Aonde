@@ -7,6 +7,7 @@ import path from "node:path";
 import {
   recordPrices,
   getRouteStats,
+  getRouteSeries,
   listRoutes,
   priceToCentavos,
   routeKey,
@@ -44,6 +45,33 @@ test("priceToCentavos usa Math.round(price*100) e rejeita invalidos", () => {
   assert.equal(priceToCentavos(19.99), 1999);
   assert.equal(priceToCentavos(null), null);
   assert.equal(priceToCentavos("x"), null);
+  for (const price of [NaN, Infinity, -Infinity, 0, -1, 0.001, Number.MAX_VALUE]) {
+    assert.equal(priceToCentavos(price), null);
+  }
+});
+
+test("historico ignora precos invalidos na gravacao e em arquivos existentes", async (t) => {
+  const dir = await withTempDataDir(t);
+  const invalidPrices = [NaN, Infinity, -Infinity, 0, -100, 0.001, Number.MAX_VALUE];
+  const result = recordPrices(invalidPrices.map((price) => makeDeal(price)));
+  assert.deepEqual(result, { recorded: 0, routes: [] });
+  assert.deepEqual(listRoutes(), []);
+
+  // Dados sinteticos de regressao simulam um arquivo legado com precos invalidos.
+  const observedAt = new Date().toISOString();
+  await mkdir(path.join(dir, "history"), { recursive: true });
+  await writeFile(path.join(dir, "history", "GRU-LIS.json"), JSON.stringify(
+    [1000, ...invalidPrices].map((price) => ({ price, observedAt }))
+  ));
+  const stats = getRouteStats("GRU", "LIS", { minSamples: 1 });
+  assert.equal(stats.sampleCount, 1);
+  assert.equal(stats.mediaCentavos, 100000);
+  assert.equal(stats.minCentavos, 100000);
+  assert.equal(stats.maxCentavos, 100000);
+  const series = getRouteSeries("GRU", "LIS", { minSamples: 1 });
+  assert.equal(series.sampleCount, 1);
+  assert.equal(series.latestCentavos, 100000);
+  assert.equal(series.mediaCentavos, 100000);
 });
 
 test("recordPrices grava observacoes e getRouteStats calcula media/min/max", async (t) => {
@@ -100,6 +128,31 @@ test("getRouteStats filtra observacoes fora da janela de tempo", async (t) => {
   // Janela ampla (200 dias) enxerga as 6.
   const all = getRouteStats("GRU", "LIS", { windowDays: 200, minSamples: 3 });
   assert.equal(all.sampleCount, 6);
+});
+
+test("historico exclui observacoes futuras e preserva os limites da janela", async (t) => {
+  await withTempDataDir(t);
+  const now = Date.parse("2026-10-12T12:00:00Z");
+  const cutoff = now - 90 * 24 * 60 * 60 * 1000;
+  // Valores sinteticos usados somente para verificar a filtragem temporal.
+  for (const [timestamp, price] of [[cutoff - 1, 9000], [cutoff, 1000], [now, 3000], [now + 1, 9000]]) {
+    recordPrices([makeDeal(price)], { observedAt: new Date(timestamp).toISOString() });
+  }
+  t.mock.method(Date, "now", () => now);
+
+  const stats = getRouteStats("GRU", "LIS", { minSamples: 2 });
+  const series = getRouteSeries("GRU", "LIS", { minSamples: 2 });
+  for (const result of [stats, series]) {
+    assert.equal(result.ok, true);
+    assert.equal(result.sampleCount, 2);
+    assert.equal(result.mediaCentavos, 200000);
+    assert.equal(result.minCentavos, 100000);
+    assert.equal(result.maxCentavos, 300000);
+  }
+  assert.deepEqual(series.points.map((point) => point.ts), [cutoff, now]);
+  assert.equal(series.latestObservedAt, new Date(now).toISOString());
+  assert.equal(getRouteStats("GRU", "LIS", { minSamples: 3 }).ok, false);
+  assert.equal(getRouteSeries("GRU", "LIS", { minSamples: 3 }).ok, false);
 });
 
 test("recordPrices ignora deals sem preco numerico ou sem rota", async (t) => {

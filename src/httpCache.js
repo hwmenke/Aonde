@@ -1,6 +1,6 @@
 // Cache em memoria com TTL para respostas GET bem-sucedidas.
 //
-// A chave combina a URL completa com um hash simples do token de autenticacao
+// A chave combina a URL completa com um hash SHA-256 dos headers de autenticacao
 // relevante (X-Access-Token / Authorization). Isso evita que a resposta obtida
 // com um token vaze para uma chamada feita com outro token — sem nunca guardar
 // o token em claro na chave.
@@ -8,30 +8,25 @@
 // LIMITACAO: assim como o rate limiter, o cache vive em memoria do processo e
 // nao e compartilhado entre processos/instancias.
 
+import { createHash } from "node:crypto";
+
 // url+authHash -> { value, expiresAt }
 const store = new Map();
 
-/**
- * Hash nao-criptografico (djb2) de uma string, retornado em hexadecimal.
- * Serve apenas para diferenciar tokens na chave de cache — NAO e seguranca.
- */
-function simpleHash(str) {
-  let h = 5381;
-  for (let i = 0; i < str.length; i++) {
-    h = ((h << 5) + h + str.charCodeAt(i)) >>> 0; // h * 33 + c, mantido em 32 bits
-  }
-  return h.toString(16);
-}
-
-/** Extrai o valor do header de auth relevante (case-insensitive), se houver. */
+/** Extrai todos os headers de auth em ordem estavel (case-insensitive). */
 function extractAuthValue(headers = {}) {
-  for (const [name, value] of Object.entries(headers)) {
+  const auth = [];
+  const entries = headers instanceof Headers
+    ? headers.entries()
+    : Array.isArray(headers) ? headers : Object.entries(headers);
+  for (const [name, value] of entries) {
     const lower = name.toLowerCase();
     if (lower === "x-access-token" || lower === "authorization") {
-      return `${lower}:${value}`;
+      auth.push([lower, String(value)]);
     }
   }
-  return "";
+  auth.sort(([a, av], [b, bv]) => a.localeCompare(b) || av.localeCompare(bv));
+  return auth.length ? JSON.stringify(auth) : "";
 }
 
 /**
@@ -40,7 +35,7 @@ function extractAuthValue(headers = {}) {
  */
 export function makeCacheKey(url, headers) {
   const auth = extractAuthValue(headers);
-  const authHash = auth ? simpleHash(auth) : "anon";
+  const authHash = auth ? createHash("sha256").update(auth).digest("hex") : "anon";
   return `${url}::${authHash}`;
 }
 
@@ -52,7 +47,7 @@ export function makeCacheKey(url, headers) {
 export function getCache(key, now = Date.now()) {
   const entry = store.get(key);
   if (!entry) return undefined;
-  if (now > entry.expiresAt) {
+  if (now >= entry.expiresAt) {
     store.delete(key);
     return undefined;
   }

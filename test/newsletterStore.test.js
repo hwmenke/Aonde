@@ -55,6 +55,21 @@ test("subscribe cria assinante pendente com token e sem consentimento", async (t
   assert.ok(sub.created_at);
 });
 
+test("subscribe rejeita destinos não textuais sem persistir assinantes", async (t) => {
+  await withTempDataDir(t);
+  for (const destino of [[], [""], ["LIS"], false, 0, {}, Object.create(null), Symbol("destino")]) {
+    const result = subscribe({ email: "destination@example.com", origem: "GRU", destino });
+    assert.equal(result.ok, false);
+    assert.equal(result.field, "destino");
+    assert.deepEqual(listSubscribers(), []);
+  }
+  for (const [index, destino] of [undefined, null, "", "   ", " lis "].entries()) {
+    const result = subscribe({ email: `destination-${index}@example.com`, origem: "GRU", destino });
+    assert.equal(result.ok, true);
+    assert.equal(result.subscriber.pending_alert?.destino ?? null, index === 4 ? "LIS" : null);
+  }
+});
+
 test("subscribe com whatsapp adiciona o canal", async (t) => {
   await withTempDataDir(t);
   const result = subscribe({ email: "z@example.com", whatsapp: "+5511999999999", origem: "GRU" });
@@ -66,6 +81,30 @@ test("subscribe rejeita e-mail invalido e origem invalida", async (t) => {
   await withTempDataDir(t);
   assert.equal(subscribe({ email: "sem-arroba", origem: "GRU" }).ok, false);
   assert.equal(subscribe({ email: "ok@example.com", origem: "XX" }).ok, false);
+});
+
+test("subscribe valida o preco-alvo depois de arredondar para centavos", async (t) => {
+  await withTempDataDir(t);
+  for (const precoAlvoCentavos of [0.1, "0.1", Number.MAX_SAFE_INTEGER + 1]) {
+    const result = subscribe({ email: "target@example.com", origem: "GRU", precoAlvoCentavos });
+    assert.equal(result.ok, false);
+    assert.equal(result.field, "preco");
+    assert.equal(getSubscriberByEmail("target@example.com"), null);
+  }
+  const result = subscribe({ email: "target@example.com", origem: "GRU", precoAlvoCentavos: "1.5" });
+  assert.equal(result.ok, true);
+  assert.equal(result.subscriber.pending_alert.preco_alvo_centavos, 2);
+});
+
+test("subscribe rejeita tipos de preco-alvo que nao sao numeros nem strings", async (t) => {
+  const dir = await withTempDataDir(t);
+  for (const precoAlvoCentavos of [true, false, [], [100], {}, Symbol("invalid"), 100n]) {
+    const result = subscribe({ email: "invalid-target@example.com", origem: "GRU", precoAlvoCentavos });
+    assert.equal(result.ok, false);
+    assert.equal(result.field, "preco");
+    assert.deepEqual(listSubscribers(), []);
+    assert.equal(existsSync(path.join(dir, "subscribers.json")), false);
+  }
 });
 
 test("confirm registra consentimento LGPD e apaga o token", async (t) => {
@@ -96,6 +135,40 @@ test("confirm com token expirado falha", async (t) => {
   assert.match(result.error, /expirad/i);
 });
 
+test("confirm rejeita prazo malformado sem registrar consentimento", async (t) => {
+  const dir = await withTempDataDir(t);
+  const { token } = subscribe({ email: "invalid-expiry@example.com", origem: "GRU" });
+  const file = path.join(dir, "subscribers.json");
+  const all = JSON.parse(await readFile(file, "utf-8"));
+  all[0].optin_token_expires_at = "invalid-date";
+  await writeFile(file, JSON.stringify(all));
+
+  const result = confirm(token);
+  assert.equal(result.ok, false);
+  assert.match(result.error, /expirad/i);
+  const stored = JSON.parse(await readFile(file, "utf-8"))[0];
+  assert.equal(stored.double_optin_confirmed, false);
+  assert.equal(stored.consent_lgpd_at, null);
+});
+
+test("confirm rejeita token exatamente no prazo sem registrar consentimento", async (t) => {
+  await withTempDataDir(t);
+  const { token, subscriber } = subscribe({ email: "deadline@example.com", origem: "GRU" });
+  const expiresAt = Date.parse(subscriber.optin_token_expires_at);
+  t.mock.method(Date, "now", () => expiresAt);
+
+  const result = confirm(token);
+  assert.equal(result.ok, false);
+  assert.match(result.error, /expirad/i);
+  const pending = getSubscriberByEmail(subscriber.email);
+  assert.equal(pending.double_optin_confirmed, false);
+  assert.equal(pending.consent_lgpd_at, null);
+
+  // O mesmo token ainda e valido um milissegundo antes do prazo.
+  t.mock.method(Date, "now", () => expiresAt - 1);
+  assert.equal(confirm(token).ok, true);
+});
+
 test("re-subscribe de e-mail ja confirmado -> already_confirmed", async (t) => {
   await withTempDataDir(t);
   subscribeAndConfirm("d@example.com");
@@ -111,6 +184,18 @@ test("re-subscribe de e-mail pendente regenera o token", async (t) => {
   assert.equal(second.status, "pending_optin");
   assert.notEqual(first.token, second.token);
   // Apenas um registro (nao duplica por e-mail).
+  assert.equal(listSubscribers().length, 1);
+  // O link anterior nao pode confirmar nem registrar consentimento.
+  assert.equal(confirm(first.token).ok, false);
+  const pending = getSubscriberByEmail("e@example.com");
+  assert.equal(pending.double_optin_confirmed, false);
+  assert.equal(pending.consent_lgpd_at, null);
+  assert.equal(pending.optin_token, second.token);
+
+  assert.equal(confirm(second.token).ok, true);
+  const confirmed = getSubscriberByEmail("e@example.com");
+  assert.equal(confirmed.double_optin_confirmed, true);
+  assert.ok(confirmed.consent_lgpd_at);
   assert.equal(listSubscribers().length, 1);
 });
 
@@ -150,6 +235,29 @@ test("unsubscribe de e-mail inexistente nao vaza existencia (sempre ok)", async 
   assert.equal(listSubscribers().length, 0);
 });
 
+test("unsubscribe invalida o link pendente e impede reativacao por token antigo", async (t) => {
+  const dir = await withTempDataDir(t);
+  const { token } = subscribe({ email: "pending@example.com", origem: "GRU" });
+  unsubscribe("pending@example.com");
+
+  const unsubscribed = listSubscribers()[0];
+  assert.equal(unsubscribed.optin_token, null);
+  assert.equal(unsubscribed.optin_token_expires_at, null);
+  assert.equal(confirm(token).ok, false);
+  assert.deepEqual(listSubscribers({ confirmedOnly: true }), []);
+
+  // Registros antigos podem ainda conter um token valido depois do descadastro.
+  const file = path.join(dir, "subscribers.json");
+  await writeFile(file, JSON.stringify([{
+    ...unsubscribed,
+    optin_token: token,
+    optin_token_expires_at: new Date(Date.now() + 60_000).toISOString(),
+  }]));
+  assert.equal(confirm(token).ok, false);
+  assert.equal(listSubscribers()[0].unsubscribed_at, unsubscribed.unsubscribed_at);
+  assert.deepEqual(listSubscribers({ confirmedOnly: true }), []);
+});
+
 test("addAlertRule exige assinante confirmado", async (t) => {
   await withTempDataDir(t);
   // Pendente: nao pode criar regra.
@@ -168,6 +276,25 @@ test("addAlertRule exige assinante confirmado", async (t) => {
   const removed = removeAlertRule(rule.rule.id);
   assert.equal(removed.removed, true);
   assert.equal(listAlertRules().length, 0);
+});
+
+test("addAlertRule rejeita destinos não textuais sem persistir regras", async (t) => {
+  await withTempDataDir(t);
+  const sub = subscribeAndConfirm("destination-validation@example.com");
+  for (const destino of [[], [""], ["LIS"], false, 0, {}, Object.create(null)]) {
+    const result = addAlertRule({ subscriberId: sub.id, origem: "GRU", destino });
+    assert.equal(result.ok, false);
+    assert.match(result.error, /Destino inválido/);
+    assert.deepEqual(listAlertRules(), []);
+  }
+  for (const destino of [undefined, null, "", "   "]) {
+    const result = addAlertRule({ subscriberId: sub.id, origem: "GRU", destino });
+    assert.equal(result.ok, true);
+    assert.equal(result.rule.destino, null);
+  }
+  const result = addAlertRule({ subscriberId: sub.id, origem: "GRU", destino: " lis " });
+  assert.equal(result.ok, true);
+  assert.equal(result.rule.destino, "LIS");
 });
 
 test("matchAlerts casa por origem/destino/preco e ignora nao-confirmados", async (t) => {
@@ -209,6 +336,71 @@ test("matchAlerts: regra sem destino casa qualquer destino; sem preco casa qualq
   assert.equal(matchAlerts({ origem: "GRU", destino: "MAD", preco_centavos: 100 }, { rules, subscribers }).length, 1);
 });
 
+test("matchAlerts ignora tarifas ausentes ou invalidas, com e sem preco-alvo", () => {
+  const subscribers = [{ id: "confirmed", double_optin_confirmed: true }];
+  for (const preco_alvo_centavos of [null, 300000]) {
+    const rules = [{ subscriber_id: "confirmed", origem: "GRU", preco_alvo_centavos }];
+    for (const preco_centavos of [undefined, null, "100", 0, -100, NaN, Infinity, -Infinity]) {
+      assert.equal(matchAlerts({ origem: "GRU", destino: "LIS", preco_centavos }, { rules, subscribers }).length, 0);
+    }
+    assert.equal(matchAlerts({ origem: "GRU", destino: "LIS", preco_centavos: 100 }, { rules, subscribers }).length, 1);
+  }
+});
+
+test("matchAlerts ignora ofertas com codigos de rota ausentes ou malformados", () => {
+  const subscribers = [{ id: "sub", double_optin_confirmed: true }];
+  const rules = [{ subscriber_id: "sub", origem: "GRU" }];
+  for (const invalid of [undefined, null, "", " ", "LI", "LIS1", 123, ["LIS"]]) {
+    assert.equal(matchAlerts({ origem: "GRU", destino: invalid, preco_centavos: 100 }, { rules, subscribers }).length, 0);
+    assert.equal(matchAlerts({ origem: invalid, destino: "LIS", preco_centavos: 100 }, {
+      rules: [{ subscriber_id: "sub", origem: invalid }], subscribers,
+    }).length, 0);
+  }
+  assert.equal(matchAlerts({ origem: "gru", destino: "lis", preco_centavos: 100 }, { rules, subscribers }).length, 1);
+});
+
+test("matchAlerts normaliza espacos e caixa nos codigos de ofertas e regras", () => {
+  const subscribers = [{ id: "confirmed", double_optin_confirmed: true }];
+  const rules = [{ subscriber_id: "confirmed", origem: "GRU", destino: "LIS" }];
+  assert.equal(matchAlerts({ origem: " GRu ", destino: " liS ", preco_centavos: 100 }, {
+    rules, subscribers,
+  }).length, 1);
+  assert.equal(matchAlerts({ origem: "GRU", destino: "LIS", preco_centavos: 100 }, {
+    rules: [{ subscriber_id: "confirmed", origem: " gru ", destino: " lis " }], subscribers,
+  }).length, 1);
+  assert.equal(matchAlerts({ origem: "GRU", destino: "MAD", preco_centavos: 100 }, {
+    rules, subscribers,
+  }).length, 0);
+});
+
+test("matchAlerts rejeita destinos malformados em regras persistidas", () => {
+  const subscribers = [{ id: "confirmed", double_optin_confirmed: true }];
+  const offer = { origem: "GRU", destino: "LIS", preco_centavos: 100 };
+  const match = (destino) => matchAlerts(offer, {
+    rules: [{ subscriber_id: "confirmed", origem: "GRU", destino }], subscribers,
+  });
+  for (const destino of [false, 0, true, [], ["LIS"], {}, "LI", "LIS1"]) {
+    assert.deepEqual(match(destino), []);
+  }
+  for (const destino of [undefined, null, "", "lis"]) {
+    assert.equal(match(destino).length, 1);
+  }
+  assert.deepEqual(match("MAD"), []);
+});
+
+test("matchAlerts ignora preco-alvo malformado em regras persistidas", () => {
+  const subscribers = [{ id: "confirmed", double_optin_confirmed: true }];
+  const offer = { origem: "GRU", destino: "LIS", preco_centavos: 100 };
+  for (const preco_alvo_centavos of ["100", Infinity, -Infinity, NaN, 0, -100, true, [], [100], {}]) {
+    const rules = [{ subscriber_id: "confirmed", origem: "GRU", preco_alvo_centavos }];
+    assert.equal(matchAlerts(offer, { rules, subscribers }).length, 0);
+  }
+  for (const preco_alvo_centavos of [undefined, null, 100]) {
+    const rules = [{ subscriber_id: "confirmed", origem: "GRU", preco_alvo_centavos }];
+    assert.equal(matchAlerts(offer, { rules, subscribers }).length, 1);
+  }
+});
+
 test("dispatchAlerts enfileira em JSONL com HASH do e-mail (nao o e-mail em claro)", async (t) => {
   const dir = await withTempDataDir(t);
   const email = "k@example.com";
@@ -232,6 +424,131 @@ test("dispatchAlerts enfileira em JSONL com HASH do e-mail (nao o e-mail em clar
   assert.equal(line.offerId, "gru-lis");
   assert.equal(line.offerRoute, "GRU-LIS");
   assert.equal(line.precoCentavos, 250000);
+});
+
+test("dispatchAlerts rejeita centavos fracionarios e inseguros sem consumir cooldown", async (t) => {
+  const dir = await withTempDataDir(t);
+  const subscriber = subscribeAndConfirm();
+  assert.equal(addAlertRule({ subscriberId: subscriber.id, origem: "GRU" }).ok, true);
+  const sent = [];
+  setSenderImpl((item) => sent.push(item));
+  t.after(() => resetSenderImpl());
+  const agora = Date.UTC(2026, 0, 1);
+  // Valores sinteticos usados somente como fixtures de teste.
+  for (const preco_centavos of [0.5, 100.5, Number.MAX_SAFE_INTEGER + 1]) {
+    const result = dispatchAlerts([{ origem: "GRU", destino: "LIS", preco_centavos }], { agora });
+    assert.equal(result.queued, 0);
+    assert.equal(result.suprimidos, 0);
+  }
+  assert.equal(sent.length, 0);
+  assert.equal(existsSync(path.join(dir, "alert_queue.jsonl")), false);
+  const valid = dispatchAlerts([{ origem: "GRU", destino: "LIS", preco_centavos: 100 }], { agora });
+  assert.equal(valid.queued, 1);
+  assert.equal(sent.length, 1);
+  const lines = (await readFile(path.join(dir, "alert_queue.jsonl"), "utf-8")).trim().split("\n");
+  assert.equal(lines.length, 1);
+  assert.equal(JSON.parse(lines[0]).precoCentavos, 100);
+});
+
+test("dispatchAlerts usa rota normalizada na fila e no cooldown", async (t) => {
+  const dir = await withTempDataDir(t);
+  const subscriber = subscribeAndConfirm();
+  addAlertRule({ subscriberId: subscriber.id, origem: "GRU", destino: "LIS" });
+  const agora = Date.UTC(2026, 0, 1);
+  const first = dispatchAlerts([{ origem: " gru ", destino: " lis ", preco_centavos: 100 }], { agora });
+  assert.equal(first.queued, 1);
+  assert.equal(first.items[0].offerRoute, "GRU-LIS");
+  const next = dispatchAlerts([{ origem: "GRU", destino: "LIS", preco_centavos: 100 }], { agora: agora + 1000 });
+  assert.equal(next.queued, 0);
+  assert.equal(next.suprimidos, 1);
+  const lines = (await readFile(path.join(dir, "alert_queue.jsonl"), "utf-8")).trim().split("\n");
+  assert.equal(lines.length, 1);
+  assert.equal(JSON.parse(lines[0]).offerRoute, "GRU-LIS");
+});
+
+test("dispatchAlerts preserva cooldown depois de entradas malformadas na fila", async (t) => {
+  const dir = await withTempDataDir(t);
+  const subscriber = subscribeAndConfirm();
+  assert.equal(addAlertRule({ subscriberId: subscriber.id, origem: "GRU" }).ok, true);
+  // Tarifa sintetica usada apenas como fixture de teste.
+  const offer = { id: "cooldown-fixture", origem: "GRU", destino: "LIS", preco_centavos: 100 };
+  const agora = Date.UTC(2026, 0, 1);
+  assert.equal(dispatchAlerts([offer], { agora }).queued, 1);
+
+  const queuePath = path.join(dir, "alert_queue.jsonl");
+  const original = await readFile(queuePath, "utf-8");
+  await writeFile(queuePath, 'invalid-json\nnull\n42\n"text"\n[]\n' + original);
+
+  const result = dispatchAlerts([offer], { agora: agora + 1000 });
+  assert.equal(result.queued, 0);
+  assert.equal(result.suprimidos, 1);
+  assert.equal(await readFile(queuePath, "utf-8"), 'invalid-json\nnull\n42\n"text"\n[]\n' + original);
+});
+
+test("dispatchAlerts libera alerta no limite do cooldown e reinicia a janela", async (t) => {
+  const dir = await withTempDataDir(t);
+  const subscriber = subscribeAndConfirm();
+  assert.equal(addAlertRule({ subscriberId: subscriber.id, origem: "GRU" }).ok, true);
+  // Tarifa sintetica usada apenas como fixture de teste.
+  const offer = { id: "cooldown-boundary-fixture", origem: "GRU", destino: "LIS", preco_centavos: 100 };
+  const agora = Date.UTC(2026, 0, 1);
+  const cooldownMs = 60_000;
+  const sendAt = (time) => dispatchAlerts([offer], { agora: time, cooldownMs });
+
+  assert.equal(sendAt(agora).queued, 1);
+  const before = sendAt(agora + cooldownMs - 1);
+  assert.equal(before.queued, 0);
+  assert.equal(before.suprimidos, 1);
+  const boundary = sendAt(agora + cooldownMs);
+  assert.equal(boundary.queued, 1);
+  assert.equal(boundary.suprimidos, 0);
+  const after = sendAt(agora + cooldownMs + 1);
+  assert.equal(after.queued, 0);
+  assert.equal(after.suprimidos, 1);
+
+  const content = await readFile(path.join(dir, "alert_queue.jsonl"), "utf-8");
+  const items = content.trim().split("\n").map((line) => JSON.parse(line));
+  assert.deepEqual(items.map((item) => item.queuedAt), [
+    new Date(agora).toISOString(),
+    new Date(agora + cooldownMs).toISOString(),
+  ]);
+});
+
+test("dispatchAlerts deduplica regras e ofertas no mesmo lote sem suprimir outros destinatarios ou rotas", async (t) => {
+  const dir = await withTempDataDir(t);
+  const first = subscribeAndConfirm("batch-first@example.com");
+  const second = subscribeAndConfirm("batch-second@example.com");
+  for (const subscriber of [first, second]) {
+    assert.equal(addAlertRule({ subscriberId: subscriber.id, origem: "GRU", canais: ["email", "whatsapp"] }).ok, true);
+    assert.equal(addAlertRule({ subscriberId: subscriber.id, origem: "GRU", destino: "LIS", canais: ["email", "whatsapp"] }).ok, true);
+  }
+  const sent = [];
+  setSenderImpl((item) => sent.push(item));
+  t.after(() => resetSenderImpl());
+  // Valores sinteticos usados somente como fixtures de teste.
+  const offers = [
+    { id: "batch-lis", origem: "GRU", destino: "LIS", preco_centavos: 100 },
+    { id: "batch-lis-repeat", origem: " gru ", destino: " lis ", preco_centavos: 100 },
+    { id: "batch-mad", origem: "GRU", destino: "MAD", preco_centavos: 100 },
+  ];
+  const agora = Date.UTC(2026, 0, 1);
+  const result = dispatchAlerts(offers, { agora });
+  const expected = [first.email, second.email].flatMap((email) => {
+    const hash = crypto.createHash("sha256").update(email).digest("hex");
+    return ["GRU-LIS", "GRU-MAD"].flatMap((route) =>
+      ["email", "whatsapp"].map((channel) => `${hash}|${route}|${channel}`));
+  }).sort();
+  const keys = (items) => items.map((item) =>
+    `${item.subscriberEmailHash}|${item.offerRoute}|${item.canal}`).sort();
+  assert.equal(result.queued, 8);
+  assert.equal(result.suprimidos, 12);
+  assert.deepEqual(keys(result.items), expected);
+  assert.deepEqual(sent, result.items);
+  const persisted = (await readFile(path.join(dir, "alert_queue.jsonl"), "utf-8"))
+    .trim().split("\n").map((line) => JSON.parse(line));
+  assert.deepEqual(persisted, result.items);
+  assert.equal(dispatchAlerts(offers, { agora: agora + 1 }).queued, 0);
+  assert.equal(sent.length, 8);
 });
 
 test("dispatchAlerts respeita setSenderImpl (ponto de integracao)", async (t) => {

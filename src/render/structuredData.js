@@ -224,7 +224,7 @@ function parseBRLToNumber(str) {
 function parseUSDToNumber(str) {
   if (typeof str !== "string" || !str.trim()) return null;
   if (!looksLikeUsd(str)) return null;
-  const cleaned = str.replace(/[^\d.]/g, "");
+  const cleaned = str.replace(/[^\d.-]/g, "");
   if (!cleaned) return null;
   const n = Number.parseFloat(cleaned);
   return Number.isFinite(n) ? n : null;
@@ -260,7 +260,7 @@ export function buildOfferProduct(vm) {
   const usd = parseUSDToNumber(vm.preco);
   const brl = parseBRLToNumber(vm.preco);
   const price = usd !== null ? usd : brl;
-  const precoGarantido = price !== null && !vm.erro && !!vm.affiliateUrl && vm.aviasalesBuy !== false;
+  const precoGarantido = price !== null && price > 0 && !vm.erro && !!vm.affiliateUrl && vm.aviasalesBuy !== false;
   if (precoGarantido) {
     product.offers = {
       "@type": "Offer",

@@ -19,6 +19,7 @@ import { enviarEmail, provedorConfigurado } from "./sender.js";
 import { buildPriceAlertEmail } from "./emailTemplates.js";
 import { listSubscribers, hashEmail } from "./subscriberStore.js";
 import { getConfig } from "../config.js";
+import { isIataCode, normalizeIata } from "../validate.js";
 
 function arquivoFila() {
   return path.join(resolveDataDir(), "alert_queue.jsonl");
@@ -71,6 +72,9 @@ function assinantePorHash(hash, assinantes) {
  * @returns {Promise<{ok:boolean, lidos:number, enviados:number, pulados:number, falhas:number, modo:string}>}
  */
 export async function processarFila({ limite = 200, agora = new Date() } = {}) {
+  if (!Number.isSafeInteger(limite) || limite < 0) {
+    throw new RangeError("O limite deve ser um inteiro seguro maior ou igual a zero.");
+  }
   const linhas = lerFila();
   const jaFeitos = lerCheckpoint();
   const pendentes = linhas.slice(jaFeitos, jaFeitos + limite);
@@ -94,10 +98,34 @@ export async function processarFila({ limite = 200, agora = new Date() } = {}) {
       continue; // linha corrompida nao trava a fila
     }
 
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      pulados++;
+      continue;
+    }
+
+    // Este worker entrega e-mail; outros canais nao podem virar e-mails extras.
+    if (item.canal !== "email") {
+      pulados++;
+      continue;
+    }
+
+    // Revalida tarifas persistidas antes de montar o e-mail de preco.
+    if (!Number.isSafeInteger(item.precoCentavos) || item.precoCentavos <= 0) {
+      pulados++;
+      continue;
+    }
+
+    // A rota persistida precisa conter exatamente dois codigos IATA validos.
+    const rota = typeof item.offerRoute === "string" ? item.offerRoute.split("-") : [];
+    if (rota.length !== 2 || !rota.every(isIataCode)) {
+      pulados++;
+      continue;
+    }
+
     const sub = assinantePorHash(item.subscriberEmailHash, assinantes);
-    // Assinante apagado, descadastrado ou com a PII removida: nao ha para quem
-    // mandar, e isso NAO e falha — e o sistema respeitando o descadastro.
-    if (!sub || !sub.email || sub.unsubscribed_at) {
+    // Revalida o consentimento no envio, mesmo para alertas ja enfileirados.
+    // Assinante pendente, apagado ou descadastrado deve ser pulado.
+    if (!sub || !sub.email || !sub.double_optin_confirmed || sub.unsubscribed_at) {
       pulados++;
       continue;
     }
@@ -105,8 +133,8 @@ export async function processarFila({ limite = 200, agora = new Date() } = {}) {
     const base = getConfig().siteUrl;
     const { assunto, textoPlano, html } = buildPriceAlertEmail({
       email: sub.email,
-      origem: item.offerRoute ? String(item.offerRoute).split("-")[0] : sub.origem_preferida,
-      destino: item.offerRoute ? String(item.offerRoute).split("-")[1] : null,
+      origem: normalizeIata(rota[0]),
+      destino: normalizeIata(rota[1]),
       precoCentavos: item.precoCentavos,
       offerUrl: item.offerId ? `${base}/ofertas/${encodeURIComponent(item.offerId)}` : base,
       unsubscribeUrl: `${base}/api/newsletter/unsubscribe?email=${encodeURIComponent(sub.email)}`,
