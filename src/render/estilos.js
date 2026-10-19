@@ -1062,6 +1062,23 @@ export function pageStyles() {
     .feed-filtros .btn-dark{width:100%;}
     .feed-campo,.feed-campo--busca{flex:1 1 100%;}
   }
+  .res-filtro-n{margin-left:6px;color:var(--muted);font-size:12px;}
+  .res-limpar{margin-top:8px;}
+  .res-detalhes{margin-top:8px;font-size:14px;}
+  .res-detalhes summary{cursor:pointer;font-weight:700;}
+  .fontes-painel p{font-size:14px;line-height:1.5;color:var(--muted);}
+  .salvar-wrap{display:flex;flex-direction:column;align-items:flex-start;gap:8px;}
+  .btn-salvar{background:transparent;border:1px solid var(--border-2);border-radius:var(--pill);padding:6px 12px;font:inherit;cursor:pointer;}
+  .salvar-status{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
+  [data-salvos-comparar]{max-width:100%;overflow-x:auto;}
+  .salvos-tabela{width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed;}
+  .salvos-tabela th,.salvos-tabela td{border-bottom:1px solid var(--border);text-align:left;padding:8px;vertical-align:top;word-break:break-word;}
+  .guia-url{font-size:13px;color:var(--muted);}
+  @media print {
+    .site-header,.site-footer,.seasons3d,.skip-link,.guia-sticky-cta,.no-print,.salvar-status,.res-side,.s3-motes,.s3-veil{display:none !important;}
+    .dia,.prep-item,.lodging,.fontes-painel,.res-voo,.salvo-item{break-inside:avoid;}
+    a{text-decoration:underline;}
+  }
   `;
   return _pageStylesCache;
 }

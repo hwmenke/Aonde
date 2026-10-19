@@ -36,12 +36,13 @@ import {
   RESULTS_ROUTE,
   FLIGHT_SORTS,
   FLIGHTS,
-  FLIGHT_FILTERS,
 } from "./aondeContent.js";
 import { escapeHtml, formatBRL, semAcento, formatMoedaExibicao } from "./texto.js";
 import { getRouteSeries } from "../store/priceHistory.js";
 import { renderRouteSparkline } from "./sparkline.js";
-import { preparativosDoGuia, FONTES } from "./preparativos.js";
+import { preparativosDoGuia, FONTES, lembreteDeRevisao } from "./preparativos.js";
+import { filtrosDosVoos } from "./filtrosVoo.js";
+import { catalogoSalvos, scriptSalvos } from "./savedTrips.js";
 import { pageStyles } from "./estilos.js";
 import { createHash } from "node:crypto";
 
@@ -684,7 +685,12 @@ function offerCardVM(vm) {
   const wrapTag = vm.href ? "a" : "article";
   const hrefAttr = vm.href ? ` href="${escapeHtml(vm.href)}"` : "";
 
+  const salvar = vm.id
+    ? `<button type="button" class="btn-salvar no-print" data-salvar data-tipo="oferta" data-id="${escapeHtml(vm.id)}" aria-pressed="false">Salvar</button>`
+    : "";
+
   return (
+    `<div class="salvar-wrap">` +
     `<${wrapTag} class="of-card${vm.erro ? " of-card--erro" : ""}"${hrefAttr}>` +
     `<div class="of-media">` +
     imageBlock(vm.thumbUrl, alt, destinoLabel, "of-media-inner", false, "", TAMANHOS_CARTAO_OFERTA) +
@@ -700,7 +706,9 @@ function offerCardVM(vm) {
     fonteCard +
     cardCtaHtml(vm) +
     `</div>` +
-    `</${wrapTag}>`
+    `</${wrapTag}>` +
+    salvar +
+    `</div>`
   );
 }
 
@@ -1029,6 +1037,39 @@ function preparativosHtml(g) {
   );
 }
 
+function fontesEditoriaisHtml(g, hoje) {
+  const prep = preparativosDoGuia(g);
+  const hojeIso = typeof hoje === "string" && /^\d{4}-\d{2}-\d{2}$/.test(hoje) ? hoje : "";
+  const lembrete = lembreteDeRevisao({
+    conferidoEm: prep ? prep.conferidoEm : "",
+    tipo: "preparativos",
+    hoje: hojeIso,
+  });
+  const avisoRevisao =
+    lembrete.estado === "revisar"
+      ? `<p class="fontes-revisao">Os preparativos passaram do prazo interno de revisão (${lembrete.dias} dias desde ${escapeHtml(lembrete.conferidoEm)}). A data não foi atualizada sozinha.</p>`
+      : "";
+  const prepTexto = prep
+    ? `Preparativos conferidos em ${prep.conferidoEm}. Fontes já citadas nesta página: ` +
+      `<a href="${escapeHtml(FONTES.documento.url)}" target="_blank" rel="noopener">${escapeHtml(FONTES.documento.nome)}</a>, ` +
+      `<a href="${escapeHtml(FONTES.saude.url)}" target="_blank" rel="noopener">${escapeHtml(FONTES.saude.nome)}</a> e ` +
+      `<a href="${escapeHtml(FONTES.consular.url)}" target="_blank" rel="noopener">${escapeHtml(FONTES.consular.nome)}</a>.`
+    : "Preparativos: fonte não registrada. Data de revisão não registrada.";
+  const id = g && g.id ? String(g.id) : "";
+  const reporte = id
+    ? `<a href="/ajuda?guia=${encodeURIComponent(id)}">Reportar informação desatualizada</a>`
+    : "";
+  return (
+    `<section class="wrap section fontes-painel" id="fontes">` +
+    `<h2 class="det-h2">Fontes e revisão</h2>` +
+    `<p>${prepTexto}</p>` +
+    `<p>Recomendações do roteiro (dias, restaurantes e hospedagem): fonte não registrada. Data de revisão não registrada.</p>` +
+    avisoRevisao +
+    (reporte ? `<p>${reporte}</p>` : "") +
+    `</section>`
+  );
+}
+
 function lodgingHtml(g) {
   const cidade = g.breadcrumb || g.titulo || "seu destino";
   const base = guideBaseArea(g);
@@ -1091,15 +1132,21 @@ function miniMapSection({ domId, callback, title, caption, coords, label, apiKey
     (caption ? `<span class="dt-note">${escapeHtml(caption)}</span>` : "") +
     `</div>`;
   if (hasKey && hasCoords) {
+    const ext = /^https?:/.test(fallbackHref) ? ` target="_blank" rel="noopener"` : "";
     return {
-      html: head + `<div id="${domId}" class="guia-map" role="application" aria-label="Mapa de ${escapeHtml(label)}"></div></section>`,
+      html:
+        head +
+        `<div id="${domId}" class="guia-map" role="application" aria-label="Mapa de ${escapeHtml(label)}">` +
+        `<p class="guia-map-status">Carregando o mapa…</p></div>` +
+        `<a class="btn btn-green guia-map-link" href="${escapeHtml(fallbackHref)}"${ext}>${escapeHtml(fallbackText)} →</a></section>`,
       script:
-        `function ${callback}(){var m=new google.maps.Map(document.getElementById("${domId}"),` +
+        `function ${callback}(){var el=document.getElementById("${domId}");if(window.__aondeMapaTimer){clearTimeout(window.__aondeMapaTimer);}if(el)el.textContent="";var m=new google.maps.Map(el,` +
         `{center:{lat:${coords.lat},lng:${coords.lng}},zoom:9,mapTypeControl:false,streetViewControl:false,fullscreenControl:false,styles:${AONDE_MAP_STYLE}});` +
-        `new google.maps.Marker({position:{lat:${coords.lat},lng:${coords.lng}},map:m,title:${jsonForScript(label)},icon:${MAP_PIN_ICON_JS}});}`,
+        `new google.maps.Marker({position:{lat:${coords.lat},lng:${coords.lng}},map:m,title:${jsonForScript(label)},icon:${MAP_PIN_ICON_JS}});}` +
+        `window.__aondeMapaTimer=setTimeout(function(){if(!(window.google&&google.maps)){var el=document.getElementById("${domId}");if(el){el.classList.add("map-canvas--err");el.textContent="";var p=document.createElement("p");p.className="map-canvas-msg";p.textContent="O mapa não carregou. O link de localização abaixo continua disponível.";el.appendChild(p);}}},8000);`,
       loader: `<script async src="https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
         apiKey.trim()
-      )}&callback=${callback}&loading=async"></script>`,
+      )}&callback=${callback}&loading=async" onerror="var el=document.getElementById('${domId}');if(el){el.classList.add('map-canvas--err');el.textContent='';var p=document.createElement('p');p.className='map-canvas-msg';p.textContent='O mapa não carregou. O link de localização abaixo continua disponível.';el.appendChild(p);}"></script>`,
     };
   }
   const ext = /^https?:/.test(fallbackHref) ? ` target="_blank" rel="noopener"` : "";
@@ -1224,6 +1271,7 @@ function siteHeader() {
     `<a href="${escapeHtml(hotellookSearch())}" target="_blank" rel="noopener sponsored" title="Abre o site do parceiro Hotellook em nova aba">Hotéis <span class="nav-ext" aria-hidden="true">↗</span></a>` +
     `<a href="/guias">Guias de destino</a>` +
     `<a href="/mapa">Mapa</a>` +
+    `<a href="/salvos">Salvos</a>` +
     `</nav>` +
     `<div class="site-header-right">` +
     (() => {
@@ -1265,6 +1313,7 @@ function siteFooter({ places, attribution } = {}) {
     ? `<p class="foot-places"><strong>${escapeHtml(attribution || "Dados de lugares: Google")}.</strong> Fotos e créditos indicados em cada card.</p>`
     : "";
   return (
+    `<p class="salvar-status" data-salvar-status role="status" aria-live="polite"></p>` +
     `<footer class="site-footer">` +
     `<div class="wrap foot-grid">` +
     `<div class="foot-brand"><div class="brand brand--foot">${brandPlaneSvg()}<span class="brand-word">aonde</span><span class="brand-dot"></span></div>` +
@@ -2884,6 +2933,11 @@ function renderGuideVM(g, apiKey, { hoje = new Date() } = {}) {
     `<aside class="guia-aside">` +
     `<h2 class="guia-aside-h">Na prática</h2><dl class="guia-meta">${meta}</dl>` +
     `<a class="btn btn-green" href="${escapeHtml(guideResultsHref(g.opt))}">${escapeHtml(g.ctaVoos)}</a>` +
+    (g.id
+      ? `<button type="button" class="btn btn-ghost no-print" data-salvar data-tipo="guia" data-id="${escapeHtml(g.id)}" aria-pressed="false">Salvar</button>` +
+        `<button type="button" class="btn btn-ghost no-print" data-imprimir>Imprimir / salvar PDF</button>` +
+        `<p class="guia-url">Endereço desta página: ${escapeHtml(absoluteUrl(`/guias/${g.id}`))}</p>`
+      : "") +
     asidePreco +
     (guiaEditorial ? ofertaNaCaixaHtml(GUIDES[g.id]) : "") +
     `</aside>` +
@@ -2897,6 +2951,7 @@ function renderGuideVM(g, apiKey, { hoje = new Date() } = {}) {
     escopoPreco +
     (g.id ? lodgingHtml(g) : "") +
     preparativosHtml(g) +
+    fontesEditoriaisHtml(g, hoje instanceof Date ? chaveDoDia(hoje) : hoje) +
     optimizerHtml(g.opt) +
     travelDatesHtml(g) +
     (guiaEditorial ? continuePlanejandoHtml(GUIDES[g.id], { data: hoje }) : "") +
@@ -2929,7 +2984,7 @@ function renderGuideVM(g, apiKey, { hoje = new Date() } = {}) {
     title: `${g.titulo} · Aonde`,
     description: metaDescricao(g.resumo || g.intro) || undefined,
     body,
-    script: map.script,
+    script: [map.script, enhancementScript()].filter(Boolean).join("\n"),
     canonical: g.id ? `/guias/${g.id}` : "/guias",
     image: (g.hero && g.hero.url) || "",
     jsonld: guideJsonld,
@@ -3219,6 +3274,32 @@ export function renderItineraryPage(itinerary) {
 // mesmo shape.
 // ---------------------------------------------------------------------------
 
+function trechoListaHtml(trechos) {
+  return trechos
+    .map((t) => {
+      const op = t.operadora ? ` Operado por ${escapeHtml(t.operadora)}.` : "";
+      const muda = t.mudaDia ? " Chega em outro dia." : "";
+      const conexao = t.conexao ? ` Conexão em ${escapeHtml(t.conexao)}.` : "";
+      return (
+        `<li>${escapeHtml(t.origem || "aeroporto não informado")} ${escapeHtml(t.saida || "")} ${escapeHtml(t.saidaData || "data não informada")}` +
+        ` → ${escapeHtml(t.destino || "aeroporto não informado")} ${escapeHtml(t.chegada || "")} ${escapeHtml(t.chegadaData || "data não informada")}.` +
+        `${muda}${conexao}${op} ${escapeHtml(t.cia || "")} ${escapeHtml(t.numero || "")}</li>`
+      );
+    })
+    .join("");
+}
+
+function detalhesVooHtml(v) {
+  if (!v || (!Array.isArray(v.idaTrechos) && !v.volta)) return "";
+  const ida = Array.isArray(v.idaTrechos) && v.idaTrechos.length
+    ? `<h3>Ida</h3><ol>${trechoListaHtml(v.idaTrechos)}</ol>`
+    : `<h3>Ida</h3><p>Os trechos da ida não vieram nesta resposta.</p>`;
+  const volta = v.volta && Array.isArray(v.volta.trechos) && v.volta.trechos.length
+    ? `<h3>Volta</h3><ol>${trechoListaHtml(v.volta.trechos)}</ol>`
+    : `<h3>Volta</h3><p>A volta não veio nesta resposta.</p>`;
+  return `<details class="res-detalhes"><summary>Detalhes da ida e volta</summary>${ida}${volta}</details>`;
+}
+
 function alterarBuscaHref(consulta) {
   if (!consulta || typeof consulta !== "object") return "/#busca";
   const params = new URLSearchParams();
@@ -3274,9 +3355,39 @@ export function renderResultsPage(opts = {}) {
             pax.bebes > 0 ? "bebê de colo" : ""
           }: os valores ${voosReais ? "" : "de exemplo "}abaixo são <strong>por adulto</strong>. Criança e bebê pagam tarifa própria, calculada pela companhia no site do parceiro — leve isso em conta antes de calcular o total da viagem.</p>`
       : "";
+  const buscaMotivo = typeof opts.buscaMotivo === "string" ? opts.buscaMotivo : "";
+  const tentarHref = consulta ? alterarBuscaHref(consulta).replace("#busca", "") : "/#busca";
+  const tentarDeNovo = consulta
+    ? (() => {
+        const params = new URLSearchParams();
+        for (const chave of ["origem", "destino", "ida", "volta", "adultos", "criancas", "bebes"]) {
+          const valor = consulta[chave];
+          if (valor !== undefined && valor !== null && String(valor) !== "") params.set(chave, String(valor));
+        }
+        const q = params.toString();
+        return q ? `/resultados?${q}` : "/#busca";
+      })()
+    : "/#busca";
+  const falhaAoVivo = !voosReais && ["erro", "timeout-geral", "sem-resultados", "capacidade", "datas-invalidas", "cancelada"].includes(buscaMotivo);
+  const avisoFalha = (() => {
+    if (buscaMotivo === "timeout-geral") {
+      return `<p class="res-amostra res-amostra--erro" role="status"><strong>A busca ao vivo demorou demais e foi interrompida.</strong> Isso não é uma lista de voos encontrados. <a href="${escapeHtml(tentarDeNovo)}">Tentar de novo</a> ou <a href="${escapeHtml(tentarHref || "/#busca")}">alterar a busca</a>.</p>`;
+    }
+    if (buscaMotivo === "capacidade") {
+      return `<p class="res-amostra res-amostra--erro" role="status"><strong>A busca ao vivo está no limite agora.</strong> Nada foi consultado nesta tentativa. <a href="${escapeHtml(tentarDeNovo)}">Tentar de novo</a> em instantes.</p>`;
+    }
+    if (buscaMotivo === "sem-resultados") {
+      return `<p class="res-amostra res-amostra--erro" role="status"><strong>Esta fonte não devolveu voos para a busca.</strong> Isso não quer dizer que a rota não exista em outros lugares. <a href="${escapeHtml(tentarDeNovo)}">Tentar de novo</a>.</p>`;
+    }
+    if (buscaMotivo === "erro" || buscaMotivo === "datas-invalidas" || buscaMotivo === "cancelada") {
+      return `<p class="res-amostra res-amostra--erro" role="status"><strong>A busca ao vivo não completou.</strong> O motivo técnico fica só no servidor. <a href="${escapeHtml(tentarDeNovo)}">Tentar de novo</a>.</p>`;
+    }
+    return "";
+  })();
   const avisoOrigem = voosReais
     ? `<p class="res-amostra res-amostra--vivo"><strong>Preços buscados ao vivo agora.</strong> Estes são os voos que a busca devolveu para ${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)}, com o preço do momento. O rótulo de cada valor diz se é total do grupo ou por pessoa. Tarifa de avião muda rápido: o valor final é o que aparecer no site do parceiro em "Buscar esta rota no parceiro".</p>`
-    : `<p class="res-amostra"><strong>${opts.buscaAoVivo ? "A busca ao vivo não devolveu voos agora." : "Busca de voos ao vivo em breve."}</strong> Os voos abaixo são <strong>exemplos</strong> da rota ${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)} — não são tarifas garantidas. O preço real é confirmado no site do parceiro em "Buscar esta rota no parceiro". Prefere algo já conferido pela nossa curadoria? Veja os <a href="/ofertas">achados de hoje</a>.</p>`;
+    : avisoFalha +
+      `<p class="res-amostra"><strong>${opts.buscaAoVivo && !falhaAoVivo ? "A busca ao vivo não devolveu voos agora." : falhaAoVivo ? "Exemplos, separados desta busca." : "Busca de voos ao vivo em breve."}</strong> Os voos abaixo são <strong>exemplos</strong> da rota ${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)} — não são tarifas garantidas. O preço real é confirmado no site do parceiro em "Buscar esta rota no parceiro". Prefere algo já conferido pela nossa curadoria? Veja os <a href="/ofertas">achados de hoje</a>.</p>`;
   const sorts = Array.isArray(opts.sorts) && opts.sorts.length ? opts.sorts : FLIGHT_SORTS;
   // Destino do "Selecionar": SEMPRE a pagina de saida do proprio site, nunca
   // direto pro parceiro — e a mesma tela de aviso que /saida/:id ja usa para
@@ -3284,22 +3395,26 @@ export function renderResultsPage(opts = {}) {
   const selecionarHref = saidaVooHref(rota.origem, rota.destino, opts.consulta);
   const searched = !!opts.searched;
 
-  const filtros = FLIGHT_FILTERS.map((grp) => {
-    const tipo = filtroTipo(grp.titulo);
-    return (
-      `<fieldset class="res-filtro"><legend class="res-filtro-title">${escapeHtml(grp.titulo)}</legend>` +
-      grp.opcoes
-        .map((o) => {
-          const valor = filtroValor(tipo, o.label);
-          return (
-            `<label class="res-check"><input type="checkbox" data-res-filtro data-ftype="${escapeHtml(tipo)}" data-fval="${escapeHtml(valor)}"${o.on ? " checked" : ""}>` +
-            `${escapeHtml(o.label)}</label>`
-          );
-        })
-        .join("") +
-      `</fieldset>`
-    );
-  }).join("");
+  const filtros = filtrosDosVoos(voos)
+    .map((grp) => {
+      const tipo = grp.tipo || filtroTipo(grp.titulo);
+      return (
+        `<fieldset class="res-filtro"><legend class="res-filtro-title">${escapeHtml(grp.titulo)}</legend>` +
+        grp.opcoes
+          .map((o) => {
+            const valor = o.valor || filtroValor(tipo, o.label);
+            const n = Number.isFinite(o.n) ? o.n : 0;
+            return (
+              `<label class="res-check"><input type="checkbox" data-res-filtro data-ftype="${escapeHtml(tipo)}" data-fval="${escapeHtml(valor)}">` +
+              `${escapeHtml(o.label)} <span class="res-filtro-n">${n}</span></label>`
+            );
+          })
+          .join("") +
+        `</fieldset>`
+      );
+    })
+    .join("") +
+    (voos.length ? `<button type="button" class="btn btn-ghost res-limpar" data-res-limpar>Limpar filtros</button>` : "");
 
   const sortPills = sorts
     .map((s, i) => {
@@ -3339,7 +3454,12 @@ export function renderResultsPage(opts = {}) {
               .map((viajante) => `<li>${escapeHtml(viajante.tipo)}: ${escapeHtml(viajante.preco)}</li>`)
               .join("")}</ul>`
           : "") +
-        (v.volta ? `<p class="res-volta">Volta ${escapeHtml(v.volta.saida)}–${escapeHtml(v.volta.chegada)} · ${escapeHtml(v.volta.duracao)} · ${escapeHtml(v.volta.paradas)}</p>` : "") +
+        (v.volta
+          ? `<p class="res-volta">Volta ${escapeHtml(v.volta.saida)}–${escapeHtml(v.volta.chegada)} · ${escapeHtml(v.volta.duracao)} · ${escapeHtml(v.volta.paradas)}</p>`
+          : Array.isArray(v.idaTrechos)
+            ? `<p class="res-volta">A volta não veio nesta resposta.</p>`
+            : "") +
+        detalhesVooHtml(v) +
         (v.parcela ? `<p class="res-parcela">≈ ${escapeHtml(v.parcela)}/mês se o parceiro parcelar em 12x o valor acima</p>` : "") +
         `</div>` +
         `<a class="btn res-sel" href="${escapeHtml(selecionarHref)}">Buscar esta rota no parceiro</a>` +
@@ -3453,7 +3573,7 @@ export function renderExitPage(offer, { affiliateUrl, notaExtra = "", ctaLabel =
     `<p class="eyebrow eyebrow--lime">Redirecionando</p>` +
     `<h1>Você está indo para ${escapeHtml(parceiro)}</h1>` +
     `<p class="exit-sub">${exitSub}</p>` +
-    `<a class="btn btn-green exit-cta" href="${escapeHtml(affiliateUrl)}" target="_blank" rel="noopener sponsored">${escapeHtml(ctaLabel || `Continuar para ${parceiro} →`)}</a>` +
+    `<a class="btn btn-green exit-cta" href="${escapeHtml(affiliateUrl)}" target="_blank" rel="noopener sponsored" data-evento="parceiro" data-local="saida" data-alvo="${escapeHtml(vm.id || "")}">${escapeHtml(ctaLabel || `Continuar para ${parceiro} →`)}</a>` +
     `<p class="exit-fine">Preço e disponibilidade podem mudar no site do parceiro — as vagas e as tarifas são controladas por eles, não pelo Aonde.</p>` +
     `</div>` +
     `<div class="exit-grid">` +
@@ -3476,6 +3596,7 @@ export function renderExitPage(offer, { affiliateUrl, notaExtra = "", ctaLabel =
     title: `Indo para ${parceiro} — ${destinoLabel} · Aonde`,
     description: `Você está saindo do Aonde para ${parceiro}, onde a compra de ${destinoLabel} é concluída com as condições do parceiro.`,
     body,
+    script: enhancementScript(),
     noindex: true,
   });
 }
@@ -3488,7 +3609,11 @@ function faqItem(q, a) {
   return `<details class="faq-item"><summary>${escapeHtml(q)}</summary><p>${a}</p></details>`;
 }
 
-export function renderHelpPage() {
+export function renderHelpPage({ guia = "" } = {}) {
+  const guiaId = /^[A-Za-z0-9-]{1,80}$/.test(String(guia || "")) ? String(guia) : "";
+  const relato = guiaId
+    ? `<p class="help-fine" role="status">Você está relatando o guia <strong>${escapeHtml(guiaId)}</strong>. Diga o que ficou desatualizado pelo canal abaixo. Não pedimos e-mail para isso.</p>`
+    : "";
   const faqGroupsHtml = FAQ_GROUPS.map(
     (grp) =>
       `<div class="help-group"><h2 class="det-h2">${escapeHtml(grp.titulo)}</h2>` +
@@ -3500,7 +3625,9 @@ export function renderHelpPage() {
     `<main id="conteudo" tabindex="-1">` +
     `<section class="wrap map-head"><p class="eyebrow eyebrow--green">Suporte</p>` +
     `<h1 class="map-title">Central de ajuda</h1>` +
-    `<p class="map-sub">Respostas rápidas sobre como o Aonde funciona. Para uma reserva já feita, veja também <a href="/cancelamentos">Trocas e cancelamentos</a>.</p></section>` +
+    `<p class="map-sub">Respostas rápidas sobre como o Aonde funciona. Para uma reserva já feita, veja também <a href="/cancelamentos">Trocas e cancelamentos</a>.</p>` +
+    relato +
+    `</section>` +
     `<section class="wrap section help-grid">` +
     faqGroupsHtml +
     `<div class="help-group"><h2 class="det-h2">Fale com a gente</h2>` +
@@ -3513,6 +3640,28 @@ export function renderHelpPage() {
     siteFooter();
   return htmlDocument({ title: "Central de ajuda · Aonde", body, canonical: "/ajuda", jsonld: [buildFaqPage(FAQ_GROUPS)],
     description: "Como o Aonde funciona, quem cobra pela passagem, o que acontece se o preço mudar e como falar com a gente." });
+}
+
+export function renderSalvosPage() {
+  const catalogo = JSON.stringify(catalogoSalvos()).replace(/</g, "\\u003c");
+  const body =
+    `<main id="conteudo" tabindex="-1" class="wrap section">` +
+    `<h1 class="map-title">Viagens salvas</h1>` +
+    `<p class="map-sub">A lista fica só neste navegador. O que você vê é o roteiro ou a oferta como estão no site agora. Um preço antigo não é guardado e não aparece aqui como cotação.</p>` +
+    `<div data-salvos-lista><p>Nenhum roteiro ou oferta salvo ainda.</p></div>` +
+    `<h2 class="det-h2">Comparar</h2>` +
+    `<div data-salvos-comparar></div>` +
+    `<script type="application/json" id="salvos-catalogo">${catalogo}</script>` +
+    `</main>` +
+    siteFooter();
+  return htmlDocument({
+    title: "Viagens salvas · Aonde",
+    description: "Roteiros e ofertas salvos neste navegador, sem cotação guardada.",
+    body,
+    script: enhancementScript(),
+    canonical: "/salvos",
+    noindex: true,
+  });
 }
 
 export function renderCancelPage() {
@@ -3822,8 +3971,14 @@ export function renderMapPage({ apiKey = "" } = {}) {
       `iw.setContent(el);iw.open(map,markers[i]);map.panTo(markers[i].getPosition());}` +
       `markers.forEach(function(m,i){m.addListener("click",function(){openDest(i);});});` +
       `document.querySelectorAll("[data-dest]").forEach(function(li){li.addEventListener("click",function(e){e.preventDefault();openDest(+li.getAttribute("data-dest"));});});` +
+      `if(window.__aondeMapaTimer)clearTimeout(window.__aondeMapaTimer);` +
       `}` +
-      `window.gm_authFailure=function(){var c=document.getElementById("aonde-map");if(c){c.classList.add("map-canvas--err");c.innerHTML="";var p=document.createElement("p");p.className="map-canvas-msg";p.textContent="Não foi possível carregar o mapa (verifique a chave e a Maps JavaScript API). A lista ao lado continua funcionando.";c.appendChild(p);}};`;
+      `function aondeMapaIndisponivel(msg){if(window.__aondeMapaTimer)clearTimeout(window.__aondeMapaTimer);` +
+      `document.querySelectorAll("[data-dest]").forEach(function(el){el.disabled=true;el.removeAttribute("data-dest");});` +
+      `var c=document.getElementById("aonde-map");if(c){c.classList.add("map-canvas--err");c.textContent="";var p=document.createElement("p");p.className="map-canvas-msg";p.textContent=msg;c.appendChild(p);}` +
+      `}` +
+      `window.gm_authFailure=function(){aondeMapaIndisponivel("Não foi possível carregar o mapa. Os links dos roteiros ao lado continuam funcionando.");};` +
+      `window.__aondeMapaTimer=setTimeout(function(){if(!(window.google&&google.maps&&google.maps.Map))aondeMapaIndisponivel("O mapa não respondeu a tempo. Os links dos roteiros ao lado continuam funcionando.");},8000);`;
   } else {
     panel =
       `<section class="wrap map-grid map-grid--nokey">` +
@@ -3840,7 +3995,7 @@ export function renderMapPage({ apiKey = "" } = {}) {
   const loader = hasKey
     ? `<script async src="https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
         apiKey.trim()
-      )}&callback=aondeInitMap&loading=async"></script>`
+      )}&callback=aondeInitMap&loading=async" onerror="if(window.aondeMapaIndisponivel)aondeMapaIndisponivel('O mapa não carregou. Os links dos roteiros ao lado continuam funcionando.');"></script>`
     : "";
 
   return htmlDocument({ title: "Mapa de destinos · Aonde", body, script, canonical: "/mapa",
@@ -4208,6 +4363,11 @@ function enhancementScript() {
       if(vazio)vazio.hidden=visiveis!==0;
     }
     caixas.forEach(function(cb){cb.addEventListener('change',aplicaFiltros);});
+    var limpar=document.querySelector('[data-res-limpar]');
+    if(limpar)limpar.addEventListener('click',function(){
+      caixas.forEach(function(cb){cb.checked=false;});
+      aplicaFiltros();
+    });
 
     // Ordenacao. Estes botoes existiam so como enfeite: eram <button> sem
     // nenhum listener, e clicar neles nao fazia nada. Controle que finge
@@ -4287,6 +4447,30 @@ function enhancementScript() {
         }
       });
     });
+  });
+})();
+${scriptSalvos()}
+(function(){
+  document.querySelectorAll('[data-imprimir]').forEach(function(btn){
+    btn.addEventListener('click',function(){window.print();});
+  });
+  document.querySelectorAll('form.search-card').forEach(function(form){
+    form.addEventListener('submit',function(){
+      try{
+        var corpo=JSON.stringify({tipo:'busca',local:'formulario',alvo:''});
+        if(navigator.sendBeacon)navigator.sendBeacon('/api/eventos',new Blob([corpo],{type:'application/json'}));
+        else fetch('/api/eventos',{method:'POST',headers:{'content-type':'application/json'},body:corpo,keepalive:true}).catch(function(){});
+      }catch(e){}
+    });
+  });
+  document.addEventListener('click',function(ev){
+    var el=ev.target&&ev.target.closest?ev.target.closest('[data-evento]'):0;
+    if(!el)return;
+    try{
+      var corpo=JSON.stringify({tipo:el.getAttribute('data-evento')||'',local:el.getAttribute('data-local')||'',alvo:el.getAttribute('data-alvo')||''});
+      if(navigator.sendBeacon)navigator.sendBeacon('/api/eventos',new Blob([corpo],{type:'application/json'}));
+      else fetch('/api/eventos',{method:'POST',headers:{'content-type':'application/json'},body:corpo,keepalive:true}).catch(function(){});
+    }catch(e){}
   });
 })();`;
 }

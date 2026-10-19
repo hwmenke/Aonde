@@ -13,7 +13,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { renderOffersPage, renderResultsPage, renderHomePage } from "../src/render/htmlRenderer.js";
-import { FLIGHT_FILTERS, FLIGHTS, RESULTS_ROUTE } from "../src/render/aondeContent.js";
+import { FLIGHTS, RESULTS_ROUTE } from "../src/render/aondeContent.js";
+import { filtrosDosVoos } from "../src/render/filtrosVoo.js";
 
 function assertNoUndefinedNull(html, msg) {
   const clean = html.replace(/onerror="[^"]*"/g, "");
@@ -50,7 +51,7 @@ test("renderOffersPage conta certo o numero de ofertas (com filtro de origem)", 
 
 test("cada checkbox de filtro carrega data-ftype/data-fval coerentes com o rotulo (nao e so decoracao)", () => {
   const html = renderResultsPage();
-  const inputRe = /<label class="res-check"><input type="checkbox" data-res-filtro data-ftype="([a-z]+)" data-fval="([^"]*)"[^>]*>([^<]+)<\/label>/g;
+  const inputRe = /<label class="res-check"><input type="checkbox" data-res-filtro data-ftype="([a-z]+)" data-fval="([^"]*)"[^>]*>([^<]+)/g;
   let match;
   let total = 0;
   while ((match = inputRe.exec(html))) {
@@ -65,8 +66,8 @@ test("cada checkbox de filtro carrega data-ftype/data-fval coerentes com o rotul
       assert.match(valor, /^\d+-\d+$/, "filtro de horario vira uma faixa numerica inicio-fim");
     }
   }
-  const totalOpcoes = FLIGHT_FILTERS.reduce((n, g) => n + g.opcoes.length, 0);
-  assert.equal(total, totalOpcoes, "todo checkbox declarado em FLIGHT_FILTERS saiu com data-ftype/data-fval");
+  const totalOpcoes = filtrosDosVoos(FLIGHTS).reduce((n, g) => n + g.opcoes.length, 0);
+  assert.equal(total, totalOpcoes, "todo checkbox gerado a partir dos voos da página saiu com data-ftype/data-fval");
 });
 
 test("cada voo carrega data-stops/data-cia/data-hora coerentes com os proprios dados do voo", () => {

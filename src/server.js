@@ -53,6 +53,7 @@ import {
   renderMapPage,
   renderExitPage,
   renderHelpPage,
+  renderSalvosPage,
   renderCancelPage,
   renderAlertsPage,
   renderNewsletterStatusPage,
@@ -89,6 +90,11 @@ import { validarConsulta } from "./flights/consulta.js";
 import { viagemAindaVale, offersParaEscolha } from "./offers/elegibilidade.js";
 import { hasAmadeusCredentials } from "./partners/amadeus.js";
 import { createInboundRateLimiter, clientIp } from "./inboundRateLimiter.js";
+import { httpCacheStats } from "./httpCache.js";
+import { estatisticasBuscaAoVivo } from "./flights/buscaAoVivoLimite.js";
+import { registrarEvento } from "./analytics/events.js";
+
+let inboundAtual = null;
 
 function corsHeaders() {
   const origin = process.env.AONDE_CORS_ORIGIN;
@@ -338,6 +344,11 @@ function handleHealth(res) {
     storedRoutes,
     storedOffers,
     storage,
+    memoria: {
+      cache: httpCacheStats(),
+      inbound: inboundAtual ? inboundAtual.stats() : { baldes: 0, expurgos: 0, expirados: 0 },
+      busca: estatisticasBuscaAoVivo(),
+    },
   });
 }
 
@@ -907,7 +918,7 @@ function paxResumo({ adultos, criancas, bebes }) {
 //                      verdade; false (ou ausente) sempre que os voos
 //                      exibidos forem os de amostra — NUNCA rotular exemplo
 //                      como real.
-async function handleResultsHtml(res, url) {
+async function handleResultsHtml(req, res, url) {
   const oQS = url.searchParams.get("origem");
   const dQS = url.searchParams.get("destino");
   const periodo = url.searchParams.get("periodo");
@@ -968,13 +979,25 @@ async function handleResultsHtml(res, url) {
 
   let voos;
   let voosReais = false;
-  const resultado = await buscarVoosAoVivo({
-    origem: consulta.origem,
-    destino: consulta.destino,
-    ida: consulta.ida || undefined,
-    volta: consulta.volta || undefined,
-    pax,
-  });
+  const controleBusca = new AbortController();
+  const aoFechar = () => {
+    if (!res.writableEnded) controleBusca.abort();
+  };
+  req.on("close", aoFechar);
+  let resultado;
+  try {
+    resultado = await buscarVoosAoVivo({
+      origem: consulta.origem,
+      destino: consulta.destino,
+      ida: consulta.ida || undefined,
+      volta: consulta.volta || undefined,
+      pax,
+      signal: controleBusca.signal,
+      cliente: clientIp(req),
+    });
+  } finally {
+    req.removeListener("close", aoFechar);
+  }
   if (resultado.ok && Array.isArray(resultado.voos) && resultado.voos.length > 0) {
     voos = resultado.voos;
     voosReais = true;
@@ -991,6 +1014,7 @@ async function handleResultsHtml(res, url) {
       voosReais,
       consulta,
       buscaAoVivo,
+      buscaMotivo: resultado && resultado.ok ? "ok" : (resultado && resultado.motivo) || "erro",
       hoje,
     })
   );
@@ -1070,6 +1094,11 @@ function handleExitHtml(req, res, id, url) {
     return;
   }
   recordClick(id, req.headers["user-agent"]);
+  try {
+    registrarEvento({ tipo: "saida", local: "saida", alvo: id });
+  } catch (err) {
+    console.error("[aonde] saída sem evento:", err && err.message);
+  }
   sendHtml(res, 200, renderExitPage(offer, { affiliateUrl }), NOINDEX_HEADERS);
 }
 
@@ -1126,6 +1155,7 @@ export function createServer() {
   // instancias concorrentes (se algum dia houver mais de um processo)
   // compartilhem baldes sem querer. Ver src/inboundRateLimiter.js.
   const inboundLimiter = createInboundRateLimiter();
+  inboundAtual = inboundLimiter;
 
   // Aplica o rate limiting inbound a uma classe de rota de ESCRITA publica.
   // Retorna true (e ja respondeu 429) se a requisicao deve ser bloqueada;
@@ -1215,7 +1245,7 @@ export function createServer() {
         return;
       }
       if (method === "GET" && pathname === "/resultados") {
-        await handleResultsHtml(res, url);
+        await handleResultsHtml(req, res, url);
         return;
       }
       if (method === "GET" && pathname === "/mapa") {
@@ -1227,7 +1257,11 @@ export function createServer() {
         return;
       }
       if (method === "GET" && pathname === "/ajuda") {
-        sendHtml(res, 200, renderHelpPage());
+        sendHtml(res, 200, renderHelpPage({ guia: url.searchParams.get("guia") || "" }));
+        return;
+      }
+      if (method === "GET" && pathname === "/salvos") {
+        sendHtml(res, 200, renderSalvosPage());
         return;
       }
       if (method === "GET" && pathname === "/cancelamentos") {
@@ -1309,6 +1343,25 @@ export function createServer() {
         }
         if (enforceInboundRateLimit(req, res, "newsletter-unsubscribe")) return;
         await handleNewsletterUnsubscribe(req, res);
+        return;
+      }
+
+      if (pathname === "/api/eventos") {
+        if (method !== "POST") {
+          sendJson(res, 405, { error: "Método não permitido; use POST." });
+          return;
+        }
+        if (enforceInboundRateLimit(req, res, "eventos")) return;
+        const lido = await readJsonBody(req);
+        if (lido.ok) {
+          try {
+            registrarEvento(lido.body);
+          } catch (err) {
+            console.error("[aonde] evento não registrado:", err && err.message);
+          }
+        }
+        res.writeHead(204, { ...securityHeaders(), ...corsHeaders() });
+        res.end();
         return;
       }
 

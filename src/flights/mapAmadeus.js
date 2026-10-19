@@ -133,7 +133,8 @@ function mapOneOffer(offer, dictionaries, pax) {
     precoEscopo,
     moeda: moeda || "BRL",
     viajantes,
-    volta: resumoItinerario(itinerarios[1]),
+    idaTrechos: trechosDe(segmentos, dictionaries),
+    volta: resumoItinerario(itinerarios[1], dictionaries),
     melhor: false,
     // campo interno, so para ordenar por preco — removido antes de sair de mapAmadeusOffersToFlights.
     _centavos: centavos,
@@ -221,7 +222,47 @@ function rotuloDoPreco(pax, viajantes) {
   return { precoRotulo: "ida e volta, total da oferta", precoEscopo: "oferta" };
 }
 
-function resumoItinerario(itinerario) {
+function dataDoInstante(isoDateTime) {
+  if (typeof isoDateTime !== "string") return "";
+  const m = /^(\d{4}-\d{2}-\d{2})/.exec(isoDateTime);
+  return m ? m[1] : "";
+}
+
+function trechosDe(segmentos, dictionaries) {
+  if (!Array.isArray(segmentos)) return [];
+  const saida = [];
+  let chegadaAnterior = "";
+  for (let i = 0; i < segmentos.length; i++) {
+    const seg = segmentos[i];
+    if (!seg || typeof seg !== "object") continue;
+    const dep = seg.departure || {};
+    const arr = seg.arrival || {};
+    const saidaData = dataDoInstante(dep.at);
+    const chegadaData = dataDoInstante(arr.at);
+    const codigoOperadora =
+      seg.operating && typeof seg.operating.carrierCode === "string" ? seg.operating.carrierCode.trim().toUpperCase() : "";
+    saida.push({
+      origem: typeof dep.iataCode === "string" ? dep.iataCode : "",
+      destino: typeof arr.iataCode === "string" ? arr.iataCode : "",
+      saida: formatHora(dep.at),
+      chegada: formatHora(arr.at),
+      saidaData,
+      chegadaData,
+      mudaDia: Boolean(saidaData && chegadaData && saidaData !== chegadaData),
+      conexao: i < segmentos.length - 1 && typeof arr.iataCode === "string" ? arr.iataCode : "",
+      cia: nomeCia(seg.carrierCode, dictionaries),
+      numero: seg.number ? String(seg.number) : "",
+      operadora: codigoOperadora ? nomeCia(codigoOperadora, dictionaries) : "",
+    });
+    if (chegadaAnterior && saidaData && chegadaAnterior !== saidaData) {
+      saida[saida.length - 1].mudaDia = true;
+    }
+    chegadaAnterior = chegadaData || chegadaAnterior;
+  }
+  return saida;
+}
+
+function resumoItinerario(itinerario, dictionaries) {
   if (!itinerario || typeof itinerario !== "object") return null;
   const segmentos = Array.isArray(itinerario.segments) ? itinerario.segments : null;
   if (!segmentos || segmentos.length === 0) return null;
@@ -238,6 +279,7 @@ function resumoItinerario(itinerario) {
     duracao,
     direto: paradas === 0,
     paradas: paradas === 0 ? "Direto" : `${paradas} parada${paradas > 1 ? "s" : ""}`,
+    trechos: trechosDe(segmentos, dictionaries),
   };
 }
 

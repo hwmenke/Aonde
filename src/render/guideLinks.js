@@ -107,7 +107,7 @@ function ofertaCardHtml(o) {
   const rota = `${origem} → ${o.cidade || o.destino}`;
   const detalhe = [o.cia, o.datas].filter(Boolean).map(escapeHtml).join(" · ");
   return (
-    `<a class="rel-card" href="/ofertas/${encodeURIComponent(o.id)}">` +
+    `<a class="rel-card" href="/ofertas/${encodeURIComponent(o.id)}" data-evento="guia-oferta" data-local="oferta-relacionada" data-alvo="${escapeHtml(o.id)}">` +
     `<div class="rel-top"><span class="rel-rota">${escapeHtml(rota)}</span>` +
     (o.badge ? `<span class="rel-badge ${o.erro ? "badge-erro" : "badge-desconto"}">${escapeHtml(o.badge)}</span>` : "") +
     `</div>` +
@@ -124,7 +124,7 @@ export function ofertaNaCaixaHtml(guide, opts = {}) {
   if (!o) return "";
   const origem = cidadeDoIata(o.origem) || o.origem;
   return (
-    `<a class="guia-aside-oferta" href="/ofertas/${encodeURIComponent(o.id)}">` +
+    `<a class="guia-aside-oferta" href="/ofertas/${encodeURIComponent(o.id)}" data-evento="guia-oferta" data-local="guia-lateral" data-alvo="${escapeHtml(o.id)}">` +
     `Achado de passagem: ${escapeHtml(origem)} → ${escapeHtml(o.cidade || o.destino)}` +
     `${o.datas ? `, ${escapeHtml(o.datas)}` : ""} →</a>`
   );
