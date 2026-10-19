@@ -399,7 +399,7 @@ test("GET /resultados com credencial + Amadeus respondendo: mostra voos reais ma
   });
 
   await withServer(async (base) => {
-    const r = await get(base, "/resultados?origem=GRU&destino=REC&ida=12+ago+2026&volta=19+ago+2026");
+    const r = await get(base, "/resultados?origem=GRU&destino=REC&ida=12+ago+2027&volta=19+ago+2027");
     assert.equal(r.status, 200);
     // O voo real mapeado (numero de voo/preco unicos desta fixture) aparece
     // na pagina — nao e mais so a lista fixa de 5 voos de amostra.

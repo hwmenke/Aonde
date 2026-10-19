@@ -112,8 +112,8 @@ test("renderResultsPage com os voos de amostra reais nao vaza undefined/null nos
 
 test('"Selecionar" aponta para /saida/voo com origem/destino, nunca direto pro parceiro', () => {
   const html = renderResultsPage({ rota: { origem: "GRU", destino: "REC", resumo: "" }, voos: FLIGHTS });
-  const links = [...html.matchAll(/<a class="btn res-sel"([^>]*)>Selecionar →<\/a>/g)];
-  assert.equal(links.length, FLIGHTS.length, "todo voo tem um botao Selecionar");
+  const links = [...html.matchAll(/<a class="btn res-sel"([^>]*)>Buscar esta rota no parceiro<\/a>/g)];
+  assert.equal(links.length, FLIGHTS.length, "todo voo tem um botao de busca no parceiro");
   for (const [, attrs] of links) {
     assert.match(attrs, /href="\/saida\/voo\?origem=GRU&amp;destino=REC"/, "vai para a interstitial do proprio site, com a rota certa");
     assert.ok(!attrs.includes("target="), 'a interstitial e do proprio site: sem target="_blank"');

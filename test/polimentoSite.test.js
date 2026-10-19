@@ -130,7 +130,7 @@ test("páginas sem valor de busca saem do índice (noindex) e as públicas não"
   assert.match(renderNewsletterStatusPage({ ok: true }), noindex);
 
   assert.ok(!noindex.test(renderHomePage({})));
-  assert.ok(!noindex.test(renderResultsPage({})));
+  assert.match(renderResultsPage({}), noindex, "a busca interna não entra no índice");
 });
 
 test("formulários de alerta mostram o nome da cidade, não só a sigla", () => {

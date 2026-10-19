@@ -50,10 +50,25 @@ function withMarker(url) {
  * @param {string} destino codigo IATA de destino (ex.: "REC")
  * @returns {string}
  */
-export function buildAviasalesSearchUrl(origem, destino) {
+function ddmm(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || "").trim());
+  return m ? `${m[3]}${m[2]}` : "";
+}
+
+export function buildAviasalesSearchUrl(origem, destino, extras = {}) {
   const o = String(origem || "").toUpperCase();
   const d = String(destino || "").toUpperCase();
-  return withMarker(`https://www.aviasales.com/search/${encodeURIComponent(o)}${encodeURIComponent(d)}`);
+  const ida = ddmm(extras.ida);
+  const volta = ddmm(extras.volta);
+  // O mesmo formato já usado nas URLs editoriais do catálogo:
+  // ORIGEM + DDMM + DESTINO + DDMM + adultos + 1. Sem datas, fica a busca da rota.
+  let trecho = `${o}${d}`;
+  if (ida && volta) {
+    const adultosBrutos = Number(extras.adultos);
+    const adultos = Number.isInteger(adultosBrutos) ? Math.min(9, Math.max(1, adultosBrutos)) : 1;
+    trecho = `${o}${ida}${d}${volta}${adultos}1`;
+  }
+  return withMarker(`https://www.aviasales.com/search/${encodeURIComponent(trecho)}`);
 }
 
 // Frase adicional (nao coberta pelo card generico de renderExitPage): reforca
@@ -68,7 +83,7 @@ const NOTA_CARTAO =
  * @param {{ origem: string, destino: string, searchUrl: string }} params
  * @returns {string} HTML completo da pagina
  */
-export function renderExitFlightPage({ origem, destino, searchUrl }) {
+export function renderExitFlightPage({ origem, destino, searchUrl, ctaLabel = "Buscar esta rota no parceiro" }) {
   const o = String(origem || "").toUpperCase();
   const d = String(destino || "").toUpperCase();
 
@@ -85,5 +100,5 @@ export function renderExitFlightPage({ origem, destino, searchUrl }) {
     cia: "Aviasales",
   };
 
-  return renderExitPage(syntheticOffer, { affiliateUrl: searchUrl, notaExtra: NOTA_CARTAO });
+  return renderExitPage(syntheticOffer, { affiliateUrl: searchUrl, notaExtra: NOTA_CARTAO, ctaLabel });
 }

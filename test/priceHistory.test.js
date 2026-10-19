@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
+import { mkdtemp, rm, writeFile, mkdir, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -114,21 +114,25 @@ test("recordPrices ignora deals sem preco numerico ou sem rota", async (t) => {
   assert.equal(res.recorded, 1);
 });
 
-test("getRouteStats tolera arquivo corrompido sem lancar (recomeca vazio)", async (t) => {
+test("getRouteStats tolera arquivo corrompido sem lancar e sem apagar o arquivo", async (t) => {
   const dir = await withTempDataDir(t);
+  const arquivo = path.join(dir, "history", "GRU-LIS.json");
+  const bruto = "{ nao e json valido ]";
 
   await mkdir(path.join(dir, "history"), { recursive: true });
-  await writeFile(path.join(dir, "history", "GRU-LIS.json"), "{ nao e json valido ]", "utf-8");
+  await writeFile(arquivo, bruto, "utf-8");
 
-  // Silencia o console.warn esperado durante este teste.
-  const originalWarn = console.warn;
-  console.warn = () => {};
+  const originalError = console.error;
+  console.error = () => {};
   try {
     const stats = getRouteStats("GRU", "LIS");
     assert.equal(stats.ok, false);
     assert.equal(stats.sampleCount, 0);
+    assert.equal(stats.error, "dados-ilegíveis");
+    assert.equal(recordPrices([makeDeal(1000)]).recorded, 0);
+    assert.equal(await readFile(arquivo, "utf-8"), bruto);
   } finally {
-    console.warn = originalWarn;
+    console.error = originalError;
   }
 });
 

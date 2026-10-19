@@ -67,18 +67,28 @@ export function addAlertRule({ subscriberId, origem, destino, precoAlvoCentavos,
   }
 
   const canaisFinal = Array.isArray(canais) && canais.length > 0 ? canais : subscriber.channels || ["email"];
+  const origemNorm = normalizeIata(origem);
+  const destinoNorm = hasDestino ? normalizeIata(destino) : null;
+  const all = readAll();
+  const existente = all.find(
+    (regra) =>
+      regra &&
+      regra.subscriber_id === subscriberId &&
+      regra.origem === origemNorm &&
+      (regra.destino || null) === destinoNorm
+  );
+  if (existente) return { ok: true, rule: existente, duplicada: true };
 
   const rule = {
     id: crypto.randomUUID(),
     subscriber_id: subscriberId,
-    origem: normalizeIata(origem),
-    destino: hasDestino ? normalizeIata(destino) : null,
+    origem: origemNorm,
+    destino: destinoNorm,
     preco_alvo_centavos: hasPreco ? precoAlvoCentavos : null,
     canais: canaisFinal,
     created_at: new Date().toISOString(),
   };
 
-  const all = readAll();
   all.push(rule);
   writeJsonAtomic(rulesFile(), all);
   return { ok: true, rule };

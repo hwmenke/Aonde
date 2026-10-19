@@ -47,6 +47,9 @@ import { createHash } from "node:crypto";
 
 import { getConfig } from "../config.js";
 import { rotuloAeroporto, cidadeDoIata } from "./aeroportos.js";
+import { datasSugeridas } from "../flights/consulta.js";
+import { viagemAindaVale } from "../offers/elegibilidade.js";
+import { chaveDoDia } from "../daily/dailyPick.js";
 import { ogSharePathForOffer, hojeOgSharePath } from "./ogShare.js";
 import {
   continuePlanejandoHtml,
@@ -175,8 +178,17 @@ function originSelectorHtml(offerId, origemPadrao, aviasalesUrl) {
 // ofertas com link de afiliado — "voce esta indo para X, quem processa a
 // reserva e o parceiro". O "Selecionar" da lista de resultados NUNCA pula
 // direto para o parceiro; ele sempre passa por aqui primeiro.
-function saidaVooHref(origem, destino) {
-  return `/saida/voo?origem=${encodeURIComponent(origem)}&destino=${encodeURIComponent(destino)}`;
+function saidaVooHref(origem, destino, consulta) {
+  const partes = [
+    ["origem", origem],
+    ["destino", destino],
+  ];
+  if (consulta && consulta.ida) partes.push(["ida", consulta.ida]);
+  if (consulta && consulta.volta) partes.push(["volta", consulta.volta]);
+  if (consulta && consulta.adultos) partes.push(["adultos", String(consulta.adultos)]);
+  if (consulta && Number(consulta.criancas) > 0) partes.push(["criancas", String(consulta.criancas)]);
+  if (consulta && Number(consulta.bebes) > 0) partes.push(["bebes", String(consulta.bebes)]);
+  return `/saida/voo?${partes.map(([chave, valor]) => `${encodeURIComponent(chave)}=${encodeURIComponent(valor)}`).join("&")}`;
 }
 // Busca de hospedagem no parceiro (Hotellook), com marker de comissao.
 function hotellookSearch(destino) {
@@ -544,6 +556,7 @@ function normalizeLiveOffer(offer) {
     href,
     fontePreco: offer.fontePreco || offer.fonte_preco || "",
     fontePrecoEm: offer.fontePrecoEm || offer.fonte_preco_em || "",
+    ida: offer.ida || offer.dataIda || "",
     aviasalesBuy: offer.aviasalesBuy !== false,
   };
 }
@@ -589,6 +602,7 @@ function normalizeContentOffer(o) {
     href,
     fontePreco: o.fontePreco || o.fonte_preco || "",
     fontePrecoEm: o.fontePrecoEm || o.fonte_preco_em || "",
+    ida: o.ida || o.dataIda || "",
     origemCidade: o.origemCidade || "",
     ogCredit: o.ogCredit || "",
     ogCreditHref: o.ogCreditHref || "",
@@ -1566,14 +1580,14 @@ function heroHtml(slides) {
     `<div class="hero-bgs">${layers}</div>` +
     `<div class="hero-scrim"></div>` +
     `<div class="wrap hero-in">` +
-    `<p class="eyebrow eyebrow--lime">Passagens · Hotéis · Experiências</p>` +
+    `<p class="eyebrow eyebrow--lime">Passagens e roteiros</p>` +
     `<h1 class="hero-title">Aonde você quer <em>estar</em> na próxima semana?</h1>` +
     `<p class="hero-sub">A escolha do dia mostra um ou dois achados já conferidos, com o preço que vimos e a data da consulta. A compra, quando a oferta tem link, acontece no site do parceiro.</p>` +
     `<div class="hero-ctas">` +
     `<a class="btn btn-green" href="/hoje">Ver a escolha do dia →</a>` +
     `<a class="btn btn-ghost" href="/ofertas">Ver os achados de passagem →</a>` +
     `</div>` +
-    `<p class="hero-passo">Os dois botões só avançam no Aonde. O verde abre a escolha de hoje; o outro, a lista de achados. Nenhum deles reserva passagem.</p>` +
+    `<p class="hero-passo">Os dois botões só avançam no Aonde. O verde abre a escolha de hoje; o outro, a lista de achados. Nenhum deles reserva passagem. <a href="#busca">Buscar datas e passageiros</a></p>` +
     `<div class="hero-tabs">${tabs}` +
     `<button type="button" class="hero-pause" data-hero-pause aria-pressed="false" ` +
     `aria-label="Pausar troca automática de fotos">Pausar</button>` +
@@ -1584,34 +1598,57 @@ function heroHtml(slides) {
   );
 }
 
-function searchCardHtml() {
-  const field = (label, name, value) =>
-    `<label class="sc-field"><span>${escapeHtml(label)}</span>` +
-    `<input name="${escapeHtml(name)}" value="${escapeHtml(value)}"></label>`;
+function erroDoCampo(erros, campo) {
+  return (Array.isArray(erros) ? erros : []).find((item) => item && item.campo === campo) || null;
+}
+
+function searchCardHtml({ valores = {}, erros = [], buscaAoVivo = false, hoje } = {}) {
+  const dia = hoje || chaveDoDia(new Date());
+  const sugeridas = datasSugeridas(dia);
+  const field = (label, name, value, type) => {
+    const falha = erroDoCampo(erros, name);
+    const id = `busca-${name}`;
+    const descrito = falha ? ` aria-invalid="true" aria-describedby="${id}-erro"` : "";
+    const extra = type === "date" ? ` type="date" min="${escapeHtml(dia)}" required` : "";
+    return (
+      `<label class="sc-field" for="${id}"><span>${escapeHtml(label)}</span>` +
+      `<input id="${id}" name="${escapeHtml(name)}" value="${escapeHtml(value)}"${extra}${descrito}>` +
+      (falha ? `<small class="sc-erro" id="${id}-erro">${escapeHtml(falha.mensagem)}</small>` : "") +
+      `</label>`
+    );
+  };
   // Seletor numerico em vez de texto livre: uma mae de familia parou aqui
   // porque so havia "2 adultos" e ela viaja com dois filhos — "se nao perguntam
   // a idade dos meus filhos, nao confio que o preco final vai bater". Crianca
   // tem tarifa e regra propria, entao a conta precisa nascer certa.
   const numField = (label, name, max, selecionado, dica) => {
+    const falha = erroDoCampo(erros, name);
+    const id = `busca-${name}`;
     const opts = Array.from({ length: max + 1 }, (_, n) => n)
       .filter((n) => (name === "adultos" ? n >= 1 : true))
       .map((n) => `<option value="${n}"${n === selecionado ? " selected" : ""}>${n}</option>`)
       .join("");
     return (
-      `<label class="sc-field sc-field--num"><span>${escapeHtml(label)}</span>` +
-      `<select name="${escapeHtml(name)}">${opts}</select>` +
+      `<label class="sc-field sc-field--num" for="${id}"><span>${escapeHtml(label)}</span>` +
+      `<select id="${id}" name="${escapeHtml(name)}"${falha ? ` aria-invalid="true" aria-describedby="${id}-erro"` : ""}>${opts}</select>` +
       (dica ? `<small class="sc-hint">${escapeHtml(dica)}</small>` : "") +
+      (falha ? `<small class="sc-erro" id="${id}-erro">${escapeHtml(falha.mensagem)}</small>` : "") +
       `</label>`
     );
   };
+  const origemValor = valores.origem || "São Paulo · GRU";
+  const destinoValor = valores.destino || "Recife · REC";
+  const idaValor = valores.ida || sugeridas.ida || "";
+  const voltaValor = valores.volta || sugeridas.volta || "";
+  const adultosValor = Number.isFinite(Number(valores.adultos)) ? Number(valores.adultos) : 2;
+  const avisoBusca = buscaAoVivo
+    ? `<p class="sc-notice"><strong class="sc-notice-tag">Busca ao vivo ligada:</strong> o botão Buscar voos consulta o parceiro com as datas e os passageiros que você informar. O preço final continua sendo o do site do parceiro.</p>`
+    : `<p class="sc-notice"><strong class="sc-notice-tag">Como funciona por aqui:</strong> o botão Buscar voos mostra <strong>exemplos</strong> — ainda não há preço em tempo real. Os cards mais abaixo são outra lista: achados que já conferimos, com a data da consulta.</p>`;
   return (
-    `<section class="wrap search-wrap">` +
+    `<section class="wrap search-wrap" id="busca">` +
     `<form class="search-card" action="/resultados" method="get">` +
     `<div class="sc-tabs">` +
     `<span class="sc-tab is-active">Passagens</span>` +
-    `<span class="sc-tab sc-tab--soon" aria-disabled="true" title="Em breve">Hotéis</span>` +
-    `<span class="sc-tab sc-tab--soon" aria-disabled="true" title="Em breve">Carros</span>` +
-    `<span class="sc-tab sc-tab--soon" aria-disabled="true" title="Em breve">Experiências</span>` +
     `</div>` +
     // Aviso ANTES da busca, nao depois: sem isso, a pessoa preenche tudo,
     // clica em "Buscar voos" e SO ENTAO descobre nos resultados que o preco
@@ -1622,15 +1659,17 @@ function searchCardHtml() {
     // A informacao e a mesma (nao ha preco em tempo real, os voos sao
     // exemplo) mas comeca pelo que JA funciona, com um rotulo curto antes do
     // texto para dar hierarquia visual sem esconder nada em letra miuda.
-    `<p class="sc-notice"><strong class="sc-notice-tag">Como funciona por aqui:</strong> o botão Buscar voos mostra <strong>exemplos</strong> — ainda não há preço em tempo real. Os cards mais abaixo são outra lista: achados que já conferimos, com a data da consulta.</p>` +
+    avisoBusca +
     `<div class="sc-grid">` +
-    field("Origem", "origem", "São Paulo · GRU") +
-    field("Destino", "destino", "Recife · REC") +
-    field("Ida", "ida", "12 ago 2026") +
-    field("Volta", "volta", "19 ago 2026") +
-    numField("Adultos", "adultos", 9, 2) +
-    numField("Crianças", "criancas", 8, 0, "2 a 11 anos") +
-    numField("Bebês", "bebes", 4, 0, "até 2 anos, no colo") +
+    field("Origem", "origem", origemValor, "text") +
+    field("Destino", "destino", destinoValor, "text") +
+    field("Ida", "ida", idaValor, "date") +
+    field("Volta", "volta", voltaValor, "date") +
+    `<fieldset class="sc-pax"><legend>Passageiros</legend>` +
+    numField("Adultos", "adultos", 9, adultosValor) +
+    numField("Crianças", "criancas", 8, Number(valores.criancas) || 0, "2 a 11 anos") +
+    numField("Bebês", "bebes", 4, Number(valores.bebes) || 0, "até 2 anos, no colo") +
+    `</fieldset>` +
     `<button class="btn btn-green sc-submit" type="submit">Buscar voos</button>` +
     `</div>` +
     `</form>` +
@@ -2014,10 +2053,11 @@ function confiancaSectionHtml(stats) {
 /** Pagina inicial (home) — porta fiel da tela "home" do prototipo. */
 export function renderHomePage(opts = {}) {
   const liveOffers = Array.isArray(opts.offers) ? opts.offers : null;
-  const offerVMs = (liveOffers && liveOffers.length
-    ? liveOffers.map(normalizeLiveOffer)
-    : CONTENT_OFFERS.map(normalizeContentOffer)
-  )
+  const dia = opts.hoje || chaveDoDia(new Date());
+  const fonte = liveOffers && liveOffers.length ? liveOffers : CONTENT_OFFERS;
+  const offerVMs = fonte
+    .filter((offer) => viagemAindaVale(offer, dia))
+    .map((offer) => (liveOffers && liveOffers.length ? normalizeLiveOffer(offer) : normalizeContentOffer(offer)))
     .filter(Boolean)
     .slice(0, 4);
   const guides = Array.isArray(opts.guides) && opts.guides.length ? opts.guides : GUIDE_LIST.slice(0, 3);
@@ -2025,7 +2065,12 @@ export function renderHomePage(opts = {}) {
   const body =
     `<main id="conteudo" tabindex="-1">` +
     heroHtml(HERO_SLIDES) +
-    searchCardHtml() +
+    searchCardHtml({
+      valores: opts.busca || {},
+      erros: opts.erros || [],
+      buscaAoVivo: opts.buscaAoVivo === true,
+      hoje: dia,
+    }) +
     homeOffersHtml(offerVMs) +
     newsletterStripHtml() +
     stylesSectionHtml(TRIP_STYLES) +
@@ -2236,10 +2281,12 @@ function precoSignificadoHtml(vm) {
  */
 export function renderOffersPage(
   offers = [],
-  { title = "Ofertas de viagem — Aonde", origem, q = "", tipo = "", naoEncontrada = "" } = {}
+  { title = "Ofertas de viagem — Aonde", origem, q = "", tipo = "", naoEncontrada = "", hoje = "" } = {}
 ) {
   const list = Array.isArray(offers) ? offers : [];
-  const vms = (list.length ? list.map(normalizeLiveOffer) : CONTENT_OFFERS.map(normalizeContentOffer)).filter(Boolean);
+  const dia = /^\d{4}-\d{2}-\d{2}$/.test(hoje) ? hoje : chaveDoDia(new Date());
+  const base = (list.length ? list : CONTENT_OFFERS).filter((offer) => viagemAindaVale(offer, dia));
+  const vms = base.map((offer) => (list.length ? normalizeLiveOffer(offer) : normalizeContentOffer(offer))).filter(Boolean);
   const tipos = [...new Set(vms.map((v) => v.tipo).filter(Boolean))].sort();
   const busca = limparBusca(q);
   const tipoAtivo = tipos.includes(tipo) ? tipo : "";
@@ -3172,9 +3219,28 @@ export function renderItineraryPage(itinerary) {
 // mesmo shape.
 // ---------------------------------------------------------------------------
 
+function alterarBuscaHref(consulta) {
+  if (!consulta || typeof consulta !== "object") return "/#busca";
+  const params = new URLSearchParams();
+  for (const chave of ["origem", "destino", "ida", "volta", "adultos", "criancas", "bebes"]) {
+    const valor = consulta[chave];
+    if (valor !== undefined && valor !== null && String(valor) !== "") params.set(chave, String(valor));
+  }
+  const q = params.toString();
+  return q ? `/?${q}#busca` : "/#busca";
+}
+
 export function renderResultsPage(opts = {}) {
-  const rota = opts.rota || RESULTS_ROUTE;
-  const voos = Array.isArray(opts.voos) && opts.voos.length ? opts.voos : FLIGHTS;
+  const semLista = opts.semLista === true;
+  const consulta = opts.consulta && typeof opts.consulta === "object" ? opts.consulta : null;
+  const rota = semLista
+    ? {
+        origem: (consulta && consulta.origem) || "Busca",
+        destino: (consulta && consulta.destino) || "incompleta",
+        resumo: "",
+      }
+    : opts.rota || RESULTS_ROUTE;
+  const voos = semLista ? [] : Array.isArray(opts.voos) && opts.voos.length ? opts.voos : FLIGHTS;
   // Crianca e bebe de colo tem tarifa e regra propria. Se a pessoa informou que
   // viaja com eles, dizemos na cara que o valor de exemplo abaixo e por adulto —
   // uma mae de familia travou exatamente aqui na auditoria.
@@ -3197,28 +3263,31 @@ export function renderResultsPage(opts = {}) {
       `<strong>${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)}</strong> abaixo. ` +
       `Tente o nome da cidade (ex.: Porto Alegre) ou o código de três letras (ex.: POA).</p>`
     : "";
+  const mostraGrupo = voos.some((v) => v && (v.precoEscopo === "grupo" || v.precoEscopo === "oferta"));
   const avisoPax =
     pax && (pax.criancas > 0 || pax.bebes > 0)
-      ? `<p class="res-amostra res-amostra--pax">Você marcou que viaja com ${
-          pax.criancas > 0 ? "criança" : ""
-        }${pax.criancas > 0 && pax.bebes > 0 ? " e " : ""}${
-          pax.bebes > 0 ? "bebê de colo" : ""
-        }: os valores ${voosReais ? "" : "de exemplo "}abaixo são <strong>por adulto</strong>. Criança e bebê pagam tarifa própria, calculada pela companhia no site do parceiro — leve isso em conta antes de calcular o total da viagem.</p>`
+      ? mostraGrupo
+        ? `<p class="res-amostra res-amostra--pax">O valor de cada voo é o total que a busca devolveu para os passageiros informados. O detalhe por viajante só aparece quando a resposta traz esse valor.</p>`
+        : `<p class="res-amostra res-amostra--pax">Você marcou que viaja com ${
+            pax.criancas > 0 ? "criança" : ""
+          }${pax.criancas > 0 && pax.bebes > 0 ? " e " : ""}${
+            pax.bebes > 0 ? "bebê de colo" : ""
+          }: os valores ${voosReais ? "" : "de exemplo "}abaixo são <strong>por adulto</strong>. Criança e bebê pagam tarifa própria, calculada pela companhia no site do parceiro — leve isso em conta antes de calcular o total da viagem.</p>`
       : "";
   const avisoOrigem = voosReais
-    ? `<p class="res-amostra res-amostra--vivo"><strong>Preços buscados ao vivo agora.</strong> Estes são os voos que a busca devolveu para ${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)}, com o preço do momento. Tarifa de avião muda rápido: o valor final é o que aparecer no site do parceiro ao clicar em "Selecionar".</p>`
-    : `<p class="res-amostra"><strong>Busca de voos ao vivo em breve.</strong> Os voos abaixo são <strong>exemplos</strong> da rota ${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)} — não são tarifas garantidas. O preço real é confirmado no site do parceiro ao clicar em "Selecionar". Prefere algo já conferido pela nossa curadoria? Veja os <a href="/ofertas">achados de hoje</a>.</p>`;
+    ? `<p class="res-amostra res-amostra--vivo"><strong>Preços buscados ao vivo agora.</strong> Estes são os voos que a busca devolveu para ${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)}, com o preço do momento. O rótulo de cada valor diz se é total do grupo ou por pessoa. Tarifa de avião muda rápido: o valor final é o que aparecer no site do parceiro em "Buscar esta rota no parceiro".</p>`
+    : `<p class="res-amostra"><strong>${opts.buscaAoVivo ? "A busca ao vivo não devolveu voos agora." : "Busca de voos ao vivo em breve."}</strong> Os voos abaixo são <strong>exemplos</strong> da rota ${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)} — não são tarifas garantidas. O preço real é confirmado no site do parceiro em "Buscar esta rota no parceiro". Prefere algo já conferido pela nossa curadoria? Veja os <a href="/ofertas">achados de hoje</a>.</p>`;
   const sorts = Array.isArray(opts.sorts) && opts.sorts.length ? opts.sorts : FLIGHT_SORTS;
   // Destino do "Selecionar": SEMPRE a pagina de saida do proprio site, nunca
   // direto pro parceiro — e a mesma tela de aviso que /saida/:id ja usa para
   // ofertas, so que aqui para a busca de voos generica desta rota.
-  const selecionarHref = saidaVooHref(rota.origem, rota.destino);
+  const selecionarHref = saidaVooHref(rota.origem, rota.destino, opts.consulta);
   const searched = !!opts.searched;
 
   const filtros = FLIGHT_FILTERS.map((grp) => {
     const tipo = filtroTipo(grp.titulo);
     return (
-      `<div class="res-filtro"><span class="res-filtro-title">${escapeHtml(grp.titulo)}</span>` +
+      `<fieldset class="res-filtro"><legend class="res-filtro-title">${escapeHtml(grp.titulo)}</legend>` +
       grp.opcoes
         .map((o) => {
           const valor = filtroValor(tipo, o.label);
@@ -3228,7 +3297,7 @@ export function renderResultsPage(opts = {}) {
           );
         })
         .join("") +
-      `</div>`
+      `</fieldset>`
     );
   }).join("");
 
@@ -3263,10 +3332,17 @@ export function renderResultsPage(opts = {}) {
         `<span class="res-parada ${paradaCor}">${escapeHtml(v.paradas)}</span></div>` +
         `<div class="res-hora"><p>${escapeHtml(v.chegada)}</p><span>${escapeHtml(rota.destino)}</span></div>` +
         `</div>` +
-        `<div class="res-preco"><p class="res-preco-label">ida e volta, por pessoa</p>` +
+        `<div class="res-preco"><p class="res-preco-label">${escapeHtml(v.precoRotulo || "ida e volta, por pessoa")}</p>` +
         `<p class="res-preco-val">${escapeHtml(v.preco)}</p>` +
-        `<p class="res-parcela">≈ ${escapeHtml(v.parcela)}/mês se o parceiro parcelar em 12x</p></div>` +
-        `<a class="btn res-sel" href="${escapeHtml(selecionarHref)}">Selecionar →</a>` +
+        (Array.isArray(v.viajantes) && v.viajantes.length
+          ? `<ul class="res-viajantes">${v.viajantes
+              .map((viajante) => `<li>${escapeHtml(viajante.tipo)}: ${escapeHtml(viajante.preco)}</li>`)
+              .join("")}</ul>`
+          : "") +
+        (v.volta ? `<p class="res-volta">Volta ${escapeHtml(v.volta.saida)}–${escapeHtml(v.volta.chegada)} · ${escapeHtml(v.volta.duracao)} · ${escapeHtml(v.volta.paradas)}</p>` : "") +
+        (v.parcela ? `<p class="res-parcela">≈ ${escapeHtml(v.parcela)}/mês se o parceiro parcelar em 12x o valor acima</p>` : "") +
+        `</div>` +
+        `<a class="btn res-sel" href="${escapeHtml(selecionarHref)}">Buscar esta rota no parceiro</a>` +
         `</article>`
       );
     })
@@ -3281,7 +3357,7 @@ export function renderResultsPage(opts = {}) {
     // resultados", no menu lateral.
     `<h1 class="res-rota"><span>${escapeHtml(rota.origem)}</span><i aria-hidden="true">⇄</i><span>${escapeHtml(rota.destino)}</span></h1>` +
     `<span class="res-resumo">${escapeHtml(rota.resumo || "")}</span>` +
-    `<a class="btn btn-ghost res-alterar" href="/">Alterar busca</a>` +
+    `<a class="btn btn-ghost res-alterar" href="${escapeHtml(alterarBuscaHref(consulta))}">Alterar busca</a>` +
     `</div>` +
     `</section>` +
     `<section class="wrap res-grid">` +
@@ -3291,7 +3367,16 @@ export function renderResultsPage(opts = {}) {
     `<div class="res-help">Precisa de ajuda para escolher? <a href="${escapeHtml(ajudaHref("Oi! Preciso de ajuda para escolher um voo."))}"${waHref("x") ? ` target="_blank" rel="noopener"` : ""}>${waHref("x") ? "Fale no WhatsApp" : "Central de ajuda"}</a></div>` +
     `</aside>` +
     `<div class="res-list">` +
-    avisoRota +
+    (semLista
+      ? `<div class="res-erros" role="alert"><p>Não consultamos nenhuma rota. Corrija os campos abaixo — origem, destino, datas e passageiros continuam como você enviou.</p></div>` +
+        searchCardHtml({
+          valores: consulta || {},
+          erros: opts.erros || [],
+          buscaAoVivo: opts.buscaAoVivo === true,
+          hoje: opts.hoje,
+        })
+      : "") +
+    (semLista ? "" : avisoRota +
     avisoPax +
     avisoOrigem +
     // O rotulo vai num data-attribute porque o JS do cliente reescreve este
@@ -3315,7 +3400,7 @@ export function renderResultsPage(opts = {}) {
     `<input type="hidden" name="destino" value="${escapeHtml(rota.destino)}">` +
     `<button class="btn btn-dark" type="submit">Ativar alerta desta rota</button>` +
     `<p class="news-msg" data-newsletter-msg role="status" aria-live="polite" hidden></p>` +
-    `</form></div>` +
+    `</form></div>`) +
     `</div>` +
     `</section>` +
     `</main>` +
@@ -3329,7 +3414,7 @@ export function renderResultsPage(opts = {}) {
     description: descricaoRota,
     body,
     script: enhancementScript(),
-    canonical: "/resultados",
+    noindex: true,
   });
 }
 
@@ -3344,7 +3429,7 @@ export function renderResultsPage(opts = {}) {
  * ainda vai escolher entre varias opcoes no parceiro antes de pagar) — antes
  * isso era feito com replace("</main>") por quem chamava, o que era fragil.
  */
-export function renderExitPage(offer, { affiliateUrl, notaExtra = "" } = {}) {
+export function renderExitPage(offer, { affiliateUrl, notaExtra = "", ctaLabel = "" } = {}) {
   const vm =
     offer && typeof offer === "object" && ("preco_centavos" in offer || "is_erro_tarifa" in offer)
       ? normalizeLiveOffer(offer)
@@ -3368,7 +3453,7 @@ export function renderExitPage(offer, { affiliateUrl, notaExtra = "" } = {}) {
     `<p class="eyebrow eyebrow--lime">Redirecionando</p>` +
     `<h1>Você está indo para ${escapeHtml(parceiro)}</h1>` +
     `<p class="exit-sub">${exitSub}</p>` +
-    `<a class="btn btn-green exit-cta" href="${escapeHtml(affiliateUrl)}" target="_blank" rel="noopener sponsored">Continuar para ${escapeHtml(parceiro)} →</a>` +
+    `<a class="btn btn-green exit-cta" href="${escapeHtml(affiliateUrl)}" target="_blank" rel="noopener sponsored">${escapeHtml(ctaLabel || `Continuar para ${parceiro} →`)}</a>` +
     `<p class="exit-fine">Preço e disponibilidade podem mudar no site do parceiro — as vagas e as tarifas são controladas por eles, não pelo Aonde.</p>` +
     `</div>` +
     `<div class="exit-grid">` +
@@ -3682,25 +3767,29 @@ function mapDestinos() {
 
 // Lista lateral de destinos: links reais para os guias (funcionam sem JS);
 // com o mapa carregado, o clique centraliza o pin e abre o balao.
-function mapListHtml(destinos) {
+function mapListHtml(destinos, { comMapa = false } = {}) {
   return destinos
-    .map(
-      (d, i) =>
-        `<a class="map-dest" href="${escapeHtml(d.href)}" data-dest="${i}">` +
+    .map((d, i) => {
+      const guia =
+        `<a class="map-dest-link" href="${escapeHtml(d.href)}">` +
         `<span class="map-dest-pin" aria-hidden="true">●</span>` +
         `<span class="map-dest-body"><strong>${escapeHtml(d.titulo)}</strong>` +
         (d.tag ? `<span class="map-dest-tag">${escapeHtml(d.tag)}</span>` : "") +
         `</span>` +
         (d.preco ? `<span class="map-dest-preco">${escapeHtml(d.preco)}</span>` : "") +
-        `</a>`
-    )
+        `</a>`;
+      const mapa = comMapa
+        ? `<button type="button" class="map-pin" data-dest="${i}">Ver no mapa</button>`
+        : "";
+      return `<div class="map-dest">${guia}${mapa}</div>`;
+    })
     .join("");
 }
 
 export function renderMapPage({ apiKey = "" } = {}) {
   const destinos = mapDestinos();
-  const listHtml = mapListHtml(destinos);
   const hasKey = typeof apiKey === "string" && apiKey.trim() !== "";
+  const listHtml = mapListHtml(destinos, { comMapa: hasKey });
 
   const destinosJson = jsonForScript(destinos);
 

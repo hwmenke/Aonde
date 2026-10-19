@@ -6,7 +6,7 @@
 // para um diretorio temporario proprio (fs.mkdtemp + AONDE_DATA_DIR), com
 // save/restore da env — o mesmo padrao ja usado nos testes de config.
 
-import { existsSync, mkdirSync, writeFileSync, renameSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync, renameSync, readFileSync, copyFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -34,12 +34,47 @@ export function ensureDir(dir) {
   }
 }
 
+function classificarJson(filePath) {
+  if (!existsSync(filePath)) return { estado: "ausente" };
+  let content;
+  try {
+    content = readFileSync(filePath, "utf-8");
+  } catch {
+    return { estado: "inacessivel" };
+  }
+  try {
+    return { estado: "ok", data: JSON.parse(content) };
+  } catch {
+    return { estado: "ilegivel" };
+  }
+}
+
+function erroDeDados(filePath, estado) {
+  const err = new Error(`Arquivo de dados ${estado}, sem substituição: ${filePath}`);
+  err.code = "AONDE_DATA_CORRUPT";
+  err.filePath = filePath;
+  return err;
+}
+
 /**
  * Escrita atomica: grava num arquivo temporario e renomeia por cima do alvo
  * (rename e atomico no mesmo filesystem). Evita deixar um arquivo pela metade
  * se o processo morrer no meio da gravacao.
+ *
+ * Arquivo ilegível ou inacessível não é substituído. Uma cópia fica ao lado,
+ * com sufixo .quarantine-, para recuperação.
  */
 export function writeJsonAtomic(filePath, data) {
+  const atual = classificarJson(filePath);
+  if (atual.estado === "ilegivel" || atual.estado === "inacessivel") {
+    try {
+      copyFileSync(filePath, `${filePath}.quarantine-${Date.now()}`);
+    } catch {
+      // A cópia é best-effort. A escrita continua bloqueada.
+    }
+    console.error(`[aonde-affiliates] Recusa a substituir arquivo ${atual.estado}: ${filePath}`);
+    throw erroDeDados(filePath, atual.estado);
+  }
   ensureDir(path.dirname(filePath));
   const tmp = `${filePath}.${process.pid}.${Date.now()}.tmp`;
   writeFileSync(tmp, JSON.stringify(data, null, 2), "utf-8");
@@ -47,28 +82,35 @@ export function writeJsonAtomic(filePath, data) {
 }
 
 /**
- * Le e faz parse de um arquivo JSON. Tolerante a arquivo ausente (retorna
- * fallback) e a arquivo corrompido: nesse caso avisa no stderr e retorna o
- * fallback em vez de lancar excecao (recomeca do zero, sem derrubar o modulo).
+ * Le e faz parse de um arquivo JSON. Arquivo ausente devolve `fallback`.
+ * Arquivo ilegível ou inacessível lança (code AONDE_DATA_CORRUPT) em vez de
+ * devolver uma coleção vazia que a próxima escrita apagaria.
  *
  * @param {string} filePath
- * @param {*} fallback valor devolvido quando o arquivo nao existe ou esta corrompido
+ * @param {*} fallback valor devolvido quando o arquivo nao existe
  * @returns {*}
  */
 export function readJsonSafe(filePath, fallback) {
-  if (!existsSync(filePath)) return fallback;
-  let content;
-  try {
-    content = readFileSync(filePath, "utf-8");
-  } catch {
-    return fallback;
-  }
-  try {
-    return JSON.parse(content);
-  } catch {
-    console.warn(
-      `[aonde-affiliates] Arquivo de dados corrompido, recomecando do zero: ${filePath}`
+  const atual = classificarJson(filePath);
+  if (atual.estado === "ausente") return fallback;
+  if (atual.estado !== "ok") {
+    console.error(
+      `[aonde-affiliates] Arquivo de dados ${atual.estado}, leitura interrompida sem zerar: ${filePath}`
     );
-    return fallback;
+    throw erroDeDados(filePath, atual.estado);
   }
+  return atual.data;
+}
+
+/** Pronto para health: ausente é vazio legítimo; ilegível não está pronto. */
+export function storageStatus(dir = resolveDataDir()) {
+  const nomes = ["offers.json", "subscribers.json", "alert_rules.json"];
+  const files = {};
+  let ready = true;
+  for (const nome of nomes) {
+    const estado = classificarJson(path.join(dir, nome)).estado;
+    files[nome] = estado;
+    if (estado === "ilegivel" || estado === "inacessivel") ready = false;
+  }
+  return { ready, files };
 }

@@ -208,7 +208,8 @@ test("renderMapPage sem chave cai para a lista clicavel de destinos", () => {
   // de configuracao interna exibida para quem entrou no site para viajar.
   assert.doesNotMatch(html, /GOOGLE_MAPS_API_KEY/, "nome de variavel de ambiente na tela do usuario");
   assert.match(html, /mapa interativo ainda não está disponível/i, "explica a ausencia em portugues comum");
-  assert.ok(/href="\/guias\/salvador"[^>]*data-dest=/.test(html), "lista destinos linkando os guias");
+  assert.match(html, /href="\/guias\/salvador"/, "lista destinos linkando os guias");
+  assert.doesNotMatch(html, /<a[^>]*href="\/guias\/salvador"[^>]*data-dest=/, "o link do guia não é interceptado pelo mapa");
 });
 
 test("renderMapPage com chave injeta o loader e os dados dos pins", () => {

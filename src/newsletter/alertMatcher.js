@@ -15,6 +15,7 @@
 // e-mail em claro.
 
 import path from "node:path";
+import crypto from "node:crypto";
 import { appendFileSync, readFileSync } from "node:fs";
 
 import { resolveDataDir, ensureDir } from "../store/dataDir.js";
@@ -180,6 +181,7 @@ export function dispatchAlerts(offers = [], { cooldownMs = COOLDOWN_PADRAO_MS, a
       }
       enviados.set(chave, agora); // conta tambem dentro da MESMA chamada
       const item = {
+        id: crypto.randomUUID(),
         queuedAt: nowIso,
         subscriberEmailHash: hashEmail(subscriber.email),
         canal,

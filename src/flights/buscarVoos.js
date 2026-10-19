@@ -57,8 +57,14 @@ function maxResultadosConfigurado() {
  * abaixo dos resultados sempre deixou claro.
  */
 function resolverDatas({ ida, volta } = {}, agora = new Date()) {
-  const departureDate = parseDataPtBr(ida) || dataIdaPadrao(agora);
-  const returnDate = parseDataPtBr(volta) || dataVoltaPadrao(departureDate);
+  const idaTexto = typeof ida === "string" ? ida.trim() : "";
+  const voltaTexto = typeof volta === "string" ? volta.trim() : "";
+  // Texto informado e não reconhecido NÃO cai numa data padrão: isso consultaria
+  // outra viagem. Data omitida (chamada sem o campo) ainda usa o par padrão.
+  const departureDate = idaTexto ? parseDataPtBr(idaTexto) : dataIdaPadrao(agora);
+  if (!departureDate) return null;
+  const returnDate = voltaTexto ? parseDataPtBr(voltaTexto) : dataVoltaPadrao(departureDate);
+  if (!returnDate || returnDate < departureDate) return null;
   return { departureDate, returnDate };
 }
 
@@ -83,7 +89,9 @@ export async function buscarVoosAoVivo({ origem, destino, ida, volta, pax } = {}
 
   const timeoutMs = timeoutMsConfigurado();
   const max = maxResultadosConfigurado();
-  const { departureDate, returnDate } = resolverDatas({ ida, volta });
+  const datas = resolverDatas({ ida, volta });
+  if (!datas) return { ok: false, motivo: "datas-invalidas" };
+  const { departureDate, returnDate } = datas;
 
   const adultos = pax && Number.isFinite(pax.adultos) && pax.adultos > 0 ? pax.adultos : 1;
   const criancas = pax && Number.isFinite(pax.criancas) && pax.criancas > 0 ? pax.criancas : 0;
@@ -155,7 +163,10 @@ async function executarBusca({
     return { ok: false, motivo: "erro", detalhe: res.error };
   }
 
-  const voos = mapAmadeusOffersToFlights(res.data, { max });
+  const voos = mapAmadeusOffersToFlights(res.data, {
+    max,
+    pax: { adultos, criancas, bebes },
+  });
   if (!voos.length) {
     return { ok: false, motivo: "sem-resultados" };
   }

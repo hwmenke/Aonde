@@ -95,15 +95,16 @@ test("JSON-LD continua em USD com o numero certo (dado estruturado nao muda)", (
   const html = renderOfferPage(byId("for-ssa"), { related: [] });
   const ld = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1]));
   const product = ld.find((j) => j["@type"] === "Product");
-  assert.ok(product && product.offers, "Product com offers");
-  assert.equal(product.offers.priceCurrency, "USD");
-  assert.equal(product.offers.price, 242);
+  assert.ok(product, "Product continua na página");
+  assert.equal(product.offers, undefined, "sem fonte recente o JSON-LD não publica preço nem InStock");
   const direto = buildOfferProduct({
     id: "x", origem: "GRU", destino: "SCL", cidade: "Santiago", preco: "US$ 268",
     affiliateUrl: "https://tp.media/r", aviasalesBuy: true, erro: false, href: "/saida/x",
+    fontePrecoEm: "2026-10-18", agora: "2026-10-19",
   });
   assert.equal(direto.offers.priceCurrency, "USD");
   assert.equal(direto.offers.price, 268);
+  assert.equal(direto.offers.availability, undefined);
 });
 
 // ---------------------------------------------------------------------------
@@ -130,11 +131,12 @@ test("card sem link de parceiro leva ao detalhe e nao promete parceiro", () => {
 test("card sem botao Buy (gru-fln) nao finge reserva", () => {
   const fln = byId("gru-fln");
   assert.equal(fln.aviasalesBuy, false, "premissa: gru-fln e so busca");
-  const feed = renderOffersPage([]);
+  const feed = renderOffersPage([], { hoje: "2026-09-01" });
   const card = feed.match(/<a class="of-card[^"]*" href="\/saida\/gru-fln">[\s\S]*?<\/a>/);
-  assert.ok(card, "card do gru-fln no feed");
+  assert.ok(card, "card do gru-fln no feed enquanto a ida ainda não passou");
   assert.match(card[0], /Ver busca no Aviasales →/);
   assert.doesNotMatch(card[0], /Reservar/);
+  assert.doesNotMatch(renderOffersPage([], { hoje: "2026-10-19" }), /href="\/saida\/gru-fln"/, "ida já passada sai do feed público");
 });
 
 test("card so mostra 'Visto no ...' quando a oferta traz fonte/data", () => {
@@ -211,9 +213,9 @@ test("busca ignora acento e caixa, e acha por cidade, pais ou companhia", () => 
   for (const c of flo) assert.match(c, /Florianópolis/);
   const pais = cardsDe(renderOffersPage([], { q: "portugal" }));
   assert.ok(pais.some((c) => /Lisboa/.test(c)));
-  const cia = cardsDe(renderOffersPage([], { q: "swiss" }));
+  const cia = cardsDe(renderOffersPage([], { q: "sky" }));
   assert.ok(cia.length > 0);
-  for (const c of cia) assert.match(c, /SWISS/);
+  for (const c of cia) assert.match(c, /Sky/);
 });
 
 test("filtro de tipo e combinavel com origem e busca", () => {
