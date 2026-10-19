@@ -110,6 +110,50 @@ test("GET /saida/voo registra o clique em data/clicks.jsonl com id de rota", asy
   assert.ok(line.timestamp);
 });
 
+test("repro: handoff de família não pode repetir a URL de só adultos", async (t) => {
+  const { baseUrl } = await withServer(t);
+  const qs = "origem=GRU&destino=REC&ida=2027-08-12&volta=2027-08-19";
+  const adultos = await (await fetch(`${baseUrl}/saida/voo?${qs}&adultos=2`)).text();
+  const familia = await (await fetch(`${baseUrl}/saida/voo?${qs}&adultos=2&criancas=2&bebes=1`)).text();
+  const urlDe = (html) => (html.match(/https:\/\/www\.aviasales\.com\/search\/[A-Za-z0-9]+/) || [])[0] || "";
+  const urlAdultos = urlDe(adultos);
+  const urlFamilia = urlDe(familia);
+  assert.notEqual(urlAdultos, urlFamilia, "dois adultos e uma família não podem cair no mesmo link");
+  // Formato documentado (Travelpayouts, Aviasales affiliate links): economia não
+  // tem letra de classe; os dígitos são adultos, crianças e bebês. 2+2+1 = 221.
+  assert.match(urlFamilia, /\/search\/GRU1208REC1908221$/);
+  // 2 adultos, sem criança e sem bebê, é só o dígito 2 — o 1 extra seria uma criança.
+  assert.match(urlAdultos, /\/search\/GRU1208REC19082$/);
+  assert.match(familia, /2 adultos, 2 crianças e 1 bebê de colo/);
+  assert.doesNotMatch(familia, /O link do parceiro não inclui/);
+});
+
+test("contagem fora do formato do parceiro pede reconferência e não vira outro passageiro", async (t) => {
+  const { baseUrl } = await withServer(t);
+  const html = await (
+    await fetch(
+      `${baseUrl}/saida/voo?origem=GRU&destino=REC&ida=2027-08-12&volta=2027-08-19&adultos=2&criancas=10&bebes=1`
+    )
+  ).text();
+  assert.match(html, /O link do parceiro não inclui/);
+  assert.match(html, /crianças/);
+  assert.match(html, /bebês/);
+  const url = (html.match(/https:\/\/www\.aviasales\.com\/search\/[A-Za-z0-9]+/) || [])[0] || "";
+  assert.match(url, /\/search\/GRU1208REC19082$/);
+});
+
+test("repro: bebê sem criança não pode ser lido como criança no link do parceiro", async (t) => {
+  const { baseUrl } = await withServer(t);
+  const html = await (
+    await fetch(
+      `${baseUrl}/saida/voo?origem=GRU&destino=REC&ida=2027-08-12&volta=2027-08-19&adultos=2&bebes=1`
+    )
+  ).text();
+  const urlBebe = (html.match(/https:\/\/www\.aviasales\.com\/search\/[A-Za-z0-9]+/) || [])[0] || "";
+  assert.match(urlBebe, /\/search\/GRU1208REC1908201$/);
+  assert.match(html, /2 adultos e 1 bebê de colo/);
+});
+
 test("GET /saida/voo nao conflita com GET /saida/:id (rota /saida/voo tem prioridade)", async (t) => {
   const { baseUrl } = await withServer(t);
 

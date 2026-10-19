@@ -61,11 +61,12 @@ import {
   renderNotFoundPage,
   renderServerErrorPage,
   renderTodayPage,
+  renderRegiaoPage,
   styleAssetPath,
   pageStylesCss,
   STYLE_TAG_RE,
 } from "./render/htmlRenderer.js";
-import { renderExitFlightPage, buildAviasalesSearchUrl } from "./render/exitFlight.js";
+import { renderExitFlightPage, montarBuscaAviasales } from "./render/exitFlight.js";
 import { OFFERS as CONTENT_OFFERS, GUIDES } from "./render/aondeContent.js";
 import { buscarVoosAoVivo } from "./flights/buscarVoos.js";
 import { pacoteDoDia, chaveDoDia } from "./daily/dailyPick.js";
@@ -88,6 +89,7 @@ import {
 } from "./newsletter/optinMail.js";
 import { validarConsulta } from "./flights/consulta.js";
 import { viagemAindaVale, offersParaEscolha } from "./offers/elegibilidade.js";
+import { catalogoDescoberta } from "./render/descoberta.js";
 import { hasAmadeusCredentials } from "./partners/amadeus.js";
 import { createInboundRateLimiter, clientIp } from "./inboundRateLimiter.js";
 import { httpCacheStats } from "./httpCache.js";
@@ -727,7 +729,15 @@ function handleOfferHtml(req, res, id) {
 
 function handleGuideHtml(res, id) {
   if (GUIDES[id]) {
-    sendHtml(res, 200, renderGuidePage(id, { apiKey: getConfig().googleMaps.apiKey }));
+    sendHtml(
+      res,
+      200,
+      renderGuidePage(id, {
+        apiKey: getConfig().googleMaps.apiKey,
+        hoje: new Date(),
+        offers: offersParaEscolha(listOffers(), CONTENT_OFFERS),
+      })
+    );
     return;
   }
   sendHtml(res, 404, renderHomePage({ offers: publishedLiveOffers() }));
@@ -861,6 +871,7 @@ function handleSitemap(res) {
     { loc: "/alertas" },
   ];
   for (const id of Object.keys(GUIDES)) entradas.push({ loc: `/guias/${encodeURIComponent(id)}` });
+  for (const hub of catalogoDescoberta().hubs) entradas.push({ loc: `/regioes/${hub.slug}` });
   let ofertas = CONTENT_OFFERS;
   try {
     ofertas = offersParaEscolha(listOffers(), CONTENT_OFFERS);
@@ -1124,12 +1135,18 @@ function handleExitFlightHtml(req, res, url) {
   }
   const origem = origemRaw.toUpperCase();
   const destino = destinoRaw.toUpperCase();
-  const adultosN = Number.parseInt(url.searchParams.get("adultos") || "", 10);
-  const searchUrl = buildAviasalesSearchUrl(origem, destino, {
+  const parametro = (chave) => {
+    const valor = url.searchParams.get(chave);
+    return valor === null ? undefined : valor;
+  };
+  const busca = montarBuscaAviasales(origem, destino, {
     ida: url.searchParams.get("ida") || "",
     volta: url.searchParams.get("volta") || "",
-    adultos: Number.isInteger(adultosN) ? adultosN : undefined,
+    adultos: parametro("adultos"),
+    criancas: parametro("criancas"),
+    bebes: parametro("bebes"),
   });
+  const searchUrl = busca.url;
   // Mesma defesa em profundidade do /saida/:id: so segue com esquema
   // http/https. Na pratica buildAviasalesSearchUrl sempre gera https, mas o
   // teto de seguranca fica aqui caso isso mude no futuro.
@@ -1141,7 +1158,17 @@ function handleExitFlightHtml(req, res, url) {
   // "voo:ORIGEM-DESTINO" deixa claro, na curadoria, que e clique de busca por
   // rota (e nao clique numa oferta com id do catalogo).
   recordClick(`voo:${origem}-${destino}`, req.headers["user-agent"]);
-  sendHtml(res, 200, renderExitFlightPage({ origem, destino, searchUrl }));
+  sendHtml(
+    res,
+    200,
+    renderExitFlightPage({
+      origem,
+      destino,
+      searchUrl,
+      resumoPax: busca.resumo,
+      avisoPax: busca.aviso,
+    })
+  );
 }
 
 /**
@@ -1253,7 +1280,24 @@ export function createServer() {
         return;
       }
       if (method === "GET" && pathname === "/guias") {
-        sendHtml(res, 200, renderGuidesIndexPage());
+        sendHtml(
+          res,
+          200,
+          renderGuidesIndexPage({
+            regiao: url.searchParams.get("regiao") || "",
+            estilo: url.searchParams.get("estilo") || "",
+          })
+        );
+        return;
+      }
+      const regiaoMatch = pathname.match(/^\/regioes\/([^/]+)$/);
+      if (method === "GET" && regiaoMatch) {
+        const html = renderRegiaoPage(decodeURIComponent(regiaoMatch[1]));
+        if (!html) {
+          sendHtml(res, 404, renderNotFoundPage({ caminho: pathname }));
+          return;
+        }
+        sendHtml(res, 200, html);
         return;
       }
       if (method === "GET" && pathname === "/ajuda") {

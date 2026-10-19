@@ -111,7 +111,7 @@ test("lote 2 item 2: ida e volta trazem aeroportos, datas e operadora só quando
   assert.equal(voos[0].volta.trechos[0].operadora, "");
 
   const html = renderResultsPage({ voos, voosReais: true, rota: { origem: "GRU", destino: "LIS", resumo: "" } });
-  assert.match(html, /<summary>Detalhes da ida e volta<\/summary>/);
+  assert.match(html, /<summary>O que está incluído e mais detalhes<\/summary>/);
   assert.match(html, /Conexão em MAD/);
   assert.match(html, /Operado por LATAM/);
   assert.match(html, /Chega em outro dia/);

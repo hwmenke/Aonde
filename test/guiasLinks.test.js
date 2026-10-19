@@ -12,6 +12,7 @@ import {
 } from "../src/render/htmlRenderer.js";
 import { pageStyles } from "../src/render/estilos.js";
 import { GUIDES, GUIDE_LIST, OFFERS } from "../src/render/aondeContent.js";
+import { offersParaEscolha } from "../src/offers/elegibilidade.js";
 import {
   partesDaTag,
   roteirosRelacionados,
@@ -66,6 +67,66 @@ test("roteirosRelacionados prefere a mesma regiao e tolera entrada vazia", () =>
   assert.equal(rel[0].motivo, "Também em Bahia");
   assert.deepEqual(roteirosRelacionados(null), []);
   assert.deepEqual(roteirosRelacionados({}), []);
+});
+
+test("repro: recomendações do roteiro não podem ignorar ida passada nem publicação", () => {
+  const dia = "2026-10-19";
+  const rio = GUIDES.rio;
+  const expirada = {
+    id: "rec-gig",
+    origem: "REC",
+    destino: "GIG",
+    cidade: "Rio de Janeiro",
+    ida: "2026-10-10",
+    cia: "Azul",
+    datas: "10–17 out",
+  };
+  const futura = {
+    id: "futura-gig",
+    origem: "GRU",
+    destino: "GIG",
+    cidade: "Rio de Janeiro",
+    ida: "2026-12-02",
+    cia: "GOL",
+    datas: "2–9 dez",
+  };
+  const rascunho = {
+    id: "oculta-gig",
+    origem: "BSB",
+    destino: "GIG",
+    cidade: "Rio de Janeiro",
+    ida: "2026-12-10",
+    status: "rascunho",
+  };
+  const offers = [expirada, futura, rascunho];
+  const opts = { offers, dia, max: 5 };
+  assert.deepEqual(
+    ofertasDoRoteiro(rio, opts).map((o) => o.id),
+    ["futura-gig"]
+  );
+  for (const html of [
+    ofertaNaCaixaHtml(rio, opts),
+    continuePlanejandoHtml(rio, { ...opts, data: new Date("2026-10-19T12:00:00-03:00") }),
+    roteiroStickyCtaHtml(rio, opts),
+  ]) {
+    assert.match(html, /futura-gig/);
+    assert.doesNotMatch(html, /rec-gig/);
+    assert.doesNotMatch(html, /oculta-gig/);
+  }
+  const editorial = { id: "mesmo-gig", cidade: "Rio de Janeiro", ida: "2026-09-01", cia: "Velha" };
+  const arquivada = { id: "mesmo-gig", cidade: "Rio de Janeiro", ida: "2026-12-01", status: "arquivada", cia: "Arquivo" };
+  const publicada = { id: "mesmo-gig", cidade: "Rio de Janeiro", ida: "2026-12-01", status: "publicada", cia: "Nova" };
+  assert.deepEqual(ofertasDoRoteiro(rio, { offers: offersParaEscolha([arquivada], [editorial]), dia }), []);
+  const trocada = ofertasDoRoteiro(rio, { offers: offersParaEscolha([publicada], [editorial]), dia });
+  assert.equal(trocada.length, 1);
+  assert.equal(trocada[0].cia, "Nova");
+  assert.equal(trocada[0].ida, "2026-12-01");
+  const pagina = renderGuidePage("rio", {
+    hoje: new Date("2026-10-19T15:00:00-03:00"),
+    offers,
+  });
+  assert.match(pagina, /futura-gig/);
+  assert.doesNotMatch(pagina, /rec-gig|oculta-gig/);
 });
 
 test("ofertasDoRoteiro so devolve ofertas do mesmo destino", () => {

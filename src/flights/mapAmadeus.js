@@ -133,6 +133,7 @@ function mapOneOffer(offer, dictionaries, pax) {
     precoEscopo,
     moeda: moeda || "BRL",
     viajantes,
+    inclusoes: inclusoesDaOferta(offer.travelerPricings),
     idaTrechos: trechosDe(segmentos, dictionaries),
     volta: resumoItinerario(itinerarios[1], dictionaries),
     melhor: false,
@@ -186,6 +187,75 @@ function viajantesDaOferta(travelerPricings) {
       tipo: TIPO_VIAJANTE[tipoBruto] || tipoBruto || "Viajante",
       moeda: moeda || "BRL",
       preco: formatValor(Math.round(n * 100), moeda, String(bruto)),
+    });
+  }
+  return saida.length ? saida : null;
+}
+
+const CABINES = {
+  ECONOMY: "Econômica",
+  PREMIUM_ECONOMY: "Premium econômica",
+  BUSINESS: "Executiva",
+  FIRST: "Primeira",
+};
+
+function textoBagagem(bag) {
+  if (!bag || typeof bag !== "object") return { estado: "ausente", texto: "não informada" };
+  const quantidade = Number(bag.quantity);
+  const peso = Number(bag.weight);
+  const temQuantidade = Number.isFinite(quantidade);
+  const temPeso = Number.isFinite(peso) && peso > 0;
+  if (temQuantidade && quantidade <= 0 && !temPeso) return { estado: "zero", texto: "não incluída (0)" };
+  if (temPeso) {
+    const unidade = typeof bag.weightUnit === "string" && bag.weightUnit.trim() ? bag.weightUnit.trim() : "";
+    return { estado: "peso", texto: `${peso}${unidade ? " " + unidade : ""}` };
+  }
+  if (temQuantidade && quantidade > 0) {
+    return { estado: "quantidade", texto: `${quantidade} volume${quantidade > 1 ? "s" : ""}` };
+  }
+  return { estado: "ausente", texto: "não informada" };
+}
+
+function condicaoAmenidade(amenidade) {
+  if (!amenidade || typeof amenidade !== "object") return null;
+  const descricao = typeof amenidade.description === "string" ? amenidade.description.trim() : "";
+  if (!descricao) return null;
+  const tipo = typeof amenidade.amenityType === "string" ? amenidade.amenityType.trim().toUpperCase() : "";
+  const falaDeRegra = /REFUND|CHANGE|EXCHANGE|CANCEL/.test(descricao.toUpperCase()) || tipo === "BRANDED_FARES";
+  if (!falaDeRegra && tipo === "BAGGAGE") return null;
+  if (typeof amenidade.isChargeable !== "boolean") {
+    return { texto: descricao, cobranca: "não informado se é pago" };
+  }
+  return { texto: descricao, cobranca: amenidade.isChargeable ? "extra pago" : "incluído na tarifa" };
+}
+
+function inclusoesDaOferta(travelerPricings) {
+  if (!Array.isArray(travelerPricings) || travelerPricings.length === 0) return null;
+  const saida = [];
+  for (const viajante of travelerPricings) {
+    if (!viajante || typeof viajante !== "object") continue;
+    const detalhes = Array.isArray(viajante.fareDetailsBySegment) ? viajante.fareDetailsBySegment : [];
+    const tipoBruto = typeof viajante.travelerType === "string" ? viajante.travelerType.trim().toUpperCase() : "";
+    const trechos = detalhes.map((fd, indice) => {
+      const item = fd && typeof fd === "object" ? fd : {};
+      const cabineBruta = typeof item.cabin === "string" ? item.cabin.trim().toUpperCase() : "";
+      const tarifaBruta =
+        (typeof item.brandedFare === "string" && item.brandedFare.trim()) ||
+        (typeof item.fareBasis === "string" && item.fareBasis.trim()) ||
+        "";
+      const amenidades = Array.isArray(item.amenities) ? item.amenities.map(condicaoAmenidade).filter(Boolean) : [];
+      return {
+        trecho: indice + 1,
+        cabine: cabineBruta ? CABINES[cabineBruta] || item.cabin.trim() : "",
+        tarifa: tarifaBruta,
+        despachada: textoBagagem(item.includedCheckedBags),
+        mao: textoBagagem(item.includedCabinBags),
+        amenidades,
+      };
+    });
+    saida.push({
+      tipo: TIPO_VIAJANTE[tipoBruto] || tipoBruto || "Viajante",
+      trechos,
     });
   }
   return saida.length ? saida : null;

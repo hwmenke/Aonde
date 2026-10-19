@@ -46,6 +46,15 @@ function withMarker(url) {
  * Monta a URL de busca do parceiro (Aviasales) para uma rota origem->destino.
  * Espera codigos IATA ja validados (3 letras) — quem chama (src/server.js)
  * valida antes.
+ *
+ * Formato documentado em "Aviasales affiliate links" (Travelpayouts):
+ * ORIGEM + DDMM + DESTINO + DDMM + classe + passageiros.
+ * Economia não leva letra de classe. Os dígitos seguintes são adultos
+ * (obrigatório, 0–9), crianças (0–9) e bebês (0–9). Criança entra antes do
+ * bebê; sem o zero de criança, o bebê seria lido como criança.
+ * Ex.: 2 adultos, 2 crianças e 1 bebê em econômica = "221".
+ * Um dígito a mais depois dos adultos (o antigo "1" de classe) seria uma criança.
+ *
  * @param {string} origem codigo IATA de origem (ex.: "GRU")
  * @param {string} destino codigo IATA de destino (ex.: "REC")
  * @returns {string}
@@ -55,20 +64,98 @@ function ddmm(iso) {
   return m ? `${m[3]}${m[2]}` : "";
 }
 
-export function buildAviasalesSearchUrl(origem, destino, extras = {}) {
+function lerInteiro(valor) {
+  if (valor === undefined || valor === null || String(valor).trim() === "") return { estado: "ausente" };
+  const texto = String(valor).trim();
+  if (!/^\d+$/.test(texto)) return { estado: "invalido" };
+  return { estado: "numero", n: Number(texto) };
+}
+
+function encaixa(lido, min, max, ausente) {
+  if (lido.estado === "ausente") return ausente;
+  if (lido.estado === "numero" && lido.n >= min && lido.n <= max) return lido.n;
+  return null;
+}
+
+function juntarPedido(partes) {
+  if (partes.length <= 1) return partes[0] || "";
+  return `${partes.slice(0, -1).join(", ")} e ${partes[partes.length - 1]}`;
+}
+
+function resumoPedido(adultos, criancas, bebes) {
+  const partes = [];
+  const add = (n, sing, plur) => {
+    if (n > 0) partes.push(`${n} ${n === 1 ? sing : plur}`);
+  };
+  add(adultos, "adulto", "adultos");
+  add(criancas, "criança", "crianças");
+  add(bebes, "bebê de colo", "bebês de colo");
+  return juntarPedido(partes);
+}
+
+/**
+ * Traduz o pedido para o sufixo documentado do Aviasales.
+ * Categoria que não cabe num dígito (0–9) fica de fora do link, com aviso.
+ */
+export function passageirosAviasales(extras = {}) {
+  const lidos = {
+    adultos: lerInteiro(extras.adultos),
+    criancas: lerInteiro(extras.criancas),
+    bebes: lerInteiro(extras.bebes),
+  };
+  const explicito = Object.values(lidos).some((item) => item.estado !== "ausente");
+  const adultos = encaixa(lidos.adultos, 1, 9, 1);
+  const criancas = encaixa(lidos.criancas, 0, 9, 0);
+  const bebes = encaixa(lidos.bebes, 0, 9, 0);
+  const pedidoAdultos = lidos.adultos.estado === "numero" ? lidos.adultos.n : 1;
+  const pedidoCriancas = lidos.criancas.estado === "numero" ? lidos.criancas.n : 0;
+  const pedidoBebes = lidos.bebes.estado === "numero" ? lidos.bebes.n : 0;
+  const criancasNoLink = adultos !== null && criancas !== null;
+  const bebesNoLink = criancasNoLink && bebes !== null;
+  const fora = [];
+  if (lidos.adultos.estado !== "ausente" && adultos === null) fora.push("adultos");
+  if (lidos.criancas.estado !== "ausente" && !criancasNoLink) fora.push("crianças");
+  // Bebê sem o dígito de criança seria lido como criança. Se a criança pedida
+  // não cabe no link, o bebê também fica de fora — mesmo que o número dele caiba.
+  if (lidos.bebes.estado !== "ausente" && !bebesNoLink) fora.push("bebês");
+
+  let sufixo = "";
+  if (adultos !== null && criancas !== null && bebes !== null) {
+    sufixo = String(adultos);
+    if (criancas > 0 || bebes > 0) sufixo += String(criancas);
+    if (bebes > 0) sufixo += String(bebes);
+  } else if (adultos !== null && criancas !== null) {
+    sufixo = String(adultos) + (criancas > 0 ? String(criancas) : "");
+  } else if (adultos !== null) {
+    sufixo = String(adultos);
+  }
+
+  const resumo = explicito ? resumoPedido(pedidoAdultos, pedidoCriancas, pedidoBebes) : "";
+  const aviso = fora.length
+    ? `O link do parceiro não inclui ${juntarPedido(fora)}: o formato documentado dele só aceita um dígito (0 a 9) em cada categoria. Antes de pagar, ajuste esses passageiros no site do parceiro.`
+    : "";
+  return { sufixo, resumo, aviso, explicito };
+}
+
+export function montarBuscaAviasales(origem, destino, extras = {}) {
   const o = String(origem || "").toUpperCase();
   const d = String(destino || "").toUpperCase();
   const ida = ddmm(extras.ida);
   const volta = ddmm(extras.volta);
-  // O mesmo formato já usado nas URLs editoriais do catálogo:
-  // ORIGEM + DDMM + DESTINO + DDMM + adultos + 1. Sem datas, fica a busca da rota.
+  const pax = passageirosAviasales(extras);
   let trecho = `${o}${d}`;
-  if (ida && volta) {
-    const adultosBrutos = Number(extras.adultos);
-    const adultos = Number.isInteger(adultosBrutos) ? Math.min(9, Math.max(1, adultosBrutos)) : 1;
-    trecho = `${o}${ida}${d}${volta}${adultos}1`;
-  }
-  return withMarker(`https://www.aviasales.com/search/${encodeURIComponent(trecho)}`);
+  if (ida && volta && pax.sufixo) trecho = `${o}${ida}${d}${volta}${pax.sufixo}`;
+  else if (!ida && !volta && pax.explicito && pax.sufixo) trecho = `${o}${d}${pax.sufixo}`;
+  else if (ida && volta) trecho = `${o}${ida}${d}${volta}`;
+  return {
+    url: withMarker(`https://www.aviasales.com/search/${encodeURIComponent(trecho)}`),
+    resumo: pax.resumo,
+    aviso: pax.aviso,
+  };
+}
+
+export function buildAviasalesSearchUrl(origem, destino, extras = {}) {
+  return montarBuscaAviasales(origem, destino, extras).url;
 }
 
 // Frase adicional (nao coberta pelo card generico de renderExitPage): reforca
@@ -83,7 +170,14 @@ const NOTA_CARTAO =
  * @param {{ origem: string, destino: string, searchUrl: string }} params
  * @returns {string} HTML completo da pagina
  */
-export function renderExitFlightPage({ origem, destino, searchUrl, ctaLabel = "Buscar esta rota no parceiro" }) {
+export function renderExitFlightPage({
+  origem,
+  destino,
+  searchUrl,
+  ctaLabel = "Buscar esta rota no parceiro",
+  resumoPax = "",
+  avisoPax = "",
+} = {}) {
   const o = String(origem || "").toUpperCase();
   const d = String(destino || "").toUpperCase();
 
@@ -100,5 +194,11 @@ export function renderExitFlightPage({ origem, destino, searchUrl, ctaLabel = "B
     cia: "Aviasales",
   };
 
-  return renderExitPage(syntheticOffer, { affiliateUrl: searchUrl, notaExtra: NOTA_CARTAO, ctaLabel });
+  const notas = [NOTA_CARTAO];
+  if (resumoPax) notas.push(`Passageiros desta busca: ${resumoPax}.`);
+  if (avisoPax) notas.push(avisoPax);
+  else if (resumoPax) {
+    notas.push("O link do parceiro abre com essa quantidade. Confira os passageiros no site dele antes de pagar.");
+  }
+  return renderExitPage(syntheticOffer, { affiliateUrl: searchUrl, notaExtra: notas.join(" "), ctaLabel });
 }

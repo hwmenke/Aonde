@@ -47,7 +47,8 @@ import { pageStyles } from "./estilos.js";
 import { createHash } from "node:crypto";
 
 import { getConfig } from "../config.js";
-import { rotuloAeroporto, cidadeDoIata } from "./aeroportos.js";
+import { rotuloAeroporto, cidadeDoIata, opcoesAeroporto } from "./aeroportos.js";
+import { filtrarGuias, hubPorSlug } from "./descoberta.js";
 import { datasSugeridas } from "../flights/consulta.js";
 import { viagemAindaVale } from "../offers/elegibilidade.js";
 import { chaveDoDia } from "../daily/dailyPick.js";
@@ -759,6 +760,10 @@ function normalizeGuideDia(dia) {
     restauranteNome,
     restauranteNota,
     restauranteEndereco,
+    transporte: typeof dia.transporte === "string" ? dia.transporte : "",
+    reserva: typeof dia.reserva === "string" ? dia.reserva : "",
+    acessibilidade: typeof dia.acessibilidade === "string" ? dia.acessibilidade : "",
+    alternativa: typeof dia.alternativa === "string" ? dia.alternativa : "",
   };
 }
 
@@ -1089,6 +1094,7 @@ function lodgingHtml(g) {
         ? `<p class="lodging-base">Fique em <strong>${escapeHtml(base)}</strong> — a base que deixa o roteiro todo a curta distância, com boas opções de pousada e hotel.</p>`
         : `<p class="lodging-base">Escolha uma base central para ficar perto dos pontos deste roteiro.</p>`) +
     `<a class="btn btn-green" href="${escapeHtml(busca)}" target="_blank" rel="noopener sponsored">Ver hospedagem em ${escapeHtml(cidade)} →</a>` +
+    `<p class="lodging-nota">O link sugere <strong>${escapeHtml(cidade)}</strong>. Datas e hóspedes não vão nesta URL — informe os dois no site do parceiro.</p>` +
     `</div>` +
     `</section>`
   );
@@ -1343,7 +1349,7 @@ function siteFooter({ places, attribution } = {}) {
     `<div class="foot-bar"><div class="wrap foot-bar-in">` +
     placesNote +
     `<p class="foot-lgpd">Alguns links são de parceiros afiliados: se você comprar por eles, podemos receber uma comissão, <strong>sem custo extra para você</strong>. Isso ajuda a manter o Aonde no ar. Preços e disponibilidade mudam sem aviso — confira sempre no site do parceiro.</p>` +
-    `<p class="foot-legal">© 2026 Aonde Viagens Ltda · Reservas operadas em parceria com plataformas certificadas de turismo.</p>` +
+    `<p class="foot-legal">© 2026 Aonde · A reserva é feita no site do parceiro.</p>` +
     `</div></div>` +
     `</footer>`
   );
@@ -1647,6 +1653,27 @@ function heroHtml(slides) {
   );
 }
 
+function campoAeroporto(label, name, value, erros) {
+  const falha = erroDoCampo(erros, name);
+  const id = `busca-${name}`;
+  const listaId = `${id}-lista`;
+  const opcoes = opcoesAeroporto()
+    .map((o) => `<option value="${escapeHtml(o.rotulo)}"></option>`)
+    .join("");
+  return (
+    `<div class="sc-field sc-airport" data-aeroporto>` +
+    `<label for="${id}"><span>${escapeHtml(label)}</span></label>` +
+    `<input id="${id}" name="${escapeHtml(name)}" value="${escapeHtml(value)}" list="${id}-dados" autocomplete="off" ` +
+    `role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="${listaId}"` +
+    (falha ? ` aria-invalid="true" aria-describedby="${id}-erro"` : "") +
+    `>` +
+    `<datalist id="${id}-dados">${opcoes}</datalist>` +
+    `<ul class="sc-airport-lista" id="${listaId}" role="listbox" hidden></ul>` +
+    (falha ? `<small class="sc-erro" id="${id}-erro">${escapeHtml(falha.mensagem)}</small>` : "") +
+    `</div>`
+  );
+}
+
 function erroDoCampo(erros, campo) {
   return (Array.isArray(erros) ? erros : []).find((item) => item && item.campo === campo) || null;
 }
@@ -1710,8 +1737,9 @@ function searchCardHtml({ valores = {}, erros = [], buscaAoVivo = false, hoje } 
     // texto para dar hierarquia visual sem esconder nada em letra miuda.
     avisoBusca +
     `<div class="sc-grid">` +
-    field("Origem", "origem", origemValor, "text") +
-    field("Destino", "destino", destinoValor, "text") +
+    campoAeroporto("Origem", "origem", origemValor, erros) +
+    `<button type="button" class="sc-swap" data-troca-rota hidden>Trocar origem e destino</button>` +
+    campoAeroporto("Destino", "destino", destinoValor, erros) +
     field("Ida", "ida", idaValor, "date") +
     field("Volta", "volta", voltaValor, "date") +
     `<fieldset class="sc-pax"><legend>Passageiros</legend>` +
@@ -1726,9 +1754,8 @@ function searchCardHtml({ valores = {}, erros = [], buscaAoVivo = false, hoje } 
     // Parcelamento e Pix sao condicao DO PARCEIRO, nao do Aonde — quem
     // processa o pagamento e sempre ele. E o WhatsApp so aparece se estiver
     // mesmo configurado (regra do topo do arquivo, linhas 58-61).
-    `<span><i></i>Parcelamento em até 12x, conforme o parceiro</span>` +
-    `<span><i></i>Desconto no Pix em boa parte dos parceiros</span>` +
-    (waHref("x") ? `<span><i></i>Atendimento humano por WhatsApp, todos os dias</span>` : "") +
+    `<span><i></i>Parcelamento e Pix, quando o parceiro oferece, aparecem no site dele</span>` +
+    (waHref("x") ? `<span><i></i>Atendimento humano por WhatsApp</span>` : "") +
     `</div>` +
     `</section>`
   );
@@ -1799,7 +1826,12 @@ function stylesSectionHtml(trips) {
   const items = trips
     .map((t, i) => {
       const chips = (t.chips || [])
-        .map((c) => `<span class="chip">${escapeHtml(c)}</span>`)
+        .map((c) => {
+          if (c && typeof c === "object" && c.href) {
+            return `<a class="chip" href="${escapeHtml(c.href)}">${escapeHtml(c.nome || "")}</a>`;
+          }
+          return `<span class="chip">${escapeHtml(typeof c === "object" ? c.nome || "" : c)}</span>`;
+        })
         .join("");
       return (
         `<div class="style-item${i === 0 ? " is-active" : ""}">` +
@@ -1807,7 +1839,7 @@ function stylesSectionHtml(trips) {
         `<h3>${escapeHtml(t.titulo)}</h3>` +
         `<p>${escapeHtml(t.desc)}</p>` +
         `<div class="chips">${chips}</div>` +
-        `<p class="style-cta"><a href="/ofertas">${escapeHtml(t.cta)} →</a></p>` +
+        `<p class="style-cta"><a href="${escapeHtml(t.href || "/guias")}">${escapeHtml(t.cta)} →</a></p>` +
         `</div>`
       );
     })
@@ -2050,15 +2082,17 @@ function extrasSectionHtml(extras) {
         (isHotel
           ? `<span class="extra-cta">${escapeHtml(ex.cta)} →</span>`
           : `<span class="extra-cta extra-cta--soon">em breve</span>`);
+      // Sem cidade escolhida, não abrimos a busca genérica do parceiro.
+      // O link com destino fica no roteiro e nos resultados de voo.
       return isHotel
-        ? `<a class="extra-card" href="${escapeHtml(hotellookSearch())}" target="_blank" rel="noopener sponsored">${inner}</a>`
+        ? `<a class="extra-card" href="/guias">${inner}</a>`
         : `<article class="extra-card extra-card--soon">${inner}</article>`;
     })
     .join("");
   return (
     `<section class="wrap section" id="extras">` +
     `<h2>Além da passagem</h2>` +
-    `<p class="section-sub">Monte a viagem completa: hospedagem, carro e seguro em um só lugar, com a mesma curadoria de sempre. Cada reserva é feita e paga no parceiro.</p>` +
+    `<p class="section-sub">A hospedagem abre o parceiro quando já há uma cidade, no roteiro ou nos resultados. Carro e seguro ainda não têm parceiro nesta página.</p>` +
     `<div class="extras-grid">${cards}</div>` +
     `</section>`
   );
@@ -2083,6 +2117,14 @@ function mapExploreHtml() {
     `</div>` +
     `</section>`
   );
+}
+
+function confiancaDaHome() {
+  const canal = Boolean(waHref("x") || telLabel());
+  return CONFIANCA.map((item) => {
+    if (item.valor !== "Ajuda" || !canal) return item;
+    return { valor: "Atendimento", desc: "o canal configurado neste site aparece no topo da página" };
+  });
 }
 
 function confiancaSectionHtml(stats) {
@@ -2126,7 +2168,7 @@ export function renderHomePage(opts = {}) {
     roteirosSectionHtml(guides) +
     mapExploreHtml() +
     extrasSectionHtml(EXTRAS) +
-    confiancaSectionHtml(CONFIANCA) +
+    confiancaSectionHtml(confiancaDaHome()) +
     `</main>` +
     siteFooter();
 
@@ -2159,7 +2201,7 @@ function newsletterHeroHtml() {
     `<div class="news-copy">` +
     `<p class="eyebrow eyebrow--lime">Alertas de preço</p>` +
     `<h1>Receba os achados de passagem antes que a tarifa mude</h1>` +
-    `<p>Preços muito abaixo da média e erros de tarifa, garimpados todos os dias. Comparamos cada tarifa com a média dos últimos 90 dias antes de avisar você.</p>` +
+    `<p>O alerta compara a tarifa com a média dos últimos 90 dias. Não há envio com hora marcada.</p>` +
     `</div>` +
     `<form class="news-form" data-newsletter action="/api/newsletter/subscribe" method="post">` +
     `<input name="email" type="email" required aria-label="Seu e-mail" placeholder="Seu melhor e-mail">` +
@@ -2188,7 +2230,7 @@ function newsletterStripHtml({ titulo, sub, origemDefault = "GRU", idSuffix = "f
     `<div class="news-strip-copy">` +
     `<p class="eyebrow eyebrow--lime">Alertas de preço</p>` +
     `<h2 id="news-titulo-${id}">${escapeHtml(titulo || "Essa passagem pode sumir até amanhã.")}</h2>` +
-    `<p>${escapeHtml(sub || "Garimpamos passagens abaixo da média todos os dias. Deixe seu e-mail e a gente avisa quando aparecer uma da sua cidade.")}</p>` +
+    `<p>${escapeHtml(sub || "Deixe seu e-mail. Avisamos quando surgir uma tarifa abaixo da média dos últimos 90 dias para a cidade escolhida, sem frequência fixa.")}</p>` +
     `</div>` +
     `<form class="news-form news-form--strip" data-newsletter action="/api/newsletter/subscribe" method="post" aria-describedby="news-termos-${id}">` +
     `<label class="news-label" for="news-email-${id}">Seu e-mail</label>` +
@@ -2761,6 +2803,20 @@ function diaArticleHtml(d, cidade, { anchorId = "" } = {}) {
   const restQuery = d.restauranteEndereco
     ? `${d.restauranteNome}, ${d.restauranteEndereco}`
     : `${d.restauranteNome}, ${cidade}`;
+  const logistica = [
+    d.transporte ? ["Como se deslocar", d.transporte] : null,
+    d.reserva ? ["Precisa reservar", d.reserva] : null,
+    d.acessibilidade ? ["Acessibilidade", d.acessibilidade] : null,
+  ]
+    .filter(Boolean)
+    .map(
+      ([rotulo, texto]) =>
+        `<p class="dia-log"><span class="dia-log-k">${escapeHtml(rotulo)}</span> ${escapeHtml(texto)}</p>`
+    )
+    .join("");
+  const alternativa = d.alternativa
+    ? `<p class="dia-log dia-log--alt"><span class="dia-log-k">Se o tempo mudar</span> ${escapeHtml(d.alternativa)} O plano do dia acima continua o mesmo.</p>`
+    : "";
   const rest = d.restauranteNome
     ? `<div class="dia-rest"><span class="dia-rest-label">Onde comer</span>` +
       `<span><a class="dia-rest-link" href="${escapeHtml(mapsSearchUrl(restQuery))}" target="_blank" rel="noopener"><strong>${escapeHtml(d.restauranteNome)}</strong></a>${d.restauranteNota ? ` · ${escapeHtml(d.restauranteNota)}` : ""}</span></div>`
@@ -2775,6 +2831,8 @@ function diaArticleHtml(d, cidade, { anchorId = "" } = {}) {
     `<div class="dia-body">` +
     `<h3>${escapeHtml(d.titulo)}</h3>` +
     (d.desc ? `<p class="dia-desc">${escapeHtml(d.desc)}</p>` : "") +
+    logistica +
+    alternativa +
     (pontos ? `<div class="dia-pontos">${pontos}</div>` : "") +
     rest +
     dayMap +
@@ -2863,7 +2921,15 @@ function editorialWeekHtml(semanaDados, { cidade = "", ctaHref = "", ctaLabel = 
   );
 }
 
-function renderGuideVM(g, apiKey, { hoje = new Date() } = {}) {
+function regiaoDoGuiaHtml(g) {
+  const tag = g && g.tag ? g.tag : g && g.id && GUIDES[g.id] ? GUIDES[g.id].tag : "";
+  const regiao = String(tag || "").split("·")[1] || "";
+  const hub = hubPorSlug(regiao.trim());
+  if (!hub) return "";
+  return `<p class="guia-regiao"><a href="/regioes/${escapeHtml(hub.slug)}">Mais roteiros em ${escapeHtml(hub.nome)}</a></p>`;
+}
+
+function renderGuideVM(g, apiKey, { hoje = new Date(), offers } = {}) {
   const map = guideMiniMap(g, apiKey);
   const hero = g.hero || {};
   const heroMedia = hero.url
@@ -2914,6 +2980,7 @@ function renderGuideVM(g, apiKey, { hoje = new Date() } = {}) {
     `<main id="conteudo" tabindex="-1">` +
     `<section class="wrap guia-top">` +
     `<p class="breadcrumb"><a href="/">Início</a> · <a href="/guias">Guias de destino</a> · <span>${escapeHtml(g.breadcrumb)}</span></p>` +
+    regiaoDoGuiaHtml(g) +
     `<div class="guia-hero">${heroMedia}` +
     `<div class="guia-hero-flags"><span class="flag flag-lime">ROTEIRO DE ${escapeHtml((g.dias || []).length)} DIAS</span>` +
     (g.tag ? `<span class="flag flag-dark">${escapeHtml(g.tag)}</span>` : "") +
@@ -2939,7 +3006,7 @@ function renderGuideVM(g, apiKey, { hoje = new Date() } = {}) {
         `<p class="guia-url">Endereço desta página: ${escapeHtml(absoluteUrl(`/guias/${g.id}`))}</p>`
       : "") +
     asidePreco +
-    (guiaEditorial ? ofertaNaCaixaHtml(GUIDES[g.id]) : "") +
+    (guiaEditorial ? ofertaNaCaixaHtml(GUIDES[g.id], opcoesOfertaGuia(hoje, offers)) : "") +
     `</aside>` +
     `</div>` +
     `</section>` +
@@ -2954,7 +3021,7 @@ function renderGuideVM(g, apiKey, { hoje = new Date() } = {}) {
     fontesEditoriaisHtml(g, hoje instanceof Date ? chaveDoDia(hoje) : hoje) +
     optimizerHtml(g.opt) +
     travelDatesHtml(g) +
-    (guiaEditorial ? continuePlanejandoHtml(GUIDES[g.id], { data: hoje }) : "") +
+    (guiaEditorial ? continuePlanejandoHtml(GUIDES[g.id], { data: hoje, ...opcoesOfertaGuia(hoje, offers) }) : "") +
     (g.id
       ? newsletterStripHtml({
           titulo: `Ainda não é a hora? A gente avisa quando as passagens para ${g.breadcrumb || g.titulo} ficarem mais baratas.`,
@@ -2967,7 +3034,7 @@ function renderGuideVM(g, apiKey, { hoje = new Date() } = {}) {
     `<div class="guia-cta-btns"><a class="btn btn-lime" href="${escapeHtml(guideResultsHref(g.opt))}">${escapeHtml(g.ctaVoos)}</a>` +
     `<a class="btn btn-ghost" href="/guias">Outros roteiros</a></div></div>` +
     `</section>` +
-    (guiaEditorial ? roteiroStickyCtaHtml(GUIDES[g.id]) : "") +
+    (guiaEditorial ? roteiroStickyCtaHtml(GUIDES[g.id], opcoesOfertaGuia(hoje, offers)) : "") +
     `</main>` +
     siteFooter({ places: g.places, attribution: g.attribution });
 
@@ -2993,14 +3060,57 @@ function renderGuideVM(g, apiKey, { hoje = new Date() } = {}) {
   return doc;
 }
 
+function chipFiltro(href, nome, n, ativo) {
+  return (
+    `<a class="chip${ativo ? " is-active" : ""}" href="${escapeHtml(href)}" aria-current="${ativo ? "true" : "false"}">` +
+    `${escapeHtml(nome)} <span class="chip-n">${n}</span></a>`
+  );
+}
+
+function hrefGuias({ regiao = "", estilo = "" } = {}) {
+  const params = new URLSearchParams();
+  if (regiao) params.set("regiao", regiao);
+  if (estilo) params.set("estilo", estilo);
+  const q = params.toString();
+  return q ? `/guias?${q}` : "/guias";
+}
+
 /** Indice de todos os guias/roteiros editoriais (grid da "Revista Aonde"). */
-export function renderGuidesIndexPage() {
+export function renderGuidesIndexPage({ regiao = "", estilo = "" } = {}) {
+  const filtro = filtrarGuias(GUIDE_LIST, { regiao, estilo });
+  const avisoFiltro =
+    !filtro.regiaoConhecida || !filtro.estiloConhecido
+      ? `<p class="map-sub" role="status">Não há um filtro com esse nome. A lista abaixo é o catálogo inteiro.</p>`
+      : "";
+  const vazio =
+    filtro.guias.length === 0
+      ? `<p class="map-sub" role="status">Nenhum roteiro combina esses filtros. <a href="/guias">Ver o catálogo inteiro</a>.</p>`
+      : "";
+  const estilos = filtro.estilos
+    .map((e) => chipFiltro(hrefGuias({ regiao: filtro.regiaoSlug, estilo: e.slug }), e.nome, e.guias.length, filtro.estiloSlug === e.slug))
+    .join("");
+  const regioes = filtro.regioes
+    .map((r) => chipFiltro(hrefGuias({ regiao: r.slug, estilo: filtro.estiloSlug }), r.nome, r.guias.length, filtro.regiaoSlug === r.slug))
+    .join("");
+  const hubs = filtro.hubs
+    .map((h) => `<a href="/regioes/${escapeHtml(h.slug)}">${escapeHtml(h.nome)}</a>`)
+    .join(" · ");
+  const limpar = filtro.regiaoSlug || filtro.estiloSlug ? `<p class="map-sub"><a href="/guias">Limpar filtros</a></p>` : "";
+  const canonical = hrefGuias({ regiao: filtro.regiaoSlug, estilo: filtro.estiloSlug });
   const body =
     `<main id="conteudo" tabindex="-1">` +
     `<section class="wrap map-head"><p class="eyebrow eyebrow--green">Revista Aonde</p>` +
     `<h1 class="map-title">Roteiros prontos, dia a dia</h1>` +
     `<p class="map-sub">${escapeHtml(GUIDE_LIST.length)} destinos com roteiro de 5 dias na ordem certa e um bom restaurante para cada dia. Escolha o seu.</p>` +
     `<p class="map-sub map-sub--links">Já sabe para onde quer ir? Veja os <a href="/ofertas">achados de passagem</a> ou a <a href="/hoje">escolha do dia</a>.</p>` +
+    `<div class="guia-filtros">` +
+    `<p class="guia-filtros-k">Estilo</p><div class="chips">${estilos}</div>` +
+    `<p class="guia-filtros-k">Região</p><div class="chips">${regioes}</div>` +
+    limpar +
+    avisoFiltro +
+    vazio +
+    (hubs ? `<p class="map-sub map-sub--links">Páginas por região: ${hubs}</p>` : "") +
+    `</div>` +
     // O campo nasce com "hidden": sem JS ele nunca aparece, entao ninguem ve
     // uma caixa de busca que nao filtra nada. O enhancementScript() tira o
     // hidden. A lista inteira continua ali, so escondemos cartoes ao filtrar.
@@ -3011,11 +3121,55 @@ export function renderGuidesIndexPage() {
     `<p class="guia-busca-conta" data-guia-busca-conta role="status" aria-live="polite"></p>` +
     `</div>` +
     `</section>` +
-    roteirosSectionHtml(GUIDE_LIST) +
+    (filtro.guias.length ? roteirosSectionHtml(filtro.guias) : "") +
     `</main>` +
     siteFooter();
-  return htmlDocument({ title: `${GUIDE_LIST.length} roteiros de 5 dias, dia a dia · Aonde`, body, script: enhancementScript(), canonical: "/guias",
-    description: `${GUIDE_LIST.length} roteiros de destino com o dia a dia na ordem certa, um restaurante para cada dia e onde ficar. Filtre pelo destino que você quer.` });
+  return htmlDocument({
+    title: `${filtro.guias.length} roteiros de 5 dias, dia a dia · Aonde`,
+    body,
+    script: enhancementScript(),
+    canonical,
+    description: `${GUIDE_LIST.length} roteiros de destino com o dia a dia na ordem certa, um restaurante para cada dia e onde ficar. Filtre pelo destino que você quer.`,
+  });
+}
+
+export function renderRegiaoPage(slug) {
+  const hub = hubPorSlug(slug);
+  if (!hub) return null;
+  const cards = hub.guias
+    .map(
+      (g) =>
+        `<li><a href="/guias/${escapeHtml(g.id)}"><strong>${escapeHtml(g.titulo)}</strong></a>` +
+        (g.resumo ? `<p>${escapeHtml(g.resumo)}</p>` : "") +
+        (g.tag ? `<p class="regiao-tag">${escapeHtml(g.tag)}</p>` : "") +
+        `</li>`
+    )
+    .join("");
+  const body =
+    `<main id="conteudo" tabindex="-1">` +
+    `<section class="wrap map-head">` +
+    `<p class="breadcrumb"><a href="/">Início</a> · <a href="/guias">Guias de destino</a> · <span>${escapeHtml(hub.nome)}</span></p>` +
+    `<h1 class="map-title">Roteiros em ${escapeHtml(hub.nome)}</h1>` +
+    `<p class="map-sub">Estes são os roteiros de 5 dias já publicados cuja tag editorial cita ${escapeHtml(hub.nome)}. ` +
+    `A lista não cobre todo destino possível dessa região — só o que está no catálogo.</p>` +
+    `<ol class="regiao-lista">${cards}</ol>` +
+    `<p class="map-sub"><a href="${escapeHtml(hrefGuias({ regiao: hub.slug }))}">Ver só estes no índice</a> · <a href="/guias">Catálogo inteiro</a></p>` +
+    `</section></main>` +
+    siteFooter();
+  return htmlDocument({
+    title: `Roteiros em ${hub.nome} · Aonde`,
+    description: `Roteiros de 5 dias publicados para ${hub.nome}. Cada link abre o guia daquele destino.`,
+    body,
+    script: enhancementScript(),
+    canonical: `/regioes/${hub.slug}`,
+    jsonld: [
+      buildBreadcrumbList([
+        { name: "Início", url: "/" },
+        { name: "Guias de destino", url: "/guias" },
+        { name: hub.nome, url: `/regioes/${hub.slug}` },
+      ]),
+    ],
+  });
 }
 
 /**
@@ -3251,10 +3405,17 @@ export function renderTodayPage(pacote, { aviso = null, erro = false } = {}) {
 }
 
 /** Guia editorial (aondeContent) por id, ou objeto de guia. */
-export function renderGuidePage(guideOrId, { apiKey = "", hoje = new Date() } = {}) {
+function opcoesOfertaGuia(hoje, offers) {
+  const dia = chaveDoDia(hoje instanceof Date || typeof hoje === "string" ? hoje : new Date());
+  const opts = { dia };
+  if (Array.isArray(offers)) opts.offers = offers;
+  return opts;
+}
+
+export function renderGuidePage(guideOrId, { apiKey = "", hoje = new Date(), offers } = {}) {
   const g = typeof guideOrId === "string" ? GUIDES[guideOrId] : guideOrId;
   if (!g) return renderHomePage();
-  return renderGuideVM(guideFromContent(g), apiKey, { hoje });
+  return renderGuideVM(guideFromContent(g), apiKey, { hoje, offers });
 }
 
 /**
@@ -3289,15 +3450,87 @@ function trechoListaHtml(trechos) {
     .join("");
 }
 
+function bagagemLinha(rotulo, info) {
+  const texto = info && info.texto ? info.texto : "não informada";
+  return `<li>${escapeHtml(rotulo)}: ${escapeHtml(texto)}</li>`;
+}
+
+function inclusoesHtml(v) {
+  const grupos = Array.isArray(v && v.inclusoes) ? v.inclusoes : null;
+  if (!grupos || !grupos.length) {
+    return `<p>Cabine, bagagem e regras de alteração não vieram nesta resposta.</p>`;
+  }
+  return grupos
+    .map((grupo) => {
+      const trechos = Array.isArray(grupo.trechos) ? grupo.trechos : [];
+      const blocos = trechos.length
+        ? trechos
+            .map((t) => {
+              const amenidades = (Array.isArray(t.amenidades) ? t.amenidades : [])
+                .map((a) => `<li>${escapeHtml(a.cobranca)}: ${escapeHtml(a.texto)}</li>`)
+                .join("");
+              return (
+                `<div class="res-incl-trecho"><p>Trecho ${escapeHtml(t.trecho)}</p><ul>` +
+                `<li>Cabine: ${escapeHtml(t.cabine || "não informada")}</li>` +
+                `<li>Tarifa: ${escapeHtml(t.tarifa || "não informada")}</li>` +
+                bagagemLinha("Bagagem despachada", t.despachada) +
+                bagagemLinha("Bagagem de mão", t.mao) +
+                (amenidades || `<li>Alteração e reembolso: não informados</li>`) +
+                `</ul></div>`
+              );
+            })
+            .join("")
+        : `<p>Os trechos deste viajante não trouxeram cabine nem bagagem.</p>`;
+      return `<section><h3>${escapeHtml(grupo.tipo || "Viajante")}</h3>${blocos}</section>`;
+    })
+    .join("");
+}
+
 function detalhesVooHtml(v) {
-  if (!v || (!Array.isArray(v.idaTrechos) && !v.volta)) return "";
-  const ida = Array.isArray(v.idaTrechos) && v.idaTrechos.length
-    ? `<h3>Ida</h3><ol>${trechoListaHtml(v.idaTrechos)}</ol>`
-    : `<h3>Ida</h3><p>Os trechos da ida não vieram nesta resposta.</p>`;
-  const volta = v.volta && Array.isArray(v.volta.trechos) && v.volta.trechos.length
-    ? `<h3>Volta</h3><ol>${trechoListaHtml(v.volta.trechos)}</ol>`
-    : `<h3>Volta</h3><p>A volta não veio nesta resposta.</p>`;
-  return `<details class="res-detalhes"><summary>Detalhes da ida e volta</summary>${ida}${volta}</details>`;
+  if (!v) return "";
+  const temTrechos = Array.isArray(v.idaTrechos) || v.volta;
+  const ida = !temTrechos
+    ? ""
+    : Array.isArray(v.idaTrechos) && v.idaTrechos.length
+      ? `<h3>Ida</h3><ol>${trechoListaHtml(v.idaTrechos)}</ol>`
+      : `<h3>Ida</h3><p>Os trechos da ida não vieram nesta resposta.</p>`;
+  const volta = !temTrechos
+    ? ""
+    : v.volta && Array.isArray(v.volta.trechos) && v.volta.trechos.length
+      ? `<h3>Volta</h3><ol>${trechoListaHtml(v.volta.trechos)}</ol>`
+      : `<h3>Volta</h3><p>A volta não veio nesta resposta.</p>`;
+  const viajantes = Array.isArray(v.viajantes) && v.viajantes.length
+    ? `<h3>Por viajante</h3><ul class="res-viajantes">${v.viajantes
+        .map((viajante) => `<li>${escapeHtml(viajante.tipo)}: ${escapeHtml(viajante.preco)}</li>`)
+        .join("")}</ul>`
+    : `<h3>Por viajante</h3><p>O valor por viajante não veio nesta resposta.</p>`;
+  const parcela = v.parcela
+    ? `<p class="res-parcela">≈ ${escapeHtml(v.parcela)}/mês se o parceiro parcelar em 12x o valor acima. É conta ilustrativa, não uma oferta de parcelamento.</p>`
+    : "";
+  return (
+    `<details class="res-detalhes"><summary>O que está incluído e mais detalhes</summary>` +
+    `<div class="res-incl">${inclusoesHtml(v)}</div>` +
+    viajantes +
+    `${ida}${volta}` +
+    parcela +
+    `</details>`
+  );
+}
+
+function hospedagemDaBuscaHtml(rota, consulta) {
+  const codigo = rota && rota.destino ? String(rota.destino) : "";
+  const cidade = cidadeDoIata(codigo) || codigo;
+  if (!cidade || cidade === "incompleta" || cidade === "Busca") return "";
+  const ida = consulta && consulta.ida ? String(consulta.ida) : "";
+  const volta = consulta && consulta.volta ? String(consulta.volta) : "";
+  const quando = ida ? ` Datas da passagem nesta página: ${ida}${volta ? " a " + volta : ""}.` : "";
+  const texto =
+    `O link abre o parceiro sugerindo ${cidade}.${quando} Datas e hóspedes não vão nesta URL — informe os dois lá.`;
+  return (
+    `<aside class="res-hotel"><h2>Hospedagem em ${escapeHtml(cidade)}</h2>` +
+    `<p>${escapeHtml(texto)}</p>` +
+    `<a class="btn btn-ghost" href="${escapeHtml(hotellookSearch(cidade))}" target="_blank" rel="noopener sponsored">Ver hospedagem em ${escapeHtml(cidade)}</a></aside>`
+  );
 }
 
 function alterarBuscaHref(consulta) {
@@ -3441,28 +3674,24 @@ export function renderResultsPage(opts = {}) {
         ` data-preco="${escapeHtml(precoNumerico(v.preco))}" data-duracao="${escapeHtml(duracaoEmMin(v.duracao))}" data-ordem="${escapeHtml(i)}">` +
         melhor +
         `<div class="res-cia"><strong>${escapeHtml(v.cia)}</strong><span>${escapeHtml(v.numero)}</span></div>` +
+        `<div class="res-itinerario">` +
         `<div class="res-trecho">` +
         `<div class="res-hora"><p>${escapeHtml(v.saida)}</p><span>${escapeHtml(rota.origem)}</span></div>` +
         `<div class="res-linha"><span class="res-dur">${escapeHtml(v.duracao)}</span><div class="res-track"><i></i></div>` +
         `<span class="res-parada ${paradaCor}">${escapeHtml(v.paradas)}</span></div>` +
         `<div class="res-hora"><p>${escapeHtml(v.chegada)}</p><span>${escapeHtml(rota.destino)}</span></div>` +
         `</div>` +
-        `<div class="res-preco"><p class="res-preco-label">${escapeHtml(v.precoRotulo || "ida e volta, por pessoa")}</p>` +
-        `<p class="res-preco-val">${escapeHtml(v.preco)}</p>` +
-        (Array.isArray(v.viajantes) && v.viajantes.length
-          ? `<ul class="res-viajantes">${v.viajantes
-              .map((viajante) => `<li>${escapeHtml(viajante.tipo)}: ${escapeHtml(viajante.preco)}</li>`)
-              .join("")}</ul>`
-          : "") +
         (v.volta
           ? `<p class="res-volta">Volta ${escapeHtml(v.volta.saida)}–${escapeHtml(v.volta.chegada)} · ${escapeHtml(v.volta.duracao)} · ${escapeHtml(v.volta.paradas)}</p>`
           : Array.isArray(v.idaTrechos)
             ? `<p class="res-volta">A volta não veio nesta resposta.</p>`
             : "") +
-        detalhesVooHtml(v) +
-        (v.parcela ? `<p class="res-parcela">≈ ${escapeHtml(v.parcela)}/mês se o parceiro parcelar em 12x o valor acima</p>` : "") +
+        `</div>` +
+        `<div class="res-preco"><p class="res-preco-label">${escapeHtml(v.precoRotulo || "ida e volta, por pessoa")}</p>` +
+        `<p class="res-preco-val">${escapeHtml(v.preco)}</p>` +
         `</div>` +
         `<a class="btn res-sel" href="${escapeHtml(selecionarHref)}">Buscar esta rota no parceiro</a>` +
+        detalhesVooHtml(v) +
         `</article>`
       );
     })
@@ -3511,6 +3740,7 @@ export function renderResultsPage(opts = {}) {
         ? "Os preços acima vieram da busca ao vivo no momento em que esta página carregou e podem mudar a qualquer momento."
         : "Preços acima são exemplos."
     } Ao selecionar, você vai para o site do parceiro ver as tarifas reais e concluir a compra. O Aonde pode receber comissão, sem custo extra para você.</p>` +
+    hospedagemDaBuscaHtml(rota, consulta) +
     `<div class="res-pix"><strong>Pix</strong><span>Vários parceiros dão desconto no Pix, mas não todos, e o percentual é decidido por eles. O valor com desconto aparece no site do parceiro antes de você confirmar.</span></div>` +
     `<div class="res-alert-banner"><div><strong>Não vai comprar agora?</strong> ` +
     `<span>A gente avisa se ${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)} ficar mais barato.</span></div>` +
@@ -4471,6 +4701,90 @@ ${scriptSalvos()}
       if(navigator.sendBeacon)navigator.sendBeacon('/api/eventos',new Blob([corpo],{type:'application/json'}));
       else fetch('/api/eventos',{method:'POST',headers:{'content-type':'application/json'},body:corpo,keepalive:true}).catch(function(){});
     }catch(e){}
+  });
+  document.querySelectorAll('[data-troca-rota]').forEach(function(btn){
+    btn.hidden=false;
+    btn.addEventListener('click',function(){
+      var form=btn.closest('form');
+      if(!form)return;
+      var origem=form.querySelector('[name=origem]');
+      var destino=form.querySelector('[name=destino]');
+      if(!origem||!destino)return;
+      var tmp=origem.value;
+      origem.value=destino.value;
+      destino.value=tmp;
+    });
+  });
+  function semAcentoCampo(txt){
+    return String(txt||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  }
+  document.querySelectorAll('[data-aeroporto]').forEach(function(box){
+    var input=box.querySelector('input');
+    var lista=box.querySelector('[role=listbox]');
+    var dados=box.querySelector('datalist');
+    if(!input||!lista||!dados)return;
+    input.removeAttribute('list');
+    var opcoes=[];
+    dados.querySelectorAll('option').forEach(function(op){ if(op.value)opcoes.push(op.value); });
+    var ativo=-1;
+    function fechar(){
+      lista.hidden=true;
+      lista.innerHTML='';
+      input.setAttribute('aria-expanded','false');
+      input.removeAttribute('aria-activedescendant');
+      ativo=-1;
+    }
+    function pintar(itens){
+      lista.innerHTML='';
+      itens.forEach(function(txt,i){
+        var li=document.createElement('li');
+        li.setAttribute('role','option');
+        li.id=input.id+'-op-'+i;
+        li.textContent=txt;
+        if(i===ativo)li.setAttribute('aria-selected','true');
+        li.addEventListener('mousedown',function(ev){
+          ev.preventDefault();
+          input.value=txt;
+          fechar();
+        });
+        lista.appendChild(li);
+      });
+      var aberto=itens.length>0;
+      lista.hidden=!aberto;
+      input.setAttribute('aria-expanded',aberto?'true':'false');
+      if(ativo>=0&&lista.children[ativo])input.setAttribute('aria-activedescendant',lista.children[ativo].id);
+      else input.removeAttribute('aria-activedescendant');
+    }
+    function filtrar(){
+      var q=semAcentoCampo(input.value);
+      var itens=opcoes.filter(function(txt){ return !q||semAcentoCampo(txt).indexOf(q)>=0; }).slice(0,8);
+      if(ativo>=itens.length)ativo=itens.length?itens.length-1:-1;
+      pintar(itens);
+    }
+    input.addEventListener('focus',function(){ ativo=-1; filtrar(); });
+    input.addEventListener('input',function(){ ativo=-1; filtrar(); });
+    input.addEventListener('keydown',function(ev){
+      if(ev.key==='ArrowDown'||ev.key==='ArrowUp'){
+        ev.preventDefault();
+        if(lista.hidden){ ativo=-1; filtrar(); }
+        var textos=Array.prototype.map.call(lista.querySelectorAll('[role=option]'),function(n){ return n.textContent; });
+        if(!textos.length)return;
+        ativo=ev.key==='ArrowDown'?Math.min(ativo+1,textos.length-1):Math.max(ativo-1,0);
+        pintar(textos);
+        return;
+      }
+      if(ev.key==='Enter'){
+        var escolhido=lista.querySelectorAll('[role=option]')[ativo];
+        if(!lista.hidden&&escolhido){
+          ev.preventDefault();
+          input.value=escolhido.textContent;
+          fechar();
+        }
+        return;
+      }
+      if(ev.key==='Escape')fechar();
+    });
+    input.addEventListener('blur',function(){ setTimeout(fechar,150); });
   });
 })();`;
 }

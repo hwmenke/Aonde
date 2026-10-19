@@ -14,7 +14,8 @@
 import { OFFERS, GUIDES, GUIDE_LIST, melhorMesDoGuia } from "./aondeContent.js";
 import { cidadeDoIata } from "./aeroportos.js";
 import { escapeHtml, semAcento } from "./texto.js";
-import { escolhaDoDia, guiaDaOferta } from "../daily/dailyPick.js";
+import { escolhaDoDia, guiaDaOferta, chaveDoDia } from "../daily/dailyPick.js";
+import { viagemAindaVale } from "../offers/elegibilidade.js";
 
 /** "Praia · Alagoas" -> { categoria: "Praia", regiao: "Alagoas" }. */
 export function partesDaTag(tag) {
@@ -70,15 +71,27 @@ export function roteirosRelacionados(guide, { max = 3, lista = GUIDE_LIST } = {}
   return escolhidos.map(({ guide: g, motivo }) => ({ guide: g, motivo }));
 }
 
+function diaReferencia(dia, data) {
+  if (typeof dia === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dia)) return dia;
+  if (data) return chaveDoDia(data);
+  return chaveDoDia(new Date());
+}
+
 /**
- * Ofertas editoriais do MESMO destino do roteiro. Usa o mesmo casamento por
- * cidade de /hoje (guiaDaOferta), entao as duas paginas nunca discordam sobre
- * qual oferta pertence a qual roteiro.
+ * Ofertas do MESMO destino do roteiro que ainda podem ser mostradas.
+ * Usa o mesmo casamento por cidade de /hoje (guiaDaOferta) e a mesma regra
+ * de publicação/ida de viagemAindaVale. O recorte (max) acontece depois do
+ * filtro: uma ida já passada não ocupa a vaga de uma oferta ainda válida.
+ * Quem chama com o catálogo reconciliado (offersParaEscolha) preserva o
+ * bloqueio do store; o padrão continua sendo OFFERS quando ninguém passou lista.
  */
-export function ofertasDoRoteiro(guide, { offers = OFFERS, max = 3 } = {}) {
+export function ofertasDoRoteiro(guide, { offers = OFFERS, max = 3, dia, data } = {}) {
   if (!guide || !guide.id) return [];
+  const referencia = diaReferencia(dia, data);
   const so = { [guide.id]: guide };
-  return offers.filter((o) => o && o.id && guiaDaOferta(o, so)).slice(0, max);
+  return offers
+    .filter((o) => o && o.id && guiaDaOferta(o, so) && viagemAindaVale(o, referencia))
+    .slice(0, max);
 }
 
 /**
@@ -148,10 +161,10 @@ function roteiroCardHtml({ guide: g, motivo }) {
  * Secao "Continue planejando": passagens do destino, /hoje e outros roteiros.
  * `data` fixa o dia de /hoje (testes); em producao e o instante atual.
  */
-export function continuePlanejandoHtml(guide, { data = new Date(), offers = OFFERS, guides = GUIDE_LIST } = {}) {
+export function continuePlanejandoHtml(guide, { data = new Date(), offers = OFFERS, guides = GUIDE_LIST, dia } = {}) {
   if (!guide || !guide.id || !GUIDES[guide.id]) return "";
   const destino = guide.breadcrumb || guide.titulo || "este destino";
-  const ofertas = ofertasDoRoteiro(guide, { offers });
+  const ofertas = ofertasDoRoteiro(guide, { offers, dia: diaReferencia(dia, data) });
   const hoje = hojeParaRoteiro(guide, data);
   const relacionados = roteirosRelacionados(guide, { lista: guides });
 

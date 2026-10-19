@@ -59,30 +59,42 @@ export const HERO_SLIDES = [
 export const TRIP_STYLES = [
   {
     numero: "01 · Praia",
-    titulo: "Mar morno o ano inteiro",
-    desc: "O Nordeste tem 3.300 km de litoral e sol em qualquer mês. Piscinas naturais em Pernambuco, falésias em Alagoas, dunas no Ceará — sempre com voo direto saindo das capitais.",
-    chips: ["Porto de Galinhas", "Maragogi", "Jericoacoara", "Morro de SP"],
-    cta: "Ver ofertas de praia",
+    titulo: "Mar, piscinas naturais e orla",
+    desc: "Roteiros de praia que já publicamos: Pernambuco, Alagoas e Ceará, cada um com o dia a dia e um restaurante por dia. A passagem, quando houver achado, é uma busca — não um pacote.",
+    chips: [
+      { nome: "Porto de Galinhas", href: "/guias/portodegalinhas" },
+      { nome: "Maragogi", href: "/guias/maceio" },
+      { nome: "Jericoacoara", href: "/guias/jeri" },
+    ],
+    cta: "Ver roteiros de praia",
+    href: "/guias?estilo=praia",
     legenda: "Fernando de Noronha · PE",
     src: HERO_SLIDES[0].src, credit: HERO_SLIDES[0].credit, creditHref: HERO_SLIDES[0].creditHref,
     foto: "mar verde e jangada, Nordeste",
   },
   {
     numero: "02 · Cidade histórica",
-    titulo: "Quinhentos anos de história",
-    desc: "Salvador, Ouro Preto, Paraty, Olinda: centros históricos para percorrer a pé, entre igrejas barrocas, museus e a melhor gastronomia regional do país.",
-    chips: ["Salvador", "Ouro Preto", "Paraty", "Olinda"],
+    titulo: "Centros históricos a pé",
+    desc: "Salvador, Ouro Preto e Paraty têm roteiro de 5 dias. Olinda entra no segundo dia do roteiro de Recife e Porto de Galinhas.",
+    chips: [
+      { nome: "Salvador", href: "/guias/salvador" },
+      { nome: "Ouro Preto", href: "/guias/ouropreto" },
+      { nome: "Paraty", href: "/guias/paraty" },
+      { nome: "Olinda", href: "/guias/portodegalinhas" },
+    ],
     cta: "Ver roteiros históricos",
+    href: "/guias?estilo=cidade-historica",
     legenda: "Pelourinho · BA",
     src: HERO_SLIDES[2].src, credit: HERO_SLIDES[2].credit, creditHref: HERO_SLIDES[2].creditHref,
     foto: "casario colonial colorido",
   },
   {
     numero: "03 · Neve",
-    titulo: "Neve a quatro horas de voo",
-    desc: "De julho a setembro, Bariloche e o Valle Nevado ficam a um voo direto do Brasil. Ski, fondue e paisagem dos Andes — sem visto e com atendimento em português.",
-    chips: ["Bariloche", "Valle Nevado", "Ushuaia", "San Martín"],
-    cta: "Ver pacotes de neve",
+    titulo: "Neve nos Andes",
+    desc: "O roteiro de neve que publicamos é o de Bariloche. Não vendemos pacote de ski: o botão abre esse guia, e a passagem é uma busca à parte.",
+    chips: [{ nome: "Bariloche", href: "/guias/bariloche" }],
+    cta: "Ver o roteiro de Bariloche",
+    href: "/guias/bariloche",
     legenda: "Cerro Catedral · ARG",
     src: HERO_SLIDES[1].src, credit: HERO_SLIDES[1].credit, creditHref: HERO_SLIDES[1].creditHref,
     foto: "pista de ski nos Andes",
@@ -90,15 +102,15 @@ export const TRIP_STYLES = [
 ];
 
 export const EXTRAS = [
-  { sigla: "H", titulo: "Hotéis e pousadas", desc: "Mais de 40 mil opções no Brasil, com café da manhã e cancelamento grátis sinalizados com clareza.", cta: "Buscar hospedagem" },
-  { sigla: "C", titulo: "Aluguel de carros", desc: "Retire no aeroporto e devolva em outra cidade. Proteção completa já incluída no preço mostrado.", cta: "Ver diárias" },
-  { sigla: "S", titulo: "Seguro viagem", desc: "Cobertura médica e de bagagem a partir de R$ 12 por dia, aceito em toda a América do Sul.", cta: "Simular seguro" },
+  { sigla: "H", titulo: "Hotéis e pousadas", desc: "Escolha um roteiro ou uma busca de voo. O link de hospedagem abre o parceiro com o nome da cidade. Datas e hóspedes não vão nesse link — você informa os dois lá.", cta: "Escolher um destino" },
+  { sigla: "C", titulo: "Aluguel de carros", desc: "Ainda não temos um parceiro de aluguel de carros nesta página.", cta: "Ver diárias" },
+  { sigla: "S", titulo: "Seguro viagem", desc: "Ainda não temos um parceiro de seguro viagem nesta página.", cta: "Simular seguro" },
 ];
 
 export const CONFIANCA = [
-  { valor: "12x", desc: "sem juros no cartão, ou 5% off no Pix" },
-  { valor: "7 dias", desc: "por semana, atendimento humano de verdade" },
-  { valor: "0 taxa", desc: "você paga o preço do parceiro — o Aonde nunca cobra a mais" },
+  { valor: "Parceiro", desc: "parcelamento e desconto no Pix, quando existem, são condição de quem vende a passagem" },
+  { valor: "Ajuda", desc: "dúvidas sobre o site ficam na Central de ajuda; telefone e WhatsApp só aparecem se estiverem configurados" },
+  { valor: "0 a mais", desc: "você paga o preço do parceiro — o Aonde não acrescenta taxa" },
 ];
 
 // Estes tres passos descrevem o que o site FAZ, nao o que soaria bem.
@@ -484,12 +496,15 @@ const BASE_GUIDES = {
         pontos: [{ nome: "Alto da Sé", nota: "o cartão-postal: Olinda no primeiro plano, Recife ao fundo" }, { nome: "Mosteiro de São Bento", nota: "altar barroco folheado a ouro; missa com canto gregoriano aos domingos" }, { nome: "Ateliês da Rua do Amparo", nota: "arte pernambucana para levar na mala" }],
         restaurante: "Oficina do Sabor", restauranteNota: "jerimum recheado com camarão, com vista para o casario" },
       { n: 3, titulo: "Chegada a Porto de Galinhas", desc: "Transfer de 1h saindo cedo. Dia de piscinas naturais — a maré baixa manda no horário, confira a tábua na véspera.",
+        transporte: "Transfer de 1h saindo cedo, do Recife até a vila.",
+        reserva: "A maré baixa manda no horário das piscinas naturais; confira a tábua na véspera.",
         pontos: [{ nome: "Piscinas naturais", nota: "de jangada, na maré baixa; corais e peixes a meio metro de você" }, { nome: "Vila de Porto", nota: "fim de tarde entre as lojinhas e o letreiro das galinhas coloridas" }],
         restaurante: "Beijupirá", restauranteNota: "o clássico da vila; peixe com tamarindo e camarão com maracujá" },
       { n: 4, titulo: "Muro Alto e Praia do Cupe", desc: "Dia de buggy ponta a ponta pelas praias do litoral, terminando na piscina natural mais calma da região.",
         pontos: [{ nome: "Praia de Muro Alto", nota: "mar de piscina, ideal para quem viaja com crianças ou quer só boiar" }, { nome: "Passeio de buggy", nota: "ponta a ponta com paradas livres; feche na associação oficial da vila" }],
         restaurante: "Barcaxeira", restauranteNota: "cozinha regional criativa; a macaxeira aparece até na sobremesa" },
       { n: 5, titulo: "Praia dos Carneiros", desc: "Day trip de despedida: 40 minutos ao sul, a praia da igrejinha à beira-mar. Volta a Recife ao entardecer para o voo.",
+        transporte: "Cerca de 40 minutos ao sul de Porto de Galinhas. A volta é para Recife, para o voo.",
         pontos: [{ nome: "Igrejinha de São Benedito", nota: "a capela na areia, cenário mais fotografado de Pernambuco" }, { nome: "Catamarã pelo rio Formoso", nota: "manguezal, bancos de areia e banho no encontro do rio com o mar" }],
         restaurante: "Bora Bora Beach", restauranteNota: "clube de praia com mesas na água; peixe na brasa e caju amigo" },
     ],
