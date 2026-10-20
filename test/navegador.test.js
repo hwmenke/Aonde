@@ -6,6 +6,9 @@
 // exatamente assim que passou o caso em que o contador de voos rotulava preco
 // REAL da Amadeus como "voos de exemplo" no primeiro clique em um filtro.
 //
+// Usa Playwright instalado normalmente, ou AONDE_TEST_PLAYWRIGHT para indicar
+// um módulo já instalado. AONDE_TEST_CHROMIUM pode indicar o executável;
+// sem override, usa o navegador do Playwright ou o caminho legado de CI.
 // Roda com Playwright quando ele existe no ambiente; quando nao existe, os
 // testes se declaram PULADOS em vez de passar em silencio — teste que "passa"
 // sem exercitar nada e pior que teste nenhum.

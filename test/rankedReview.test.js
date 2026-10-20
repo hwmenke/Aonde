@@ -6,7 +6,7 @@ import path from "node:path";
 import { createServer } from "../src/server.js";
 import { upsert } from "../src/store/offersStore.js";
 import { toOffer } from "../src/offerAdapter.js";
-import { viagemAindaVale } from "../src/offers/elegibilidade.js";
+import { viagemAindaVale, offersParaEscolha } from "../src/offers/elegibilidade.js";
 import { renderOffersPage } from "../src/render/htmlRenderer.js";
 import { mapAmadeusOffersToFlights } from "../src/flights/mapAmadeus.js";
 import { registrarEvento, resetarEventosMemoria } from "../src/analytics/events.js";
@@ -84,11 +84,29 @@ test("preview com token continua privada e token incorreto recebe 404", async (t
 });
 
 test("datas do parceiro sobrevivem ao adapter e impedem oferta já partida no feed", () => {
-  const offer = toOffer({ origin: "GRU", destination: "REC", price: 500, departDate: "2026-09-12", returnDate: "2026-09-19" }, { status: "publicada" });
+  const offer = toOffer({ origin: "GRU", destination: "REC", price: 500, departDate: "2026-09-12T23:00:00-03:00", returnDate: "2026-09-19T10:00:00-03:00" }, { status: "publicada" });
   assert.equal(offer.ida, "2026-09-12");
   assert.equal(offer.volta, "2026-09-19");
   assert.equal(viagemAindaVale(offer, "2026-10-20"), false);
   assert.doesNotMatch(renderOffersPage([offer], { hoje: "2026-10-20" }), /href="\/saida\/gru-rec"/);
+});
+
+test("registro sem status publicado também bloqueia o fallback editorial", () => {
+  for (const status of [undefined, "", null, "rascunho", "retirada"]) {
+    assert.deepEqual(offersParaEscolha([{ id: "gru-lis", status }], [{ id: "gru-lis" }]), []);
+  }
+});
+
+test("falha de leitura responde 500 sanitizado em vez de uma resposta vazia 200", async (t) => {
+  const dir = await dadosTemporarios(t);
+  await writeFile(path.join(dir, "offers.json"), "{corrompido");
+  const server = createServer();
+  for (const url of ["/ofertas", "/api/offers/gru-lis"]) {
+    const res = await request(server, url, { headers: { accept: "text/html" } });
+    assert.equal(res.status, 500);
+    assert.ok(res.body.length > 0);
+    assert.doesNotMatch(res.body, /AONDE_DATA_CORRUPT|corrompido|ranked-/);
+  }
 });
 
 test("travelerPricing parcial não transforma total de grupo em preço por pessoa", () => {

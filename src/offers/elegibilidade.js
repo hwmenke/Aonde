@@ -21,7 +21,7 @@ export function viagemAindaVale(offer, diaIso) {
 export function offersParaEscolha(storeOffers, editoriais) {
   const store = Array.isArray(storeOffers) ? storeOffers : [];
   const bloqueados = new Set(
-    store.filter((o) => o && o.id && o.status && o.status !== "publicada").map((o) => o.id)
+    store.filter((o) => o && o.id && o.status !== "publicada").map((o) => o.id)
   );
   const publicadas = store.filter((o) => o && o.status === "publicada" && o.id && !bloqueados.has(o.id));
   const idsPublicados = new Set(publicadas.map((o) => o.id));

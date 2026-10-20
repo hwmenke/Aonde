@@ -226,8 +226,8 @@ export function toOffer(deal, options = {}) {
     economia_centavos,
     is_erro_tarifa: options.isErroTarifa ?? false,
     datas_sugeridas: formatDateRangePtBr(deal.departDate, deal.returnDate),
-    ida: deal.departDate || null,
-    volta: deal.returnDate || null,
+    ida: typeof deal.departDate === "string" ? deal.departDate.slice(0, 10) : null,
+    volta: typeof deal.returnDate === "string" ? deal.returnDate.slice(0, 10) : null,
     affiliate_url: deal.link || null,
     // `thumb_url` puro: usa options.thumbUrl se dado; senao null (sem rede aqui).
     // Para preencher com imagem real do Wikimedia, use enrichOfferWithImage.

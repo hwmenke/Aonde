@@ -1219,9 +1219,10 @@ export function createServer() {
     // Anotado aqui para que sendHtml/sendText possam comprimir sem que os 27
     // pontos de chamada precisem carregar `req` adiante.
     res.aceitaEncoding = String((req.headers && req.headers["accept-encoding"]) || "");
+    let pathname = "/";
     try {
       const url = new URL(req.url, "http://localhost");
-      const pathname = url.pathname.replace(/\/+$/, "") || "/";
+      pathname = url.pathname.replace(/\/+$/, "") || "/";
       const method = req.method || "GET";
 
       // Preflight CORS.
