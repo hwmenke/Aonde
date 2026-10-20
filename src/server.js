@@ -933,6 +933,17 @@ function paxResumo({ adultos, criancas, bebes }) {
 //                      exibidos forem os de amostra — NUNCA rotular exemplo
 //                      como real.
 async function handleResultsHtml(req, res, url) {
+  if (req.method === "HEAD") {
+    // The live representation can vary: omit its length rather than run a search.
+    res.writeHead(200, {
+      "Content-Type": "text/html; charset=utf-8",
+      Vary: "Accept-Encoding",
+      ...securityHeaders(),
+      ...corsHeaders(),
+    });
+    res.end();
+    return;
+  }
   const oQS = url.searchParams.get("origem");
   const dQS = url.searchParams.get("destino");
   const periodo = url.searchParams.get("periodo");
@@ -1107,11 +1118,13 @@ function handleExitHtml(req, res, id, url) {
     sendHtml(res, 409, renderOfferPage(offer, { noindex: true }), NOINDEX_HEADERS);
     return;
   }
-  recordClick(id, req.headers["user-agent"]);
-  try {
-    registrarEvento({ tipo: "saida", local: "saida", alvo: id });
-  } catch (err) {
-    console.error("[aonde] saída sem evento:", err && err.message);
+  if (req.method !== "HEAD") {
+    recordClick(id, req.headers["user-agent"]);
+    try {
+      registrarEvento({ tipo: "saida", local: "saida", alvo: id });
+    } catch (err) {
+      console.error("[aonde] saída sem evento:", err && err.message);
+    }
   }
   sendHtml(res, 200, renderExitPage(offer, { affiliateUrl }), NOINDEX_HEADERS);
 }
@@ -1160,7 +1173,7 @@ function handleExitFlightHtml(req, res, url) {
   // Mesmo log dos outros cliques (data/clicks.jsonl) — identificador
   // "voo:ORIGEM-DESTINO" deixa claro, na curadoria, que e clique de busca por
   // rota (e nao clique numa oferta com id do catalogo).
-  recordClick(`voo:${origem}-${destino}`, req.headers["user-agent"]);
+  if (req.method !== "HEAD") recordClick(`voo:${origem}-${destino}`, req.headers["user-agent"]);
   sendHtml(
     res,
     200,
@@ -1221,6 +1234,8 @@ export function createServer() {
       const url = new URL(req.url, "http://localhost");
       pathname = url.pathname.replace(/\/+$/, "") || "/";
       const method = req.method || "GET";
+      // Node suppresses response bodies for HEAD while preserving GET headers.
+      const publicRead = method === "GET" || method === "HEAD";
 
       // Preflight CORS.
       if (method === "OPTIONS") {
@@ -1235,33 +1250,33 @@ export function createServer() {
       }
 
       // ---- Assets estaticos (GET) ----
-      if (method === "GET" && pathname.startsWith("/assets/estilo-") && pathname.endsWith(".css")) {
+      if (publicRead && pathname.startsWith("/assets/estilo-") && pathname.endsWith(".css")) {
         handleStyleAsset(res, pathname);
         return;
       }
 
       // OG images para social sharing (servidos de public/og/).
-      if (method === "GET" && pathname.startsWith("/og/")) {
+      if (publicRead && pathname.startsWith("/og/")) {
         handleOgImage(res, pathname);
         return;
       }
 
       // ---- Paginas HTML (GET) ----
-      if (method === "GET" && pathname === "/robots.txt") {
+      if (publicRead && pathname === "/robots.txt") {
         handleRobots(res);
         return;
       }
       // A escolha do dia — o que o robo diario publica (ver src/daily/dailyPick.js).
-      if (method === "GET" && pathname === "/hoje") {
+      if (publicRead && pathname === "/hoje") {
         // Permite forcar uma data especifica via ?dia=AAAA-MM-DD (para testes e preview).
         handleTodayHtml(res, url.searchParams.get("dia"));
         return;
       }
-      if (method === "GET" && pathname === "/sitemap.xml") {
+      if (publicRead && pathname === "/sitemap.xml") {
         handleSitemap(res);
         return;
       }
-      if (method === "GET" && pathname === "/home") {
+      if (publicRead && pathname === "/home") {
         const destino = url.search && url.search !== "?" ? `/${url.search}` : "/";
         res.writeHead(301, {
           Location: destino,
@@ -1271,23 +1286,23 @@ export function createServer() {
         res.end();
         return;
       }
-      if (method === "GET" && pathname === "/") {
+      if (publicRead && pathname === "/") {
         handleHome(res, url);
         return;
       }
-      if (method === "GET" && pathname === "/ofertas") {
+      if (publicRead && pathname === "/ofertas") {
         handleOffersHtml(res, url);
         return;
       }
-      if (method === "GET" && pathname === "/resultados") {
+      if (publicRead && pathname === "/resultados") {
         await handleResultsHtml(req, res, url);
         return;
       }
-      if (method === "GET" && pathname === "/mapa") {
+      if (publicRead && pathname === "/mapa") {
         sendHtml(res, 200, renderMapPage({ apiKey: getConfig().googleMaps.apiKey }));
         return;
       }
-      if (method === "GET" && pathname === "/guias") {
+      if (publicRead && pathname === "/guias") {
         sendHtml(
           res,
           200,
@@ -1299,7 +1314,7 @@ export function createServer() {
         return;
       }
       const regiaoMatch = pathname.match(/^\/regioes\/([^/]+)$/);
-      if (method === "GET" && regiaoMatch) {
+      if (publicRead && regiaoMatch) {
         const html = renderRegiaoPage(decodeURIComponent(regiaoMatch[1]));
         if (!html) {
           sendHtml(res, 404, renderNotFoundPage({ caminho: pathname }));
@@ -1308,40 +1323,40 @@ export function createServer() {
         sendHtml(res, 200, html);
         return;
       }
-      if (method === "GET" && pathname === "/ajuda") {
+      if (publicRead && pathname === "/ajuda") {
         sendHtml(res, 200, renderHelpPage({ guia: url.searchParams.get("guia") || "" }));
         return;
       }
-      if (method === "GET" && pathname === "/salvos") {
+      if (publicRead && pathname === "/salvos") {
         sendHtml(res, 200, renderSalvosPage());
         return;
       }
-      if (method === "GET" && pathname === "/cancelamentos") {
+      if (publicRead && pathname === "/cancelamentos") {
         sendHtml(res, 200, renderCancelPage());
         return;
       }
-      if (method === "GET" && pathname === "/alertas") {
+      if (publicRead && pathname === "/alertas") {
         sendHtml(res, 200, renderAlertsPage());
         return;
       }
       // Precisa vir ANTES do match generico /saida/:id logo abaixo, senao
       // "/saida/voo" seria interpretado como id="voo" (oferta inexistente).
-      if (method === "GET" && pathname === "/saida/voo") {
+      if (publicRead && pathname === "/saida/voo") {
         handleExitFlightHtml(req, res, url);
         return;
       }
       const exitMatch = pathname.match(/^\/saida\/([^/]+)$/);
-      if (method === "GET" && exitMatch) {
+      if (publicRead && exitMatch) {
         handleExitHtml(req, res, decodeURIComponent(exitMatch[1]), url);
         return;
       }
       const offerHtmlMatch = pathname.match(/^\/ofertas\/([^/]+)$/);
-      if (method === "GET" && offerHtmlMatch) {
+      if (publicRead && offerHtmlMatch) {
         handleOfferHtml(req, res, decodeURIComponent(offerHtmlMatch[1]));
         return;
       }
       const guideHtmlMatch = pathname.match(/^\/guias\/([^/]+)$/);
-      if (method === "GET" && guideHtmlMatch) {
+      if (publicRead && guideHtmlMatch) {
         handleGuideHtml(res, decodeURIComponent(guideHtmlMatch[1]));
         return;
       }
