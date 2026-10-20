@@ -56,15 +56,9 @@ export function registrarEvento(evento, agora = Date.now()) {
   }
   const chave = `${limpo.tipo}|${limpo.local}|${limpo.alvo}`;
   const visto = recentes.get(chave);
-  if (visto && agora - visto < DEDUP_MS) {
+  if (visto !== undefined && agora - visto < DEDUP_MS) {
     duplicados += 1;
     return { ok: true, duplicado: true };
-  }
-  recentes.set(chave, agora);
-  if (recentes.size > 500) {
-    for (const [k, t] of recentes) {
-      if (agora - t >= DEDUP_MS) recentes.delete(k);
-    }
   }
   try {
     const dir = resolveDataDir();
@@ -76,6 +70,9 @@ export function registrarEvento(evento, agora = Date.now()) {
       "utf8"
     );
     gravados += 1;
+    recentes.delete(chave);
+    recentes.set(chave, agora);
+    while (recentes.size > 500) recentes.delete(recentes.keys().next().value);
     podar(arquivo);
     return { ok: true, duplicado: false };
   } catch (err) {

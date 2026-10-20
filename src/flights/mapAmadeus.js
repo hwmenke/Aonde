@@ -99,7 +99,7 @@ function mapOneOffer(offer, dictionaries, pax) {
   if (!precoOferta) return null;
   const { centavos, moeda, bruto } = precoOferta;
   const viajantes = viajantesDaOferta(offer.travelerPricings);
-  const { precoRotulo, precoEscopo } = rotuloDoPreco(pax, viajantes);
+  const { precoRotulo, precoEscopo } = rotuloDoPreco(pax, offer.travelerPricings);
   const emReal = !moeda || moeda === "BRL";
 
   const codigoCia =

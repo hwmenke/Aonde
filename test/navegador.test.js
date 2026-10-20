@@ -12,13 +12,19 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 
-const CHROMIUM = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
-const PLAYWRIGHT = "/opt/node22/lib/node_modules/playwright/index.mjs";
+const legacyChromium = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+const CHROMIUM = process.env.AONDE_TEST_CHROMIUM || (existsSync(legacyChromium) ? legacyChromium : undefined);
+const PLAYWRIGHT = process.env.AONDE_TEST_PLAYWRIGHT || "/opt/node22/lib/node_modules/playwright/index.mjs";
 
 let chromium = null;
 try {
-  ({ chromium } = await import(PLAYWRIGHT));
+  try {
+    ({ chromium } = await import("playwright"));
+  } catch {
+    ({ chromium } = await import(PLAYWRIGHT));
+  }
 } catch {
   chromium = null;
 }
@@ -40,7 +46,8 @@ async function comNavegador(fn, { viewport = { width: 1280, height: 900 } } = {}
   }
 }
 
-const pular = { skip: chromium ? false : "Playwright indisponivel neste ambiente" };
+const pular = { skip: !chromium ? "Playwright indisponivel neste ambiente" :
+  !existsSync(CHROMIUM || chromium.executablePath()) ? "Chromium indisponivel neste ambiente" : false };
 
 test("o filtro de roteiros do /guias filtra de verdade", pular, async () => {
   await comNavegador(async ({ pagina, base, erros }) => {

@@ -166,7 +166,7 @@ export function subscribe({ email, whatsapp, origem, destino, precoAlvoCentavos 
         destino: pendingAlert.destino,
         preco_alvo_centavos: pendingAlert.preco_alvo_centavos,
       };
-      all[index] = { ...existing, origem_preferida: normalizedOrigem, pending_rule };
+      all[index] = { ...existing, pending_rule };
       writeAll(all);
       return { ok: true, status: "pending_rule", token, subscriber: all[index] };
     }
@@ -326,7 +326,7 @@ export function confirmPendingRule(token) {
   if (!subscriber.double_optin_confirmed || subscriber.unsubscribed_at) {
     return { ok: false, error: "Essa inscrição não está ativa." };
   }
-  all[index] = { ...subscriber, pending_rule: null };
+  all[index] = { ...subscriber, origem_preferida: pending.origem, pending_rule: null };
   writeAll(all);
   return { ok: true, subscriber: all[index], pending };
 }

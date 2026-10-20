@@ -2145,7 +2145,7 @@ function confiancaSectionHtml(stats) {
 export function renderHomePage(opts = {}) {
   const liveOffers = Array.isArray(opts.offers) ? opts.offers : null;
   const dia = opts.hoje || chaveDoDia(new Date());
-  const fonte = liveOffers && liveOffers.length ? liveOffers : CONTENT_OFFERS;
+  const fonte = liveOffers && liveOffers.length ? liveOffers : opts.editoriais || CONTENT_OFFERS;
   const offerVMs = fonte
     .filter((offer) => viagemAindaVale(offer, dia))
     .map((offer) => (liveOffers && liveOffers.length ? normalizeLiveOffer(offer) : normalizeContentOffer(offer)))
@@ -2372,11 +2372,11 @@ function precoSignificadoHtml(vm) {
  */
 export function renderOffersPage(
   offers = [],
-  { title = "Ofertas de viagem — Aonde", origem, q = "", tipo = "", naoEncontrada = "", hoje = "" } = {}
+  { title = "Ofertas de viagem — Aonde", origem, q = "", tipo = "", naoEncontrada = "", hoje = "", editoriais = CONTENT_OFFERS } = {}
 ) {
   const list = Array.isArray(offers) ? offers : [];
   const dia = /^\d{4}-\d{2}-\d{2}$/.test(hoje) ? hoje : chaveDoDia(new Date());
-  const base = (list.length ? list : CONTENT_OFFERS).filter((offer) => viagemAindaVale(offer, dia));
+  const base = (list.length ? list : editoriais).filter((offer) => viagemAindaVale(offer, dia));
   const vms = base.map((offer) => (list.length ? normalizeLiveOffer(offer) : normalizeContentOffer(offer))).filter(Boolean);
   const tipos = [...new Set(vms.map((v) => v.tipo).filter(Boolean))].sort();
   const busca = limparBusca(q);

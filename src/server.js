@@ -661,6 +661,11 @@ function publishedLiveOffers() {
   return listOffers({ status: "publicada" });
 }
 
+function editoriaisPublicas() {
+  const ids = new Set(offersParaEscolha(listOffers(), CONTENT_OFFERS).map((o) => o.id));
+  return CONTENT_OFFERS.filter((o) => ids.has(o.id));
+}
+
 function handleHome(res, url) {
   const busca = {};
   if (url) {
@@ -674,6 +679,7 @@ function handleHome(res, url) {
     200,
     renderHomePage({
       offers: publishedLiveOffers(),
+      editoriais: editoriaisPublicas(),
       busca,
       buscaAoVivo: hasAmadeusCredentials(),
       hoje: chaveDoDia(new Date()),
@@ -685,7 +691,7 @@ function handleOffersHtml(res, url) {
   const origem = url.searchParams.get("origem") || undefined;
   const q = url.searchParams.get("q") || "";
   const tipo = url.searchParams.get("tipo") || "";
-  sendHtml(res, 200, renderOffersPage(publishedLiveOffers(), { origem, q, tipo }));
+  sendHtml(res, 200, renderOffersPage(publishedLiveOffers(), { origem, q, tipo, editoriais: editoriaisPublicas() }));
 }
 
 // Ofertas semelhantes: mesmo `tipo`, exceto a propria, no maximo 3.
@@ -709,7 +715,7 @@ function handleOfferHtml(req, res, id) {
   const apiKey = getConfig().googleMaps.apiKey;
   const { live, bloqueada } = ofertaPublica(req, id);
   if (bloqueada) {
-    sendHtml(res, 404, renderOffersPage(publishedLiveOffers(), { naoEncontrada: id }));
+    sendHtml(res, 404, renderOffersPage(publishedLiveOffers(), { naoEncontrada: id, editoriais: editoriaisPublicas() }));
     return;
   }
   if (live) {
@@ -719,12 +725,12 @@ function handleOfferHtml(req, res, id) {
   }
   const editorial = CONTENT_OFFERS.find((o) => o.id === id);
   if (editorial) {
-    const related = relatedOffers(CONTENT_OFFERS, editorial);
+    const related = relatedOffers(offersParaEscolha(listOffers(), CONTENT_OFFERS), editorial);
     sendHtml(res, 200, renderOfferPage(editorial, { related, apiKey }));
     return;
   }
   // Nao encontrada: devolve o feed de ofertas com 404 (pagina util, nao um JSON seco).
-  sendHtml(res, 404, renderOffersPage(publishedLiveOffers(), { naoEncontrada: id }));
+  sendHtml(res, 404, renderOffersPage(publishedLiveOffers(), { naoEncontrada: id, editoriais: editoriaisPublicas() }));
 }
 
 function handleGuideHtml(res, id) {
@@ -740,7 +746,7 @@ function handleGuideHtml(res, id) {
     );
     return;
   }
-  sendHtml(res, 404, renderHomePage({ offers: publishedLiveOffers() }));
+  sendHtml(res, 404, renderHomePage({ offers: publishedLiveOffers(), editoriais: editoriaisPublicas() }));
 }
 
 // Escolha do dia. `?dia=AAAA-MM-DD` serve para teste e preview; qualquer outra
@@ -1042,12 +1048,12 @@ async function handleResultsHtml(req, res, url) {
 function handleExitHtml(req, res, id, url) {
   const { live, bloqueada } = ofertaPublica(req, id);
   if (bloqueada) {
-    sendHtml(res, 404, renderOffersPage(publishedLiveOffers(), { naoEncontrada: id }));
+    sendHtml(res, 404, renderOffersPage(publishedLiveOffers(), { naoEncontrada: id, editoriais: editoriaisPublicas() }));
     return;
   }
   const offer = live || CONTENT_OFFERS.find((o) => o.id === id);
   if (!offer) {
-    sendHtml(res, 404, renderOffersPage(publishedLiveOffers(), {}));
+    sendHtml(res, 404, renderOffersPage(publishedLiveOffers(), { editoriais: editoriaisPublicas() }));
     return;
   }
   
@@ -1206,6 +1212,10 @@ export function createServer() {
   }
 
   return http.createServer(async (req, res) => {
+    if (isAdminRequest(req)) {
+      res.setHeader("Cache-Control", "private, no-store");
+      res.setHeader("X-Robots-Tag", "noindex, nofollow");
+    }
     // Anotado aqui para que sendHtml/sendText possam comprimir sem que os 27
     // pontos de chamada precisem carregar `req` adiante.
     res.aceitaEncoding = String((req.headers && req.headers["accept-encoding"]) || "");

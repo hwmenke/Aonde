@@ -130,6 +130,8 @@ test("toOffer monta Offer parcial a partir de um deal, sem mediaCentavos", () =>
     economia_centavos: null,
     is_erro_tarifa: false,
     datas_sugeridas: "01–10 set",
+    ida: SAMPLE_DEAL.departDate,
+    volta: SAMPLE_DEAL.returnDate,
     affiliate_url: SAMPLE_DEAL.link,
     thumb_url: null,
     status: "rascunho",
