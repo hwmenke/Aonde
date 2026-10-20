@@ -77,7 +77,6 @@ import {
   confirm as confirmNewsletter,
   confirmPendingRule,
   unsubscribe as unsubscribeNewsletter,
-  getSubscriberByEmail,
   clearPendingAlert,
 } from "./newsletter/subscriberStore.js";
 import { addAlertRule } from "./newsletter/alertRules.js";
@@ -167,6 +166,32 @@ function querHtml(req, pathname) {
 const BROTLI_NIVEL_DINAMICO = 5;
 const BROTLI_NIVEL_MAXIMO = 11;
 
+// Uma unica escolha para os bytes comprimidos e a chave do cache de CSS.
+// Identity implicito e fallback; quando explicito, participa da preferencia.
+function negociarEncoding(aceita) {
+  const qualities = new Map();
+  for (const item of String(aceita || "").split(",")) {
+    const [name, ...params] = item.trim().toLowerCase().split(";");
+    if (!name) continue;
+    let quality = 1;
+    for (const param of params) {
+      const match = param.trim().match(/^q\s*=\s*(.*)$/);
+      if (match) quality = /^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/.test(match[1]) ? Number(match[1]) : 0;
+    }
+    qualities.set(name, quality);
+  }
+  let selected = null;
+  let best = 0;
+  for (const encoding of ["br", "gzip", "identity"]) {
+    const quality = qualities.get(encoding) ?? (encoding === "identity" ? 0 : qualities.get("*") ?? 0);
+    if (quality > best) {
+      selected = encoding === "identity" ? null : encoding;
+      best = quality;
+    }
+  }
+  return selected;
+}
+
 /**
  * Compressao de resposta. HTML e CSS deste site sao texto puro e comprimem
  * MUITO bem; sem isto cada visita em 4G baixa varias vezes mais bytes do que
@@ -176,17 +201,16 @@ const BROTLI_NIVEL_MAXIMO = 11;
  * Sincrono de proposito: as respostas aqui sao pequenas (dezenas de KB) e o
  * caminho assincrono complicaria o Content-Length, que varios testes conferem.
  */
-function comprimir(res, corpo, nivelBrotli = BROTLI_NIVEL_DINAMICO) {
-  const aceita = String((res && res.aceitaEncoding) || "");
+function comprimir(encoding, corpo, nivelBrotli = BROTLI_NIVEL_DINAMICO) {
   const buf = Buffer.isBuffer(corpo) ? corpo : Buffer.from(corpo, "utf-8");
   // Abaixo de ~1 KB o cabecalho de compressao custa mais do que economiza.
   if (buf.length < 1024) return { buf, encoding: null };
   try {
-    if (/\bbr\b/.test(aceita)) {
+    if (encoding === "br") {
       const params = { [zlibConstants.BROTLI_PARAM_QUALITY]: nivelBrotli };
       return { buf: brotliCompressSync(buf, { params }), encoding: "br" };
     }
-    if (/\bgzip\b/.test(aceita)) return { buf: gzipSync(buf), encoding: "gzip" };
+    if (encoding === "gzip") return { buf: gzipSync(buf), encoding: "gzip" };
   } catch {
     // Falha de compressao nunca pode derrubar a resposta: manda cru.
   }
@@ -200,11 +224,12 @@ const NOINDEX_HEADERS = { "X-Robots-Tag": "noindex, nofollow" };
 
 function sendHtml(res, status, rawHtml, extraHeaders) {
   const html = externalizeStyles(rawHtml);
-  const { buf, encoding } = comprimir(res, html);
+  const { buf, encoding } = comprimir(negociarEncoding(res.aceitaEncoding), html);
   res.writeHead(status, {
     "Content-Type": "text/html; charset=utf-8",
     "Content-Length": buf.length,
-    ...(encoding ? { "Content-Encoding": encoding, Vary: "Accept-Encoding" } : {}),
+    ...(encoding ? { "Content-Encoding": encoding } : {}),
+    Vary: "Accept-Encoding",
     ...securityHeaders(),
     ...corsHeaders(),
     ...(extraHeaders || {}),
@@ -213,11 +238,12 @@ function sendHtml(res, status, rawHtml, extraHeaders) {
 }
 
 function sendText(res, status, text, contentType) {
-  const { buf, encoding } = comprimir(res, text);
+  const { buf, encoding } = comprimir(negociarEncoding(res.aceitaEncoding), text);
   res.writeHead(status, {
     "Content-Type": contentType || "text/plain; charset=utf-8",
     "Content-Length": buf.length,
-    ...(encoding ? { "Content-Encoding": encoding, Vary: "Accept-Encoding" } : {}),
+    ...(encoding ? { "Content-Encoding": encoding } : {}),
+    Vary: "Accept-Encoding",
     ...securityHeaders(),
     ...corsHeaders(),
   });
@@ -617,37 +643,9 @@ async function handleNewsletterUnsubscribe(req, res) {
 }
 
 async function handleCreateAlert(req, res) {
-  const parsed = await readJsonBody(req);
-  if (!parsed.ok) {
-    sendJson(res, 400, { error: parsed.error });
-    return;
-  }
-  const { email, origem, destino, precoAlvoCentavos } = parsed.body || {};
-
-  const subscriber = getSubscriberByEmail(email);
-  if (!subscriber) {
-    sendJson(res, 404, { error: "Assinante não encontrado. Inscreva-se antes de criar um alerta." });
-    return;
-  }
-  if (!subscriber.double_optin_confirmed || subscriber.unsubscribed_at) {
-    sendJson(res, 409, {
-      error: "Assinante não confirmou a inscrição pelo e-mail ou está descadastrado.",
-    });
-    return;
-  }
-
-  const result = addAlertRule({
-    subscriberId: subscriber.id,
-    origem,
-    destino,
-    precoAlvoCentavos,
-    canais: subscriber.channels,
-  });
-  if (!result.ok) {
-    sendJson(res, 400, { error: result.error });
-    return;
-  }
-  sendJson(res, 201, { ok: true, rule: result.rule });
+  // Pedidos publicos exigem o link enviado ao dono do e-mail, inclusive
+  // quando a inscricao ja esta confirmada. A resposta permanece generica.
+  return handleNewsletterSubscribe(req, res);
 }
 
 // ---- Paginas HTML (front-end portado do prototipo) ----
@@ -779,13 +777,12 @@ function siteBaseUrl() {
 // codificacao e reaproveita os bytes em todas as requisicoes.
 const cssComprimidoCache = new Map();
 function cssComprimido(res, assetPath) {
-  const aceita = String((res && res.aceitaEncoding) || "");
-  const encoding = /\bbr\b/.test(aceita) ? "br" : /\bgzip\b/.test(aceita) ? "gzip" : "";
+  const encoding = negociarEncoding(res.aceitaEncoding);
   const chave = `${assetPath}|${encoding}`;
   let entrada = cssComprimidoCache.get(chave);
   if (!entrada) {
     if (cssComprimidoCache.size > 8) cssComprimidoCache.clear();
-    entrada = comprimir(res, pageStylesCss(), BROTLI_NIVEL_MAXIMO);
+    entrada = comprimir(encoding, pageStylesCss(), BROTLI_NIVEL_MAXIMO);
     cssComprimidoCache.set(chave, entrada);
   }
   return entrada;
@@ -930,6 +927,17 @@ function paxResumo({ adultos, criancas, bebes }) {
 //                      exibidos forem os de amostra — NUNCA rotular exemplo
 //                      como real.
 async function handleResultsHtml(req, res, url) {
+  if (req.method === "HEAD") {
+    // The live representation can vary: omit its length rather than run a search.
+    res.writeHead(200, {
+      "Content-Type": "text/html; charset=utf-8",
+      Vary: "Accept-Encoding",
+      ...securityHeaders(),
+      ...corsHeaders(),
+    });
+    res.end();
+    return;
+  }
   const oQS = url.searchParams.get("origem");
   const dQS = url.searchParams.get("destino");
   const periodo = url.searchParams.get("periodo");
@@ -1104,11 +1112,13 @@ function handleExitHtml(req, res, id, url) {
     sendHtml(res, 409, renderOfferPage(offer, { noindex: true }), NOINDEX_HEADERS);
     return;
   }
-  recordClick(id, req.headers["user-agent"]);
-  try {
-    registrarEvento({ tipo: "saida", local: "saida", alvo: id });
-  } catch (err) {
-    console.error("[aonde] saída sem evento:", err && err.message);
+  if (req.method !== "HEAD") {
+    recordClick(id, req.headers["user-agent"]);
+    try {
+      registrarEvento({ tipo: "saida", local: "saida", alvo: id });
+    } catch (err) {
+      console.error("[aonde] saída sem evento:", err && err.message);
+    }
   }
   sendHtml(res, 200, renderExitPage(offer, { affiliateUrl }), NOINDEX_HEADERS);
 }
@@ -1157,7 +1167,7 @@ function handleExitFlightHtml(req, res, url) {
   // Mesmo log dos outros cliques (data/clicks.jsonl) — identificador
   // "voo:ORIGEM-DESTINO" deixa claro, na curadoria, que e clique de busca por
   // rota (e nao clique numa oferta com id do catalogo).
-  recordClick(`voo:${origem}-${destino}`, req.headers["user-agent"]);
+  if (req.method !== "HEAD") recordClick(`voo:${origem}-${destino}`, req.headers["user-agent"]);
   sendHtml(
     res,
     200,
@@ -1213,6 +1223,8 @@ export function createServer() {
       const url = new URL(req.url, "http://localhost");
       const pathname = url.pathname.replace(/\/+$/, "") || "/";
       const method = req.method || "GET";
+      // Node suppresses response bodies for HEAD while preserving GET headers.
+      const publicRead = method === "GET" || method === "HEAD";
 
       // Preflight CORS.
       if (method === "OPTIONS") {
@@ -1227,33 +1239,33 @@ export function createServer() {
       }
 
       // ---- Assets estaticos (GET) ----
-      if (method === "GET" && pathname.startsWith("/assets/estilo-") && pathname.endsWith(".css")) {
+      if (publicRead && pathname.startsWith("/assets/estilo-") && pathname.endsWith(".css")) {
         handleStyleAsset(res, pathname);
         return;
       }
 
       // OG images para social sharing (servidos de public/og/).
-      if (method === "GET" && pathname.startsWith("/og/")) {
+      if (publicRead && pathname.startsWith("/og/")) {
         handleOgImage(res, pathname);
         return;
       }
 
       // ---- Paginas HTML (GET) ----
-      if (method === "GET" && pathname === "/robots.txt") {
+      if (publicRead && pathname === "/robots.txt") {
         handleRobots(res);
         return;
       }
       // A escolha do dia — o que o robo diario publica (ver src/daily/dailyPick.js).
-      if (method === "GET" && pathname === "/hoje") {
+      if (publicRead && pathname === "/hoje") {
         // Permite forcar uma data especifica via ?dia=AAAA-MM-DD (para testes e preview).
         handleTodayHtml(res, url.searchParams.get("dia"));
         return;
       }
-      if (method === "GET" && pathname === "/sitemap.xml") {
+      if (publicRead && pathname === "/sitemap.xml") {
         handleSitemap(res);
         return;
       }
-      if (method === "GET" && pathname === "/home") {
+      if (publicRead && pathname === "/home") {
         const destino = url.search && url.search !== "?" ? `/${url.search}` : "/";
         res.writeHead(301, {
           Location: destino,
@@ -1263,23 +1275,23 @@ export function createServer() {
         res.end();
         return;
       }
-      if (method === "GET" && pathname === "/") {
+      if (publicRead && pathname === "/") {
         handleHome(res, url);
         return;
       }
-      if (method === "GET" && pathname === "/ofertas") {
+      if (publicRead && pathname === "/ofertas") {
         handleOffersHtml(res, url);
         return;
       }
-      if (method === "GET" && pathname === "/resultados") {
+      if (publicRead && pathname === "/resultados") {
         await handleResultsHtml(req, res, url);
         return;
       }
-      if (method === "GET" && pathname === "/mapa") {
+      if (publicRead && pathname === "/mapa") {
         sendHtml(res, 200, renderMapPage({ apiKey: getConfig().googleMaps.apiKey }));
         return;
       }
-      if (method === "GET" && pathname === "/guias") {
+      if (publicRead && pathname === "/guias") {
         sendHtml(
           res,
           200,
@@ -1291,7 +1303,7 @@ export function createServer() {
         return;
       }
       const regiaoMatch = pathname.match(/^\/regioes\/([^/]+)$/);
-      if (method === "GET" && regiaoMatch) {
+      if (publicRead && regiaoMatch) {
         const html = renderRegiaoPage(decodeURIComponent(regiaoMatch[1]));
         if (!html) {
           sendHtml(res, 404, renderNotFoundPage({ caminho: pathname }));
@@ -1300,40 +1312,40 @@ export function createServer() {
         sendHtml(res, 200, html);
         return;
       }
-      if (method === "GET" && pathname === "/ajuda") {
+      if (publicRead && pathname === "/ajuda") {
         sendHtml(res, 200, renderHelpPage({ guia: url.searchParams.get("guia") || "" }));
         return;
       }
-      if (method === "GET" && pathname === "/salvos") {
+      if (publicRead && pathname === "/salvos") {
         sendHtml(res, 200, renderSalvosPage());
         return;
       }
-      if (method === "GET" && pathname === "/cancelamentos") {
+      if (publicRead && pathname === "/cancelamentos") {
         sendHtml(res, 200, renderCancelPage());
         return;
       }
-      if (method === "GET" && pathname === "/alertas") {
+      if (publicRead && pathname === "/alertas") {
         sendHtml(res, 200, renderAlertsPage());
         return;
       }
       // Precisa vir ANTES do match generico /saida/:id logo abaixo, senao
       // "/saida/voo" seria interpretado como id="voo" (oferta inexistente).
-      if (method === "GET" && pathname === "/saida/voo") {
+      if (publicRead && pathname === "/saida/voo") {
         handleExitFlightHtml(req, res, url);
         return;
       }
       const exitMatch = pathname.match(/^\/saida\/([^/]+)$/);
-      if (method === "GET" && exitMatch) {
+      if (publicRead && exitMatch) {
         handleExitHtml(req, res, decodeURIComponent(exitMatch[1]), url);
         return;
       }
       const offerHtmlMatch = pathname.match(/^\/ofertas\/([^/]+)$/);
-      if (method === "GET" && offerHtmlMatch) {
+      if (publicRead && offerHtmlMatch) {
         handleOfferHtml(req, res, decodeURIComponent(offerHtmlMatch[1]));
         return;
       }
       const guideHtmlMatch = pathname.match(/^\/guias\/([^/]+)$/);
-      if (method === "GET" && guideHtmlMatch) {
+      if (publicRead && guideHtmlMatch) {
         handleGuideHtml(res, decodeURIComponent(guideHtmlMatch[1]));
         return;
       }

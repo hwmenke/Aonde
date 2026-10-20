@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { createServer } from "../src/server.js";
+import { listAlertRules } from "../src/newsletter/alertRules.js";
 import { getSubscriberByEmail } from "../src/newsletter/subscriberStore.js";
 
 // Sobe o servidor numa porta livre (listen 0) com AONDE_DATA_DIR temporario.
@@ -50,9 +51,10 @@ test("fluxo completo: subscribe -> confirm -> alerts", async (t) => {
   assert.equal(subBody.status, "ok");
   assert.equal(subBody.token, undefined);
 
-  // Antes de confirmar, criar alerta e 409 (nao confirmado).
+  // Pedidos publicos nao revelam se a inscricao foi confirmada.
   const early = await postJson(baseUrl, "/api/alerts", { email: "flow@example.com", origem: "GRU" });
-  assert.equal(early.status, 409);
+  assert.equal(early.status, 200);
+  assert.deepEqual(await early.json(), subBody);
 
   // Pega o token do store (em producao viria por e-mail).
   const token = getSubscriberByEmail("flow@example.com").optin_token;
@@ -62,17 +64,36 @@ test("fluxo completo: subscribe -> confirm -> alerts", async (t) => {
   assert.equal(confirmBody.ok, true);
   assert.match(confirmBody.message, /confirmad/i);
 
-  // Agora cria alerta com sucesso (201).
+  // A rota exige uma confirmacao propria, mesmo para assinante confirmado.
   const alertRes = await postJson(baseUrl, "/api/alerts", {
     email: "flow@example.com",
     origem: "GRU",
     destino: "LIS",
     precoAlvoCentavos: 300000,
   });
-  assert.equal(alertRes.status, 201);
+  assert.equal(alertRes.status, 200);
   const alertBody = await alertRes.json();
-  assert.equal(alertBody.ok, true);
-  assert.equal(alertBody.rule.origem, "GRU");
+  assert.deepEqual(alertBody, subBody);
+  const subscriber = getSubscriberByEmail("flow@example.com");
+  assert.deepEqual(listAlertRules({ subscriberId: subscriber.id }), []);
+  assert.ok(subscriber.pending_rule.token);
+
+  const unknown = await postJson(baseUrl, "/api/alerts", {
+    email: "unknown@example.com", origem: "GRU", destino: "LIS", precoAlvoCentavos: 300000,
+  });
+  assert.equal(unknown.status, alertRes.status);
+  assert.deepEqual(await unknown.json(), alertBody);
+
+  const routeConfirmation = await fetch(
+    `${baseUrl}/api/newsletter/confirm-rota?token=${subscriber.pending_rule.token}`
+  );
+  assert.equal(routeConfirmation.status, 200);
+  assert.equal((await routeConfirmation.json()).ok, true);
+  const rules = listAlertRules({ subscriberId: subscriber.id });
+  assert.equal(rules.length, 1);
+  assert.equal(rules[0].origem, "GRU");
+  assert.equal(rules[0].destino, "LIS");
+  assert.equal(rules[0].preco_alvo_centavos, 300000);
 });
 
 test("subscribe com e-mail invalido -> 400", async (t) => {
@@ -142,10 +163,11 @@ test("unsubscribe com e-mail invalido -> 400", async (t) => {
   assert.equal(res.status, 400);
 });
 
-test("POST /api/alerts para assinante inexistente -> 404", async (t) => {
+test("POST /api/alerts para assinante inexistente -> resposta generica", async (t) => {
   const { baseUrl } = await withServer(t);
   const res = await postJson(baseUrl, "/api/alerts", { email: "ninguem@example.com", origem: "GRU" });
-  assert.equal(res.status, 404);
+  assert.equal(res.status, 200);
+  assert.equal((await res.json()).status, "ok");
 });
 
 test("metodo errado nas rotas de newsletter -> 405", async (t) => {

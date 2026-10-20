@@ -4,6 +4,8 @@
 
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import http from "node:http";
+import { gunzipSync, brotliDecompressSync } from "node:zlib";
 
 import { createServer } from "../src/server.js";
 
@@ -121,4 +123,53 @@ test("GET /api/health continua respondendo JSON", async () => {
   assert.ok(r.type.includes("application/json"));
   const data = JSON.parse(r.body);
   assert.equal(data.ok, true);
+});
+
+function getRaw(path, acceptEncoding) {
+  return new Promise((resolve, reject) => {
+    const headers = acceptEncoding === undefined ? {} : { "Accept-Encoding": acceptEncoding };
+    http.get(base + path, { headers }, (res) => {
+      const chunks = [];
+      res.on("data", (chunk) => chunks.push(chunk));
+      res.on("end", () => resolve({ status: res.statusCode, headers: res.headers, body: Buffer.concat(chunks) }));
+      res.on("error", reject);
+    }).on("error", reject);
+  });
+}
+
+test("HTML, text and CSS negotiate compression and vary every representation", async (t) => {
+  const home = await getRaw("/", "identity");
+  const cssPath = home.body.toString().match(/href="([^"]+\.css)"/)[1];
+  const cases = [
+    [undefined, undefined],
+    ["identity", undefined],
+    ["gzip", "gzip"],
+    ["br", "br"],
+    ["br;q=0, gzip", "gzip"],
+    ["gzip;q=0, br;q=0", undefined],
+    ["br;q=0.2, gzip;q=0.8", "gzip"],
+    ["gzip;q=0.2, br;q=0.8", "br"],
+    ["gzip;q=0.5, br;q=0.5", "br"],
+    ["identity;q=1, br;q=0.5, gzip;q=0.8", undefined],
+    ["BR;Q=0.8, GZIP;q=0.2", "br"],
+    ["*;q=0.5, br;q=0", "gzip"],
+    ["*;q=0, identity;q=1", undefined],
+    ["x-br, x-gzip", undefined],
+  ];
+  for (const path of ["/", "/sitemap.xml", cssPath, "/robots.txt"]) {
+    const identity = await getRaw(path, "identity");
+    for (const [accept, expected] of cases) {
+      await t.test(`${path}: ${accept ?? "absent"}`, async () => {
+        const res = await getRaw(path, accept);
+        const encoding = path === "/robots.txt" ? undefined : expected;
+        assert.equal(res.status, 200);
+        assert.equal(res.headers["content-encoding"], encoding);
+        assert.equal(res.headers.vary, "Accept-Encoding");
+        assert.equal(Number(res.headers["content-length"]), res.body.length);
+        const decoded = encoding === "br" ? brotliDecompressSync(res.body)
+          : encoding === "gzip" ? gunzipSync(res.body) : res.body;
+        assert.deepEqual(decoded, identity.body);
+      });
+    }
+  }
 });
