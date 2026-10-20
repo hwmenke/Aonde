@@ -222,9 +222,14 @@ function resolveCacheTtl(url, options) {
  * o resultado, sinalizando se foi erro de rede/timeout (networkError) e o
  * Retry-After eventualmente informado pelo servidor.
  */
-async function doFetchOnce(url, { method, headers, body, timeoutMs }) {
+async function doFetchOnce(url, { method, headers, body, timeoutMs, signal }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const cancelar = () => controller.abort();
+  if (signal) {
+    if (signal.aborted) controller.abort();
+    else if (typeof signal.addEventListener === "function") signal.addEventListener("abort", cancelar, { once: true });
+  }
 
   try {
     const response = await state.fetchImpl(url, {
@@ -279,11 +284,12 @@ async function doFetchOnce(url, { method, headers, body, timeoutMs }) {
     return { ok: true, status: response.status, data, error: null };
   } catch (err) {
     if (err && err.name === "AbortError") {
+      const cancelado = signal && signal.aborted;
       return {
         ok: false,
         status: 0,
         data: null,
-        error: `Tempo limite excedido (${timeoutMs}ms) ao chamar ${url}`,
+        error: cancelado ? "busca-cancelada" : `Tempo limite excedido (${timeoutMs}ms) ao chamar ${url}`,
         networkError: true,
         retryAfterMs: null,
       };
@@ -298,6 +304,7 @@ async function doFetchOnce(url, { method, headers, body, timeoutMs }) {
     };
   } finally {
     clearTimeout(timer);
+    if (signal && typeof signal.removeEventListener === "function") signal.removeEventListener("abort", cancelar);
   }
 }
 
@@ -334,6 +341,7 @@ export async function httpRequest(url, options = {}) {
     maxWaitMs = DEFAULT_MAX_WAIT_MS,
     jitterFn = Math.random,
     sleepImpl,
+    signal,
   } = options;
 
   if (typeof state.fetchImpl !== "function") {
@@ -367,7 +375,10 @@ export async function httpRequest(url, options = {}) {
       if (!gate.ok) return gate.result;
     }
 
-    const res = await doFetchOnce(url, { method, headers, body, timeoutMs });
+    if (signal && signal.aborted) {
+      return { ok: false, status: 0, data: null, error: "busca-cancelada" };
+    }
+    const res = await doFetchOnce(url, { method, headers, body, timeoutMs, signal });
 
     if (res.ok) {
       if (cacheKey) {

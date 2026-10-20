@@ -93,9 +93,48 @@ export function clientIp(req) {
  *   reset: (key?: string) => void
  * }}
  */
+const limitadores = new Set();
+let manutencaoInbound = null;
+
+function agendarManutencaoInbound() {
+  if (manutencaoInbound) return;
+  manutencaoInbound = setInterval(() => {
+    for (const lim of limitadores) lim.podar();
+  }, 60_000);
+  if (typeof manutencaoInbound.unref === "function") manutencaoInbound.unref();
+}
+
 export function createInboundRateLimiter({ now = () => Date.now() } = {}) {
   // key ("classe-de-rota:ip") -> { count, windowStart }
   const buckets = new Map();
+  let expurgos = 0;
+  let expirados = 0;
+
+  function tetoBaldes() {
+    const raw = process.env.AONDE_INBOUND_BUCKETS_MAX;
+    if (raw === undefined || raw === null || String(raw).trim() === "") return 2000;
+    const n = parseInt(raw, 10);
+    return Number.isFinite(n) && n > 0 ? n : 2000;
+  }
+
+  function podar() {
+    const at = now();
+    const windowMs = envPositiveInt("AONDE_INBOUND_RATE_LIMIT_WINDOW_MS", DEFAULT_WINDOW_MS);
+    let vistos = 0;
+    for (const [key, bucket] of buckets) {
+      if (vistos >= 64) break;
+      vistos += 1;
+      if (at - bucket.windowStart >= windowMs) {
+        buckets.delete(key);
+        expirados += 1;
+      }
+    }
+    while (buckets.size > tetoBaldes()) {
+      const primeiro = buckets.keys().next().value;
+      buckets.delete(primeiro);
+      expurgos += 1;
+    }
+  }
 
   /**
    * Consome uma "requisicao" da chave informada. Le a config (janela/limite)
@@ -115,6 +154,7 @@ export function createInboundRateLimiter({ now = () => Date.now() } = {}) {
         buckets.set(key, bucket);
       }
       bucket.count += 1;
+      podar();
 
       if (bucket.count > max) {
         const retryAfterMs = Math.max(0, windowMs - (at - bucket.windowStart));
@@ -134,5 +174,15 @@ export function createInboundRateLimiter({ now = () => Date.now() } = {}) {
     else buckets.delete(key);
   }
 
-  return { take, reset };
+  const api = {
+    take,
+    reset,
+    podar,
+    stats() {
+      return { baldes: buckets.size, expurgos, expirados };
+    },
+  };
+  limitadores.add(api);
+  agendarManutencaoInbound();
+  return api;
 }

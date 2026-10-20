@@ -307,6 +307,7 @@ export async function searchFlightOffers(params = {}) {
     max = 10,
     timeoutMs,
     retries,
+    signal,
   } = params;
 
   if (!hasAmadeusCredentials()) {
@@ -375,6 +376,7 @@ export async function searchFlightOffers(params = {}) {
   };
   if (timeoutMs) httpOptions.timeoutMs = timeoutMs;
   if (typeof retries === "number") httpOptions.retries = retries;
+  if (signal) httpOptions.signal = signal;
 
   const res = await httpRequest(`${baseUrl()}${FLIGHT_OFFERS_PATH}?${query.toString()}`, httpOptions);
 

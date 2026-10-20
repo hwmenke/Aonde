@@ -57,10 +57,10 @@ test("link compartilhado leva imagem — e o roteiro leva a foto DELE", () => {
 test("busca aceita adultos, criancas e bebes — nao so 'adultos'", () => {
   const home = renderHomePage({});
   for (const campo of ["adultos", "criancas", "bebes"]) {
-    assert.match(home, new RegExp(`<select name="${campo}">`), `campo ${campo} existe`);
+    assert.match(home, new RegExp(`<select[^>]*name="${campo}"`), `campo ${campo} existe`);
   }
   // Nao da para viajar com zero adultos.
-  const bloco = home.slice(home.indexOf('<select name="adultos">'));
+  const bloco = home.slice(home.indexOf('name="adultos"'));
   assert.ok(!/<option value="0"/.test(bloco.slice(0, 200)), "adultos comeca em 1");
 });
 
@@ -101,9 +101,9 @@ test("a composicao de passageiros chega na tela de resultados", async (t) => {
 test("valores absurdos de passageiro sao contidos, nao propagados", async (t) => {
   const base = await withServer(t);
   const h = await (await fetch(`${base}/resultados?origem=GRU&destino=REC&adultos=999&criancas=-5`)).text();
-  const resumo = (h.match(/class="res-resumo">([^<]*)</) || [])[1] || "";
-  assert.match(resumo, /9 adultos/, "teto aplicado");
-  assert.ok(!/crianç/.test(resumo), "negativo vira zero, nao aparece");
+  assert.match(h, /Não consultamos nenhuma rota/);
+  assert.match(h, /1 a 9 adultos/);
+  assert.doesNotMatch(h, /AD 4102/, "combinação inválida não mostra voo de outra busca");
 });
 
 test("o roteiro diz o que o preco NAO cobre, sem inventar estimativa", () => {

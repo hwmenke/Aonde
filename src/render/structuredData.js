@@ -260,15 +260,56 @@ export function buildOfferProduct(vm) {
   const usd = parseUSDToNumber(vm.preco);
   const brl = parseBRLToNumber(vm.preco);
   const price = usd !== null ? usd : brl;
-  const precoGarantido = price !== null && !vm.erro && !!vm.affiliateUrl && vm.aviasalesBuy !== false;
+  // Sem disponibilidade real (a vaga é do parceiro) o JSON-LD não diz InStock.
+  // Preço só entra com fonte datada e ainda recente, e com a ida não partida
+  // quando a oferta declara a data. Preço zero ou negativo não é oferta.
+  const precoGarantido =
+    price !== null &&
+    price > 0 &&
+    !vm.erro &&
+    !!vm.affiliateUrl &&
+    vm.aviasalesBuy !== false &&
+    precoFonteRecente(vm) &&
+    idaAindaVale(vm);
   if (precoGarantido) {
     product.offers = {
       "@type": "Offer",
       price,
       priceCurrency: usd !== null ? "USD" : "BRL",
-      availability: "https://schema.org/InStock",
       url: absUrl(vm.href || (vm.id ? `/ofertas/${encodeURIComponent(vm.id)}` : "")),
     };
   }
   return product;
+}
+
+const FRESCOR_MS = 7 * 24 * 60 * 60 * 1000;
+
+function diaReferencia(vm) {
+  if (vm && typeof vm.agora === "string" && /^\d{4}-\d{2}-\d{2}$/.test(vm.agora)) return vm.agora;
+  const ms = vm && vm.agora instanceof Date ? vm.agora.getTime() : Date.now();
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date(ms));
+  } catch {
+    return new Date(ms).toISOString().slice(0, 10);
+  }
+}
+
+function precoFonteRecente(vm) {
+  const iso = vm && (vm.fontePrecoEm || vm.fonte_preco_em);
+  const visto = typeof iso === "string" ? iso.slice(0, 10) : "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(visto)) return false;
+  const hoje = diaReferencia(vm);
+  const idadeDias = Math.round((Date.parse(`${hoje}T00:00:00Z`) - Date.parse(`${visto}T00:00:00Z`)) / 86400000);
+  return idadeDias >= 0 && idadeDias * 86400000 <= FRESCOR_MS;
+}
+
+function idaAindaVale(vm) {
+  const ida = vm && (vm.ida || vm.dataIda);
+  if (typeof ida !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(ida)) return true;
+  return ida >= diaReferencia(vm);
 }

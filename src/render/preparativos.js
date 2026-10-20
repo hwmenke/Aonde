@@ -130,6 +130,32 @@ export const DESTINOS = {
  * bloco vazio de "preparativos" e ruido, e ensina a pessoa a ignorar a secao
  * justamente onde ela as vezes importa.
  */
+const PRAZO_REVISAO_DIAS = {
+  preparativos: 180,
+  roteiro: 365,
+};
+
+function diasEntre(inicio, fim) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(inicio || "") || !/^\d{4}-\d{2}-\d{2}$/.test(fim || "")) return null;
+  const a = Date.parse(`${inicio}T12:00:00Z`);
+  const b = Date.parse(`${fim}T12:00:00Z`);
+  if (Number.isNaN(a) || Number.isNaN(b)) return null;
+  return Math.round((b - a) / 86_400_000);
+}
+
+/**
+ * Lembrete de revisão a partir de uma data que o conteúdo já tem.
+ * Não grava data nova e não inventa conferidoEm quando o campo falta.
+ */
+export function lembreteDeRevisao({ conferidoEm = "", tipo = "preparativos", hoje = "" } = {}) {
+  const prazo = PRAZO_REVISAO_DIAS[tipo] || PRAZO_REVISAO_DIAS.preparativos;
+  if (!conferidoEm) return { tipo, estado: "data-nao-registrada", prazo };
+  const dias = diasEntre(conferidoEm, hoje);
+  if (dias === null) return { tipo, estado: "data-nao-registrada", prazo };
+  if (dias >= prazo) return { tipo, estado: "revisar", dias, conferidoEm, prazo };
+  return { tipo, estado: "dentro-do-prazo", dias, conferidoEm, prazo };
+}
+
 export function preparativosDoGuia(guia) {
   if (!guia) return null;
   const tag = String(guia.tag || "");

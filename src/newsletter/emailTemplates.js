@@ -120,6 +120,7 @@ export function buildConfirmationEmail({
   precoAlvoCentavos = null,
   confirmUrl,
   unsubscribeUrl,
+  jaInscrito = false,
 } = {}) {
   const alvo = describeAlertTarget(origem, { destino, preco_alvo_centavos: precoAlvoCentavos });
   const confirmHref = safeUrl(confirmUrl);
@@ -131,14 +132,22 @@ export function buildConfirmationEmail({
   const precoTexto =
     alvo.precoAlvoCentavos != null ? ` até ${formatBRL(alvo.precoAlvoCentavos)}` : "";
 
-  const assunto = sanitizarAssunto("Confirme sua inscrição nos alertas de preço do Aonde");
+  const assunto = sanitizarAssunto(
+    jaInscrito
+      ? "Confirme o novo alerta de preço do Aonde"
+      : "Confirme sua inscrição nos alertas de preço do Aonde"
+  );
 
   const textoPlano = [
-    "Aonde — confirme sua inscrição",
+    jaInscrito ? "Aonde — confirme o novo alerta" : "Aonde — confirme sua inscrição",
     "",
-    `Este endereço (${email}) pediu para receber alertas de preço de passagens aéreas saindo de ${alvo.origemLabel}${rotaTexto}${precoTexto}.`,
+    jaInscrito
+      ? `Este endereço (${email}) já está inscrito e pediu um alerta saindo de ${alvo.origemLabel}${rotaTexto}${precoTexto}.`
+      : `Este endereço (${email}) pediu para receber alertas de preço de passagens aéreas saindo de ${alvo.origemLabel}${rotaTexto}${precoTexto}.`,
     "",
-    "Isso só começa a valer depois que você confirmar clicando no link abaixo. Sem confirmar, você não recebe nenhum alerta — nem mais e-mails deste tipo.",
+    jaInscrito
+      ? "O alerta novo só passa a valer depois que você clicar no link abaixo. Sua inscrição atual continua como está."
+      : "Isso só começa a valer depois que você confirmar clicando no link abaixo. Sem confirmar, você não recebe nenhum alerta — nem mais e-mails deste tipo.",
     "",
     `Confirmar inscrição: ${confirmHref}`,
     "",
@@ -153,12 +162,19 @@ export function buildConfirmationEmail({
     linhaDescadastroTexto(unsubscribeUrl),
   ].join("\n");
 
+  const pedidoHtml = jaInscrito
+    ? `Este endereço (<strong>${escapeHtml(email)}</strong>) já está inscrito e pediu um alerta saindo de <strong>${escapeHtml(alvo.origemLabel)}</strong>`
+    : `Este endereço (<strong>${escapeHtml(email)}</strong>) pediu para receber alertas de preço de passagens aéreas saindo de <strong>${escapeHtml(alvo.origemLabel)}</strong>`;
   const corpoHtml =
-    `<p style="margin:0 0 12px 0;">Este endereço (<strong>${escapeHtml(email)}</strong>) pediu para receber alertas de preço de passagens aéreas saindo de <strong>${escapeHtml(alvo.origemLabel)}</strong>` +
+    `<p style="margin:0 0 12px 0;">${pedidoHtml}` +
     (alvo.temRotaEspecifica ? ` com destino a <strong>${escapeHtml(alvo.destinoLabel)}</strong>` : "") +
     (alvo.precoAlvoCentavos != null ? ` até <strong>${escapeHtml(formatBRL(alvo.precoAlvoCentavos))}</strong>` : "") +
     `.</p>` +
-    `<p style="margin:0 0 16px 0;">Isso só começa a valer depois que você confirmar clicando no botão abaixo. <strong>Sem confirmar, você não recebe nenhum alerta</strong> — nem mais e-mails deste tipo.</p>` +
+    `<p style="margin:0 0 16px 0;">${
+      jaInscrito
+        ? "O alerta novo só passa a valer depois que você clicar no botão abaixo. Sua inscrição atual continua como está."
+        : "Isso só começa a valer depois que você confirmar clicando no botão abaixo. <strong>Sem confirmar, você não recebe nenhum alerta</strong> — nem mais e-mails deste tipo."
+    }</p>` +
     `<p style="margin:0 0 20px 0;">` +
     `<a href="${escapeHtml(confirmHref)}" style="display:inline-block;background-color:${COR_LINK};color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:bold;">Confirmar inscrição</a>` +
     `</p>` +

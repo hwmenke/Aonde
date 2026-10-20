@@ -113,6 +113,8 @@ test("buildTouristTrip devolve null sem titulo", () => {
   assert.equal(buildTouristTrip({ dias: [] }), null);
 });
 
+const PRECO_FRESCO = { fontePrecoEm: "2026-10-18", agora: "2026-10-19" };
+
 test("buildOfferProduct converte o preco em BRL formatado para numero + Offer valido", () => {
   const product = buildOfferProduct({
     id: "gru-lis",
@@ -123,6 +125,7 @@ test("buildOfferProduct converte o preco em BRL formatado para numero + Offer va
     thumbUrl: "https://example.com/lis.jpg",
     href: "/ofertas/gru-lis",
     affiliateUrl: "https://parceiro.exemplo/lis",
+    ...PRECO_FRESCO,
   });
   assert.equal(product["@type"], "Product");
   assert.match(product.name, /Lisboa/);
@@ -130,7 +133,7 @@ test("buildOfferProduct converte o preco em BRL formatado para numero + Offer va
   assert.equal(product.offers["@type"], "Offer");
   assert.equal(product.offers.price, 1847);
   assert.equal(product.offers.priceCurrency, "BRL");
-  assert.equal(product.offers.availability, "https://schema.org/InStock");
+  assert.equal(product.offers.availability, undefined);
   assert.equal(product.offers.url, `${SITE_URL}/ofertas/gru-lis`);
 });
 
@@ -140,6 +143,7 @@ test("buildOfferProduct lida com preco com centavos (virgula pt-BR)", () => {
     preco: "R$ 1.847,50",
     href: "/ofertas/x",
     affiliateUrl: "https://parceiro.exemplo/rec",
+    ...PRECO_FRESCO,
   });
   assert.equal(product.offers.price, 1847.5);
 });
@@ -159,6 +163,7 @@ test("buildOfferProduct nao trata USD $242 como reais", () => {
     preco: "USD $242",
     href: "/ofertas/for-ssa",
     affiliateUrl: "https://www.aviasales.com/search/FOR0310SSA10101",
+    ...PRECO_FRESCO,
   });
   assert.equal(product.offers.price, 242);
   assert.equal(product.offers.priceCurrency, "USD");
@@ -241,8 +246,18 @@ test("JSON-LD nao anuncia preco garantido quando a pagina nao garante preco", ()
     preco: "R$ 612",
     href: "/ofertas/c",
     affiliateUrl: "https://parceiro.exemplo/ssa",
+    ...PRECO_FRESCO,
   });
-  assert.equal(garantido.offers.availability, "https://schema.org/InStock");
+  assert.equal(garantido.offers.price, 612);
+  assert.equal(garantido.offers.availability, undefined, "sem vaga confirmada não há InStock");
+
+  const semFonte = buildOfferProduct({
+    cidade: "Salvador",
+    preco: "R$ 612",
+    href: "/ofertas/c",
+    affiliateUrl: "https://parceiro.exemplo/ssa",
+  });
+  assert.equal(semFonte.offers, undefined, "preço sem data de fonte não entra no JSON-LD");
 });
 
 // ---------------------------------------------------------------------------

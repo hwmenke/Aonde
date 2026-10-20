@@ -5,11 +5,10 @@
 // E o unico ponto de contato entre o shape bruto da Amadeus e o shape que
 // renderResultsPage (src/render/htmlRenderer.js) ja sabe desenhar.
 //
-// Cada oferta mostra so o trecho de IDA (primeiro voo -> ultima chegada do
-// primeiro itinerary), igual ao dado de amostra — o preco total exibido, no
-// entanto, e sempre o preco de ida E volta (grandTotal da oferta), porque o
-// rotulo fixo da tela diz "ida e volta, por pessoa" e nao pode ser trocado
-// aqui (ver limitacao no relatorio/README da integracao).
+// O preço exibido é o grandTotal da oferta (total do grupo), com a moeda que
+// a resposta trouxe. O rótulo diz "por pessoa" só quando há um adulto e
+// nenhum outro passageiro, ou um único travelerPricing. A volta, quando o
+// segundo itinerário vem completo, segue no campo `volta`.
 //
 // Tolerante como o resto do parsing de Amadeus no projeto (ver
 // extractQuartiles em src/partners/amadeus.js): uma oferta que nao bate o
@@ -60,10 +59,11 @@ export function mapAmadeusOffersToFlights(amadeusData, opts = {}) {
   const max = Number.isFinite(opts.max) && opts.max > 0 ? Math.trunc(opts.max) : DEFAULT_MAX;
   const offers = Array.isArray(amadeusData && amadeusData.data) ? amadeusData.data : [];
   const dictionaries = (amadeusData && amadeusData.dictionaries) || {};
+  const pax = opts.pax && typeof opts.pax === "object" ? opts.pax : null;
 
   const voos = [];
   for (const offer of offers) {
-    const voo = mapOneOffer(offer, dictionaries);
+    const voo = mapOneOffer(offer, dictionaries, pax);
     if (voo) voos.push(voo);
   }
 
@@ -76,7 +76,7 @@ export function mapAmadeusOffersToFlights(amadeusData, opts = {}) {
   return voos.slice(0, max);
 }
 
-function mapOneOffer(offer, dictionaries) {
+function mapOneOffer(offer, dictionaries, pax) {
   if (!offer || typeof offer !== "object") return null;
 
   const itinerarios = Array.isArray(offer.itineraries) ? offer.itineraries : null;
@@ -95,8 +95,12 @@ function mapOneOffer(offer, dictionaries) {
   const duracao = formatDuracao(ida.duration);
   if (!saida || !chegada || !duracao) return null;
 
-  const centavos = extractCentavos(offer.price);
-  if (centavos === null) return null;
+  const precoOferta = extractPrecoOferta(offer.price);
+  if (!precoOferta) return null;
+  const { centavos, moeda, bruto } = precoOferta;
+  const viajantes = viajantesDaOferta(offer.travelerPricings);
+  const { precoRotulo, precoEscopo } = rotuloDoPreco(pax, offer.travelerPricings);
+  const emReal = !moeda || moeda === "BRL";
 
   const codigoCia =
     (primeiro.carrierCode && String(primeiro.carrierCode).toUpperCase()) ||
@@ -121,23 +125,232 @@ function mapOneOffer(offer, dictionaries) {
     duracao,
     paradas: paradasLabel,
     direto,
-    preco: formatBRL(centavos),
-    parcela: formatBRL(Math.round(centavos / 12)),
+    // grandTotal (ou total) é o valor do grupo pedido na busca, não uma tarifa
+    // por pessoa inventada. A parcela ilustra esse mesmo valor.
+    preco: formatValor(centavos, moeda, bruto),
+    parcela: emReal ? formatBRL(Math.round(centavos / 12)) : "",
+    precoRotulo,
+    precoEscopo,
+    moeda: moeda || "BRL",
+    viajantes,
+    inclusoes: inclusoesDaOferta(offer.travelerPricings),
+    idaTrechos: trechosDe(segmentos, dictionaries),
+    volta: resumoItinerario(itinerarios[1], dictionaries),
     melhor: false,
     // campo interno, so para ordenar por preco — removido antes de sair de mapAmadeusOffersToFlights.
     _centavos: centavos,
   };
 }
 
-// price.grandTotal e o total (ida e volta, todos os passageiros incluidos
-// conforme os parametros da busca) — cai para price.total quando ausente.
-function extractCentavos(price) {
+// price.grandTotal é o total da oferta (ida e volta, passageiros pedidos).
+// Sem grandTotal, usa price.total. Não converte moeda: o número exibido é o
+// que a resposta trouxe, na moeda que a resposta declarou.
+function extractPrecoOferta(price) {
   if (!price || typeof price !== "object") return null;
   const bruto = price.grandTotal ?? price.total;
   if (bruto === undefined || bruto === null || bruto === "") return null;
   const n = typeof bruto === "number" ? bruto : parseFloat(String(bruto));
   if (!Number.isFinite(n) || n <= 0) return null;
-  return Math.round(n * 100);
+  const moeda = typeof price.currency === "string" && price.currency.trim() ? price.currency.trim().toUpperCase() : "";
+  return { centavos: Math.round(n * 100), moeda, bruto: String(bruto) };
+}
+
+function formatValor(centavos, moeda, bruto) {
+  if (!moeda || moeda === "BRL") return formatBRL(centavos);
+  return `${moeda} ${bruto}`;
+}
+
+const TIPO_VIAJANTE = {
+  ADULT: "Adulto",
+  CHILD: "Criança",
+  HELD_INFANT: "Bebê de colo",
+  SEATED_INFANT: "Bebê com assento",
+  YOUNG: "Jovem",
+  SENIOR: "Sênior",
+};
+
+// Só entra na tela o que a resposta listou em travelerPricings. Sem essa
+// lista, não há valor por viajante para mostrar.
+function viajantesDaOferta(travelerPricings) {
+  if (!Array.isArray(travelerPricings) || travelerPricings.length === 0) return null;
+  const saida = [];
+  for (const viajante of travelerPricings) {
+    const price = viajante && viajante.price;
+    if (!price || typeof price !== "object") continue;
+    const bruto = price.total ?? price.grandTotal;
+    if (bruto === undefined || bruto === null || bruto === "") continue;
+    const n = typeof bruto === "number" ? bruto : parseFloat(String(bruto));
+    if (!Number.isFinite(n) || n < 0) continue;
+    const moeda = typeof price.currency === "string" && price.currency.trim() ? price.currency.trim().toUpperCase() : "";
+    const tipoBruto = typeof viajante.travelerType === "string" ? viajante.travelerType.trim().toUpperCase() : "";
+    saida.push({
+      tipo: TIPO_VIAJANTE[tipoBruto] || tipoBruto || "Viajante",
+      moeda: moeda || "BRL",
+      preco: formatValor(Math.round(n * 100), moeda, String(bruto)),
+    });
+  }
+  return saida.length ? saida : null;
+}
+
+const CABINES = {
+  ECONOMY: "Econômica",
+  PREMIUM_ECONOMY: "Premium econômica",
+  BUSINESS: "Executiva",
+  FIRST: "Primeira",
+};
+
+function textoBagagem(bag) {
+  if (!bag || typeof bag !== "object") return { estado: "ausente", texto: "não informada" };
+  const quantidade = Number(bag.quantity);
+  const peso = Number(bag.weight);
+  const temQuantidade = Number.isFinite(quantidade);
+  const temPeso = Number.isFinite(peso) && peso > 0;
+  if (temQuantidade && quantidade <= 0 && !temPeso) return { estado: "zero", texto: "não incluída (0)" };
+  if (temPeso) {
+    const unidade = typeof bag.weightUnit === "string" && bag.weightUnit.trim() ? bag.weightUnit.trim() : "";
+    return { estado: "peso", texto: `${peso}${unidade ? " " + unidade : ""}` };
+  }
+  if (temQuantidade && quantidade > 0) {
+    return { estado: "quantidade", texto: `${quantidade} volume${quantidade > 1 ? "s" : ""}` };
+  }
+  return { estado: "ausente", texto: "não informada" };
+}
+
+function condicaoAmenidade(amenidade) {
+  if (!amenidade || typeof amenidade !== "object") return null;
+  const descricao = typeof amenidade.description === "string" ? amenidade.description.trim() : "";
+  if (!descricao) return null;
+  const tipo = typeof amenidade.amenityType === "string" ? amenidade.amenityType.trim().toUpperCase() : "";
+  const falaDeRegra = /REFUND|CHANGE|EXCHANGE|CANCEL/.test(descricao.toUpperCase()) || tipo === "BRANDED_FARES";
+  if (!falaDeRegra && tipo === "BAGGAGE") return null;
+  if (typeof amenidade.isChargeable !== "boolean") {
+    return { texto: descricao, cobranca: "não informado se é pago" };
+  }
+  return { texto: descricao, cobranca: amenidade.isChargeable ? "extra pago" : "incluído na tarifa" };
+}
+
+function inclusoesDaOferta(travelerPricings) {
+  if (!Array.isArray(travelerPricings) || travelerPricings.length === 0) return null;
+  const saida = [];
+  for (const viajante of travelerPricings) {
+    if (!viajante || typeof viajante !== "object") continue;
+    const detalhes = Array.isArray(viajante.fareDetailsBySegment) ? viajante.fareDetailsBySegment : [];
+    const tipoBruto = typeof viajante.travelerType === "string" ? viajante.travelerType.trim().toUpperCase() : "";
+    const trechos = detalhes.map((fd, indice) => {
+      const item = fd && typeof fd === "object" ? fd : {};
+      const cabineBruta = typeof item.cabin === "string" ? item.cabin.trim().toUpperCase() : "";
+      const tarifaBruta =
+        (typeof item.brandedFare === "string" && item.brandedFare.trim()) ||
+        (typeof item.fareBasis === "string" && item.fareBasis.trim()) ||
+        "";
+      const amenidades = Array.isArray(item.amenities) ? item.amenities.map(condicaoAmenidade).filter(Boolean) : [];
+      return {
+        trecho: indice + 1,
+        cabine: cabineBruta ? CABINES[cabineBruta] || item.cabin.trim() : "",
+        tarifa: tarifaBruta,
+        despachada: textoBagagem(item.includedCheckedBags),
+        mao: textoBagagem(item.includedCabinBags),
+        amenidades,
+      };
+    });
+    saida.push({
+      tipo: TIPO_VIAJANTE[tipoBruto] || tipoBruto || "Viajante",
+      trechos,
+    });
+  }
+  return saida.length ? saida : null;
+}
+
+function resumoPax(pax) {
+  const partes = [];
+  const add = (n, sing, plur) => {
+    if (n > 0) partes.push(`${n} ${n === 1 ? sing : plur}`);
+  };
+  add(pax.adultos || 0, "adulto", "adultos");
+  add(pax.criancas || 0, "criança", "crianças");
+  add(pax.bebes || 0, "bebê de colo", "bebês de colo");
+  if (partes.length <= 1) return partes[0] || "";
+  return partes.slice(0, -1).join(", ") + " e " + partes[partes.length - 1];
+}
+
+function rotuloDoPreco(pax, viajantes) {
+  const adultos = pax && Number.isFinite(Number(pax.adultos)) ? Number(pax.adultos) : null;
+  const criancas = pax && Number.isFinite(Number(pax.criancas)) ? Number(pax.criancas) : 0;
+  const bebes = pax && Number.isFinite(Number(pax.bebes)) ? Number(pax.bebes) : 0;
+  if (adultos === 1 && criancas === 0 && bebes === 0) {
+    return { precoRotulo: "ida e volta, por pessoa", precoEscopo: "pessoa" };
+  }
+  if (adultos !== null && adultos + criancas + bebes > 1) {
+    return {
+      precoRotulo: `ida e volta, total para ${resumoPax({ adultos, criancas, bebes })}`,
+      precoEscopo: "grupo",
+    };
+  }
+  if (Array.isArray(viajantes) && viajantes.length === 1) {
+    return { precoRotulo: "ida e volta, por pessoa", precoEscopo: "pessoa" };
+  }
+  return { precoRotulo: "ida e volta, total da oferta", precoEscopo: "oferta" };
+}
+
+function dataDoInstante(isoDateTime) {
+  if (typeof isoDateTime !== "string") return "";
+  const m = /^(\d{4}-\d{2}-\d{2})/.exec(isoDateTime);
+  return m ? m[1] : "";
+}
+
+function trechosDe(segmentos, dictionaries) {
+  if (!Array.isArray(segmentos)) return [];
+  const saida = [];
+  let chegadaAnterior = "";
+  for (let i = 0; i < segmentos.length; i++) {
+    const seg = segmentos[i];
+    if (!seg || typeof seg !== "object") continue;
+    const dep = seg.departure || {};
+    const arr = seg.arrival || {};
+    const saidaData = dataDoInstante(dep.at);
+    const chegadaData = dataDoInstante(arr.at);
+    const codigoOperadora =
+      seg.operating && typeof seg.operating.carrierCode === "string" ? seg.operating.carrierCode.trim().toUpperCase() : "";
+    saida.push({
+      origem: typeof dep.iataCode === "string" ? dep.iataCode : "",
+      destino: typeof arr.iataCode === "string" ? arr.iataCode : "",
+      saida: formatHora(dep.at),
+      chegada: formatHora(arr.at),
+      saidaData,
+      chegadaData,
+      mudaDia: Boolean(saidaData && chegadaData && saidaData !== chegadaData),
+      conexao: i < segmentos.length - 1 && typeof arr.iataCode === "string" ? arr.iataCode : "",
+      cia: nomeCia(seg.carrierCode, dictionaries),
+      numero: seg.number ? String(seg.number) : "",
+      operadora: codigoOperadora ? nomeCia(codigoOperadora, dictionaries) : "",
+    });
+    if (chegadaAnterior && saidaData && chegadaAnterior !== saidaData) {
+      saida[saida.length - 1].mudaDia = true;
+    }
+    chegadaAnterior = chegadaData || chegadaAnterior;
+  }
+  return saida;
+}
+
+function resumoItinerario(itinerario, dictionaries) {
+  if (!itinerario || typeof itinerario !== "object") return null;
+  const segmentos = Array.isArray(itinerario.segments) ? itinerario.segments : null;
+  if (!segmentos || segmentos.length === 0) return null;
+  const primeiro = segmentos[0];
+  const ultimo = segmentos[segmentos.length - 1];
+  const saida = formatHora(primeiro && primeiro.departure && primeiro.departure.at);
+  const chegada = formatHora(ultimo && ultimo.arrival && ultimo.arrival.at);
+  const duracao = formatDuracao(itinerario.duration);
+  if (!saida || !chegada || !duracao) return null;
+  const paradas = segmentos.length - 1;
+  return {
+    saida,
+    chegada,
+    duracao,
+    direto: paradas === 0,
+    paradas: paradas === 0 ? "Direto" : `${paradas} parada${paradas > 1 ? "s" : ""}`,
+    trechos: trechosDe(segmentos, dictionaries),
+  };
 }
 
 // "2026-09-01T07:00:00" -> "07:00". Entrada invalida -> "".

@@ -8,8 +8,45 @@
 // LIMITACAO: assim como o rate limiter, o cache vive em memoria do processo e
 // nao e compartilhado entre processos/instancias.
 
-// url+authHash -> { value, expiresAt }
+// url+authHash -> { value, expiresAt, criadoEm }
 const store = new Map();
+let expurgos = 0;
+let expirados = 0;
+
+function maxEntradas() {
+  const raw = process.env.AONDE_HTTP_CACHE_MAX;
+  if (raw === undefined || raw === null || String(raw).trim() === "") return 500;
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : 500;
+}
+
+function podarExpirados(now, limite) {
+  let vistos = 0;
+  for (const [key, entry] of store) {
+    if (vistos >= limite) break;
+    vistos += 1;
+    if (now > entry.expiresAt) {
+      store.delete(key);
+      expirados += 1;
+    }
+  }
+}
+
+function caberNoTeto() {
+  const teto = maxEntradas();
+  while (store.size > teto) {
+    const primeiro = store.keys().next().value;
+    store.delete(primeiro);
+    expurgos += 1;
+  }
+}
+
+let manutencao = null;
+function agendarManutencao() {
+  if (manutencao) return;
+  manutencao = setInterval(() => podarExpirados(Date.now(), store.size), 60_000);
+  if (typeof manutencao.unref === "function") manutencao.unref();
+}
 
 /**
  * Hash nao-criptografico (djb2) de uma string, retornado em hexadecimal.
@@ -62,12 +99,21 @@ export function getCache(key, now = Date.now()) {
 /** Guarda um valor no cache com TTL em ms. ttlMs <= 0 nao guarda nada. */
 export function setCache(key, value, ttlMs, now = Date.now()) {
   if (!(ttlMs > 0)) return;
+  podarExpirados(now, 64);
+  if (store.has(key)) store.delete(key);
   store.set(key, { value: cloneValue(value), expiresAt: now + ttlMs });
+  caberNoTeto();
+  agendarManutencao();
 }
 
 /** Limpa todo o cache (uso: testes e invalidacao manual). */
 export function clearHttpCache() {
   store.clear();
+}
+
+/** Contagens agregadas. Não inclui chave, URL nem credencial. */
+export function httpCacheStats() {
+  return { entradas: store.size, expurgos, expirados };
 }
 
 // Clona o valor para que o chamador nao consiga mutar o objeto armazenado

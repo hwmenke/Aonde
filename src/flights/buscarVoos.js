@@ -15,6 +15,7 @@
 import { hasAmadeusCredentials, searchFlightOffers } from "../partners/amadeus.js";
 import { mapAmadeusOffersToFlights } from "./mapAmadeus.js";
 import { parseDataPtBr, dataIdaPadrao, dataVoltaPadrao } from "./datas.js";
+import { coordenarBusca } from "./buscaAoVivoLimite.js";
 
 // Timeout de CADA chamada HTTP (token + busca) da tentativa ao vivo.
 // Configuravel via AMADEUS_SEARCH_TIMEOUT_MS (ver .env.example). Curto de
@@ -57,8 +58,14 @@ function maxResultadosConfigurado() {
  * abaixo dos resultados sempre deixou claro.
  */
 function resolverDatas({ ida, volta } = {}, agora = new Date()) {
-  const departureDate = parseDataPtBr(ida) || dataIdaPadrao(agora);
-  const returnDate = parseDataPtBr(volta) || dataVoltaPadrao(departureDate);
+  const idaTexto = typeof ida === "string" ? ida.trim() : "";
+  const voltaTexto = typeof volta === "string" ? volta.trim() : "";
+  // Texto informado e não reconhecido NÃO cai numa data padrão: isso consultaria
+  // outra viagem. Data omitida (chamada sem o campo) ainda usa o par padrão.
+  const departureDate = idaTexto ? parseDataPtBr(idaTexto) : dataIdaPadrao(agora);
+  if (!departureDate) return null;
+  const returnDate = voltaTexto ? parseDataPtBr(voltaTexto) : dataVoltaPadrao(departureDate);
+  if (!returnDate || returnDate < departureDate) return null;
   return { departureDate, returnDate };
 }
 
@@ -76,18 +83,55 @@ function resolverDatas({ ida, volta } = {}, agora = new Date()) {
  * @param {string} [params.volta] data de volta digitada (texto livre pt-BR)
  * @param {{adultos?:number, criancas?:number, bebes?:number}} [params.pax]
  */
-export async function buscarVoosAoVivo({ origem, destino, ida, volta, pax } = {}) {
+export async function buscarVoosAoVivo({ origem, destino, ida, volta, pax, signal, cliente } = {}) {
   if (!hasAmadeusCredentials()) {
     return { ok: false, motivo: "sem-credencial" };
   }
 
   const timeoutMs = timeoutMsConfigurado();
   const max = maxResultadosConfigurado();
-  const { departureDate, returnDate } = resolverDatas({ ida, volta });
+  const datas = resolverDatas({ ida, volta });
+  if (!datas) return { ok: false, motivo: "datas-invalidas" };
+  const { departureDate, returnDate } = datas;
 
   const adultos = pax && Number.isFinite(pax.adultos) && pax.adultos > 0 ? pax.adultos : 1;
   const criancas = pax && Number.isFinite(pax.criancas) && pax.criancas > 0 ? pax.criancas : 0;
   const bebes = pax && Number.isFinite(pax.bebes) && pax.bebes > 0 ? pax.bebes : 0;
+
+  return coordenarBusca({ origem, destino, ida, volta, pax, signal, cliente }, (sinalBusca) =>
+    executarComTeto({
+      origem,
+      destino,
+      departureDate,
+      returnDate,
+      adultos,
+      criancas,
+      bebes,
+      timeoutMs,
+      max,
+      signal: sinalBusca,
+    })
+  );
+}
+
+async function executarComTeto({
+  origem,
+  destino,
+  departureDate,
+  returnDate,
+  adultos,
+  criancas,
+  bebes,
+  timeoutMs,
+  max,
+  signal,
+}) {
+  const controle = new AbortController();
+  const repassar = () => controle.abort();
+  if (signal) {
+    if (signal.aborted) controle.abort();
+    else if (typeof signal.addEventListener === "function") signal.addEventListener("abort", repassar, { once: true });
+  }
 
   const buscaPromise = executarBusca({
     origem,
@@ -99,6 +143,7 @@ export async function buscarVoosAoVivo({ origem, destino, ida, volta, pax } = {}
     bebes,
     timeoutMs,
     max,
+    signal: controle.signal,
   });
 
   // Teto duro: garante que handleResultsHtml nunca fica preso alem disso,
@@ -107,15 +152,19 @@ export async function buscarVoosAoVivo({ origem, destino, ida, volta, pax } = {}
   // atrasa nem os testes nem o encerramento do servidor.
   let timer;
   const tetoPromise = new Promise((resolve) => {
-    timer = setTimeout(
-      () => resolve({ ok: false, motivo: "timeout-geral" }),
-      timeoutMs + TETO_GERAL_MARGEM_MS
-    );
+    timer = setTimeout(() => {
+      controle.abort();
+      resolve({ ok: false, motivo: "timeout-geral" });
+    }, timeoutMs + TETO_GERAL_MARGEM_MS);
     if (timer && typeof timer.unref === "function") timer.unref();
   });
 
   try {
-    return await Promise.race([buscaPromise, tetoPromise]);
+    const resultado = await Promise.race([buscaPromise, tetoPromise]);
+    if (signal && signal.aborted && resultado && resultado.motivo !== "timeout-geral") {
+      return { ok: false, motivo: "cancelada" };
+    }
+    return resultado;
   } catch (err) {
     // Defesa extra: buscarVoosAoVivo NUNCA lanca, mesmo se algo inesperado
     // escapar do tratamento interno (searchFlightOffers/mapAmadeusOffersToFlights
@@ -123,6 +172,7 @@ export async function buscarVoosAoVivo({ origem, destino, ida, volta, pax } = {}
     return { ok: false, motivo: "erro", detalhe: (err && err.message) || String(err) };
   } finally {
     clearTimeout(timer);
+    if (signal && typeof signal.removeEventListener === "function") signal.removeEventListener("abort", repassar);
   }
 }
 
@@ -136,6 +186,7 @@ async function executarBusca({
   bebes,
   timeoutMs,
   max,
+  signal,
 }) {
   const res = await searchFlightOffers({
     origin: origem,
@@ -149,13 +200,19 @@ async function executarBusca({
     max,
     timeoutMs,
     retries: 0, // busca ao vivo precisa ser rapida; o fallback ja cobre a falha
+    signal,
   });
 
+  if (signal && signal.aborted) return { ok: false, motivo: "cancelada" };
   if (!res.ok) {
+    if (res.error === "busca-cancelada") return { ok: false, motivo: "cancelada" };
     return { ok: false, motivo: "erro", detalhe: res.error };
   }
 
-  const voos = mapAmadeusOffersToFlights(res.data, { max });
+  const voos = mapAmadeusOffersToFlights(res.data, {
+    max,
+    pax: { adultos, criancas, bebes },
+  });
   if (!voos.length) {
     return { ok: false, motivo: "sem-resultados" };
   }

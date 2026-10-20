@@ -19,6 +19,7 @@
 
 import { OFFERS, GUIDES, melhorMesDoGuia } from "../render/aondeContent.js";
 import { cidadeDoIata } from "../render/aeroportos.js";
+import { viagemAindaVale } from "../offers/elegibilidade.js";
 
 /**
  * Data como "AAAA-MM-DD" no fuso local.
@@ -40,6 +41,14 @@ const FUSO_PRODUTO = process.env.AONDE_TIMEZONE || "America/Sao_Paulo";
 // Semanas editoriais de inventario (for-ssa, gru-scl, rec-gig, poa-mvd,
 // cgh-igu, gru-brc) tem wrap Aviasales em /ofertas; nao entram na rotacao.
 const HOJE_LOCK_IDS = new Set(["gru-eze", "gru-fln", "gig-ssa"]);
+
+// Overrides editoriais com prazo: valem só naquele dia de calendário, e só se
+// a ida da oferta ainda não passou. Não são um cadeado eterno no código.
+const OVERRIDES_EDITORIAIS = [
+  { dia: "2026-08-21", id: "gru-eze" },
+  { dia: "2026-08-22", id: "gru-fln" },
+  { dia: "2026-08-23", id: "gig-ssa" },
+];
 
 export function chaveDoDia(date = new Date()) {
   // "2026-07-26" ja E uma data de calendario, nao um instante: converter para
@@ -132,39 +141,21 @@ export function guiaDaOferta(offer, guides = GUIDES) {
  */
 export function escolhaDoDia(data = new Date(), { quantidade = 2, offers = OFFERS, guides = GUIDES } = {}) {
   const chave = chaveDoDia(data);
-  
-  // LOCK para 21 de agosto de 2026: mostra GRU-EZE com o roteiro de Buenos Aires.
-  if (chave === "2026-08-21") {
-    const gruEze = offers.find((o) => o.id === "gru-eze");
-    if (gruEze) {
-      const guide = guides.buenosaires;
-      return [{ offer: gruEze, guide }];
+
+  const override = OVERRIDES_EDITORIAIS.find((item) => item.dia === chave);
+  if (override) {
+    const offer = offers.find((o) => o.id === override.id);
+    if (offer && viagemAindaVale(offer, chave) && (offer.aviasalesUrl || offer.affiliate_url || offer.affiliateUrl)) {
+      return [{ offer, guide: guiaDaOferta(offer, guides) }];
     }
   }
-  
-  // LOCK para 22 de agosto de 2026: mostra GRU-FLN com o roteiro de Florianópolis.
-  if (chave === "2026-08-22") {
-    const gruFln = offers.find((o) => o.id === "gru-fln");
-    if (gruFln) {
-      const guide = guides.florianopolis;
-      return [{ offer: gruFln, guide }];
-    }
-  }
-  
-  // LOCK para 23 de agosto de 2026: mostra GIG-SSA com o roteiro de Salvador.
-  if (chave === "2026-08-23") {
-    const gigSsa = offers.find((o) => o.id === "gig-ssa");
-    if (gigSsa) {
-      const guide = guides.salvador;
-      return [{ offer: gigSsa, guide }];
-    }
-  }
-  
+
   const candidatos = offers
     .map((offer) => ({ offer, guide: guiaDaOferta(offer, guides) }))
     .filter((c) => c.guide) // so entra quem tem roteiro de verdade
     .filter((c) => c.offer.aviasalesUrl || c.offer.affiliate_url || c.offer.affiliateUrl) // e so entra quem e RESERVAVEL (tem wrap do Aviasales)
-    .filter((c) => HOJE_LOCK_IDS.has(c.offer.id)); // for-ssa e inventario, nao /hoje
+    .filter((c) => HOJE_LOCK_IDS.has(c.offer.id)) // for-ssa e inventario, nao /hoje
+    .filter((c) => viagemAindaVale(c.offer, chave));
 
   if (!candidatos.length) return [];
 

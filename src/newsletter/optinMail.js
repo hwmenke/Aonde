@@ -30,6 +30,25 @@ export function envioDeEmailDisponivel() {
  *
  * @returns {Promise<{ok:boolean, estado:string}>}
  */
+export async function enviarConfirmacaoNovaRota({ subscriber, token, baseUrl }) {
+  try {
+    const base = String(baseUrl || "").replace(/\/+$/, "");
+    const pending = (subscriber && subscriber.pending_rule) || {};
+    const { assunto, textoPlano, html } = buildConfirmationEmail({
+      email: subscriber.email,
+      origem: pending.origem || subscriber.origem_preferida,
+      destino: pending.destino || null,
+      precoAlvoCentavos: pending.preco_alvo_centavos || null,
+      confirmUrl: `${base}/api/newsletter/confirm-rota?token=${encodeURIComponent(token)}`,
+      unsubscribeUrl: `${base}/api/newsletter/unsubscribe?email=${encodeURIComponent(subscriber.email)}`,
+      jaInscrito: true,
+    });
+    return await enviarEmail({ para: subscriber.email, assunto, textoPlano, html });
+  } catch (err) {
+    return { ok: false, estado: "erro", motivo: (err && err.message) || String(err) };
+  }
+}
+
 export async function enviarConfirmacaoOptin({ subscriber, token, baseUrl }) {
   try {
     const base = String(baseUrl || "").replace(/\/+$/, "");

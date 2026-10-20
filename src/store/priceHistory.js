@@ -3,8 +3,7 @@
 // Persistencia em arquivo JSON, zero dependencias (NAO usa node:sqlite —
 // indisponivel no Node 20 da matrix de CI). Um arquivo por rota em
 // "<AONDE_DATA_DIR>/history/<ORIGEM-DESTINO>.json", contendo um array de
-// observacoes. Escrita atomica (tmp + rename) e tolerante a arquivo corrompido
-// (recomeca com aviso, nao lanca).
+// observacoes. Escrita atomica (tmp + rename). Arquivo ilegível não é reescrito.
 //
 // Este e o "banco de dados historico de precos" que o offerAdapter e o job de
 // monitoramento mencionam: com ele passa a ser possivel calcular a media de
@@ -34,6 +33,16 @@ export function routeKey(origin, destination) {
 
 function routeFile(route) {
   return path.join(historyDir(), `${route}.json`);
+}
+
+function lerObservacoes(file) {
+  try {
+    const data = readJsonSafe(file, []);
+    return { ok: true, lista: Array.isArray(data) ? data : [] };
+  } catch (err) {
+    if (err && err.code === "AONDE_DATA_CORRUPT") return { ok: false, lista: [] };
+    throw err;
+  }
 }
 
 /**
@@ -85,8 +94,11 @@ export function recordPrices(deals, options = {}) {
   let recorded = 0;
   for (const [route, observations] of byRoute) {
     const file = routeFile(route);
-    const existing = readJsonSafe(file, []);
-    const list = Array.isArray(existing) ? existing : [];
+    const existing = lerObservacoes(file);
+    // Arquivo ilegível não é reescrito: a observação nova espera o arquivo ser
+    // recuperado, em vez de apagar o histórico corrompido.
+    if (!existing.ok) continue;
+    const list = existing.lista;
     list.push(...observations);
     writeJsonAtomic(file, list);
     recorded += observations.length;
@@ -114,8 +126,11 @@ export function getRouteStats(origin, destination, options = {}) {
   const route = routeKey(origin, destination);
   const file = routeFile(route);
 
-  const all = readJsonSafe(file, []);
-  const observations = Array.isArray(all) ? all : [];
+  const lido = lerObservacoes(file);
+  if (!lido.ok) {
+    return { ok: false, route, sampleCount: 0, windowDays, error: "dados-ilegíveis" };
+  }
+  const observations = lido.lista;
 
   const cutoff = Date.now() - windowDays * 24 * 60 * 60 * 1000;
   const centavos = [];
@@ -188,8 +203,21 @@ export function getRouteSeries(origin, destination, options = {}) {
   const route = routeKey(originUp, destUp);
   const file = routeFile(route);
 
-  const all = readJsonSafe(file, []);
-  const observations = Array.isArray(all) ? all : [];
+  const lido = lerObservacoes(file);
+  if (!lido.ok) {
+    return {
+      ok: false,
+      route,
+      origin: originUp,
+      destination: destUp,
+      points: [],
+      sampleCount: 0,
+      windowDays,
+      minSamples,
+      error: "dados-ilegíveis",
+    };
+  }
+  const observations = lido.lista;
 
   const cutoff = Date.now() - windowDays * 24 * 60 * 60 * 1000;
   const points = [];

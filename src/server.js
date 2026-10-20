@@ -53,6 +53,7 @@ import {
   renderMapPage,
   renderExitPage,
   renderHelpPage,
+  renderSalvosPage,
   renderCancelPage,
   renderAlertsPage,
   renderNewsletterStatusPage,
@@ -60,27 +61,42 @@ import {
   renderNotFoundPage,
   renderServerErrorPage,
   renderTodayPage,
+  renderRegiaoPage,
   styleAssetPath,
   pageStylesCss,
   STYLE_TAG_RE,
 } from "./render/htmlRenderer.js";
-import { renderExitFlightPage, buildAviasalesSearchUrl } from "./render/exitFlight.js";
-import { OFFERS as CONTENT_OFFERS, GUIDES, RESULTS_ROUTE } from "./render/aondeContent.js";
-import { resolveAeroporto } from "./render/aeroportos.js";
+import { renderExitFlightPage, montarBuscaAviasales } from "./render/exitFlight.js";
+import { OFFERS as CONTENT_OFFERS, GUIDES } from "./render/aondeContent.js";
 import { buscarVoosAoVivo } from "./flights/buscarVoos.js";
 import { pacoteDoDia, chaveDoDia } from "./daily/dailyPick.js";
 import { listRoutes } from "./store/priceHistory.js";
-import { resolveDataDir, ensureDir } from "./store/dataDir.js";
+import { resolveDataDir, ensureDir, storageStatus } from "./store/dataDir.js";
 import {
   subscribe as subscribeNewsletter,
   confirm as confirmNewsletter,
+  confirmPendingRule,
   unsubscribe as unsubscribeNewsletter,
   getSubscriberByEmail,
   clearPendingAlert,
 } from "./newsletter/subscriberStore.js";
 import { addAlertRule } from "./newsletter/alertRules.js";
-import { envioDeEmailDisponivel, enviarConfirmacaoOptin } from "./newsletter/optinMail.js";
+import { enqueueEmailJob, markEmailJob } from "./newsletter/emailJobs.js";
+import {
+  envioDeEmailDisponivel,
+  enviarConfirmacaoOptin,
+  enviarConfirmacaoNovaRota,
+} from "./newsletter/optinMail.js";
+import { validarConsulta } from "./flights/consulta.js";
+import { viagemAindaVale, offersParaEscolha } from "./offers/elegibilidade.js";
+import { catalogoDescoberta } from "./render/descoberta.js";
+import { hasAmadeusCredentials } from "./partners/amadeus.js";
 import { createInboundRateLimiter, clientIp } from "./inboundRateLimiter.js";
+import { httpCacheStats } from "./httpCache.js";
+import { estatisticasBuscaAoVivo } from "./flights/buscaAoVivoLimite.js";
+import { registrarEvento } from "./analytics/events.js";
+
+let inboundAtual = null;
 
 function corsHeaders() {
   const origin = process.env.AONDE_CORS_ORIGIN;
@@ -297,11 +313,44 @@ function recordClick(id, userAgent) {
 
 function handleHealth(res) {
   const config = validateConfig();
+  const storage = storageStatus();
+  if (!storage.ready) {
+    sendJson(res, 503, {
+      ok: false,
+      config,
+      storedRoutes: 0,
+      storedOffers: 0,
+      storage,
+    });
+    return;
+  }
+  let storedRoutes = 0;
+  let storedOffers = 0;
+  try {
+    storedRoutes = listRoutes().length;
+    storedOffers = countOffers();
+  } catch (err) {
+    console.error("[aonde-affiliates] health: dados persistidos ilegíveis:", err && err.message);
+    sendJson(res, 503, {
+      ok: false,
+      config,
+      storedRoutes,
+      storedOffers,
+      storage: { ...storage, ready: false },
+    });
+    return;
+  }
   sendJson(res, 200, {
     ok: true,
     config,
-    storedRoutes: listRoutes().length,
-    storedOffers: countOffers(),
+    storedRoutes,
+    storedOffers,
+    storage,
+    memoria: {
+      cache: httpCacheStats(),
+      inbound: inboundAtual ? inboundAtual.stats() : { baldes: 0, expurgos: 0, expirados: 0 },
+      busca: estatisticasBuscaAoVivo(),
+    },
   });
 }
 
@@ -330,7 +379,9 @@ function handleGetOffer(req, res, id) {
 
 function handleClick(req, res, id) {
   const offer = getOffer(id);
-  if (!offer) {
+  // Rascunho e retirada respondem o mesmo 404 de id desconhecido: sem corpo
+  // da oferta, sem affiliate_url e sem linha em clicks.jsonl.
+  if (!offer || (offer.status !== "publicada" && !isAdminRequest(req))) {
     sendJson(res, 404, { error: `Oferta não encontrada: ${id}` });
     return;
   }
@@ -352,6 +403,36 @@ function handleClick(req, res, id) {
   // O front decide redirecionar (contrato do handoff do produto): devolvemos a
   // URL de destino com status 200, sem emitir um 302 aqui.
   sendJson(res, 200, { redirect: offer.affiliate_url });
+}
+
+// Grava o trabalho ANTES da resposta HTTP. O envio em si continua sem await
+// (o provedor pode repetir falha temporária), mas a falha fica no job.
+function agendarEmailConfirmacao({ tipo, subscriber, token }) {
+  const job = enqueueEmailJob({
+    tipo,
+    para: subscriber.email,
+    payload: { subscriberId: subscriber.id, tipo },
+  });
+  const envio =
+    tipo === "nova-rota"
+      ? enviarConfirmacaoNovaRota({ subscriber, token, baseUrl: siteBaseUrl() })
+      : enviarConfirmacaoOptin({ subscriber, token, baseUrl: siteBaseUrl() });
+  envio
+    .then((resultado) => {
+      if (resultado && resultado.ok) {
+        markEmailJob(job.id, "enviado");
+        return;
+      }
+      const motivo = (resultado && (resultado.motivo || resultado.estado)) || "falha";
+      console.error(`[aonde-affiliates] Falha ao enviar e-mail de ${tipo}:`, motivo);
+      markEmailJob(job.id, "falha", motivo);
+    })
+    .catch((err) => {
+      const motivo = (err && err.message) || String(err);
+      console.error(`[aonde-affiliates] Falha ao enviar e-mail de ${tipo}:`, motivo);
+      markEmailJob(job.id, "falha", motivo);
+    });
+  return job;
 }
 
 async function handleNewsletterSubscribe(req, res) {
@@ -394,14 +475,27 @@ async function handleNewsletterSubscribe(req, res) {
   // propriedade do servidor, igual para todo visitante: nao revela quem ja
   // esta inscrito.
   const entregaDisponivel = envioDeEmailDisponivel();
-  if (result.status === "pending_optin" && entregaDisponivel) {
-    // Sem await: enviarEmail repete falhas temporarias com espera, e a pessoa
-    // nao deve ficar olhando um botao parado. Nunca lanca.
-    enviarConfirmacaoOptin({
-      subscriber: result.subscriber,
-      token: result.token,
-      baseUrl: siteBaseUrl(),
-    }).catch(() => {});
+  if (
+    entregaDisponivel &&
+    (result.status === "pending_optin" || result.status === "pending_rule") &&
+    result.token
+  ) {
+    try {
+      agendarEmailConfirmacao({
+        tipo: result.status === "pending_rule" ? "nova-rota" : "optin",
+        subscriber: result.subscriber,
+        token: result.token,
+      });
+    } catch (err) {
+      console.error(
+        "[aonde-affiliates] Não foi possível gravar o e-mail de confirmação:",
+        err && err.message
+      );
+      const aviso = "Não conseguimos registrar o envio do e-mail agora. Tente de novo em instantes.";
+      if (veioDeForm) sendHtml(res, 503, renderNewsletterStatusPage({ ok: false, error: aviso, retry: true }));
+      else sendJson(res, 503, { error: aviso });
+      return;
+    }
   }
   const entrega = entregaDisponivel ? "email" : "indisponivel";
 
@@ -440,6 +534,41 @@ function activatePendingAlert(subscriber) {
   } catch {
     /* nunca derruba a confirmacao */
   }
+}
+
+function handleConfirmRota(req, res, url) {
+  const token = url.searchParams.get("token");
+  const result = confirmPendingRule(token);
+  const wantsHtml = (req.headers.accept || "").includes("text/html");
+  if (!result.ok) {
+    if (wantsHtml) {
+      sendHtml(res, 400, renderNewsletterStatusPage({ ok: false, error: result.error }));
+      return;
+    }
+    sendJson(res, 400, { ok: false, error: result.error });
+    return;
+  }
+  const pending = result.pending || {};
+  const regra = addAlertRule({
+    subscriberId: result.subscriber.id,
+    origem: pending.origem,
+    destino: pending.destino || undefined,
+    precoAlvoCentavos: pending.preco_alvo_centavos || undefined,
+    canais: result.subscriber.channels,
+  });
+  if (!regra.ok) {
+    if (wantsHtml) {
+      sendHtml(res, 400, renderNewsletterStatusPage({ ok: false, error: regra.error }));
+      return;
+    }
+    sendJson(res, 400, { ok: false, error: regra.error });
+    return;
+  }
+  if (wantsHtml) {
+    sendHtml(res, 200, renderNewsletterStatusPage({ ok: true }));
+    return;
+  }
+  sendJson(res, 200, { ok: true, message: "Rota confirmada. O alerta passa a valer para essa inscrição." });
 }
 
 function handleNewsletterConfirm(req, res, url) {
@@ -532,46 +661,92 @@ function publishedLiveOffers() {
   return listOffers({ status: "publicada" });
 }
 
-function handleHome(res) {
-  sendHtml(res, 200, renderHomePage({ offers: publishedLiveOffers() }));
+function editoriaisPublicas() {
+  const ids = new Set(offersParaEscolha(listOffers(), CONTENT_OFFERS).map((o) => o.id));
+  return CONTENT_OFFERS.filter((o) => ids.has(o.id));
+}
+
+function handleHome(res, url) {
+  const busca = {};
+  if (url) {
+    for (const chave of ["origem", "destino", "ida", "volta", "adultos", "criancas", "bebes"]) {
+      const valor = url.searchParams.get(chave);
+      if (valor !== null && valor !== "") busca[chave] = valor;
+    }
+  }
+  sendHtml(
+    res,
+    200,
+    renderHomePage({
+      offers: publishedLiveOffers(),
+      editoriais: editoriaisPublicas(),
+      busca,
+      buscaAoVivo: hasAmadeusCredentials(),
+      hoje: chaveDoDia(new Date()),
+    })
+  );
 }
 
 function handleOffersHtml(res, url) {
   const origem = url.searchParams.get("origem") || undefined;
   const q = url.searchParams.get("q") || "";
   const tipo = url.searchParams.get("tipo") || "";
-  sendHtml(res, 200, renderOffersPage(publishedLiveOffers(), { origem, q, tipo }));
+  sendHtml(res, 200, renderOffersPage(publishedLiveOffers(), { origem, q, tipo, editoriais: editoriaisPublicas() }));
 }
 
 // Ofertas semelhantes: mesmo `tipo`, exceto a propria, no maximo 3.
 function relatedOffers(pool, current) {
-  return pool.filter((o) => o.id !== current.id && o.tipo === current.tipo).slice(0, 3);
+  const dia = chaveDoDia(new Date());
+  return pool
+    .filter((o) => o && o.id !== current.id && o.tipo === current.tipo && viagemAindaVale(o, dia))
+    .slice(0, 3);
 }
 
-function handleOfferHtml(res, id) {
-  const apiKey = getConfig().googleMaps.apiKey;
+// Store com status diferente de publicada bloqueia o id, inclusive o texto
+// editorial de mesmo id. Admin (x-admin-token) pode pré-visualizar.
+function ofertaPublica(req, id) {
   const live = getOffer(id);
+  if (!live) return { live: null, bloqueada: false };
+  if (live.status === "publicada" || isAdminRequest(req)) return { live, bloqueada: false };
+  return { live: null, bloqueada: true };
+}
+
+function handleOfferHtml(req, res, id) {
+  const apiKey = getConfig().googleMaps.apiKey;
+  const { live, bloqueada } = ofertaPublica(req, id);
+  if (bloqueada) {
+    sendHtml(res, 404, renderOffersPage(publishedLiveOffers(), { naoEncontrada: id, editoriais: editoriaisPublicas() }));
+    return;
+  }
   if (live) {
-    const related = relatedOffers(publishedLiveOffers(), live);
+    const related = relatedOffers(offersParaEscolha(listOffers(), CONTENT_OFFERS), live);
     sendHtml(res, 200, renderOfferPage(live, { related, apiKey }));
     return;
   }
   const editorial = CONTENT_OFFERS.find((o) => o.id === id);
   if (editorial) {
-    const related = relatedOffers(CONTENT_OFFERS, editorial);
+    const related = relatedOffers(offersParaEscolha(listOffers(), CONTENT_OFFERS), editorial);
     sendHtml(res, 200, renderOfferPage(editorial, { related, apiKey }));
     return;
   }
   // Nao encontrada: devolve o feed de ofertas com 404 (pagina util, nao um JSON seco).
-  sendHtml(res, 404, renderOffersPage(publishedLiveOffers(), { naoEncontrada: id }));
+  sendHtml(res, 404, renderOffersPage(publishedLiveOffers(), { naoEncontrada: id, editoriais: editoriaisPublicas() }));
 }
 
 function handleGuideHtml(res, id) {
   if (GUIDES[id]) {
-    sendHtml(res, 200, renderGuidePage(id, { apiKey: getConfig().googleMaps.apiKey }));
+    sendHtml(
+      res,
+      200,
+      renderGuidePage(id, {
+        apiKey: getConfig().googleMaps.apiKey,
+        hoje: new Date(),
+        offers: offersParaEscolha(listOffers(), CONTENT_OFFERS),
+      })
+    );
     return;
   }
-  sendHtml(res, 404, renderHomePage({ offers: publishedLiveOffers() }));
+  sendHtml(res, 404, renderHomePage({ offers: publishedLiveOffers(), editoriais: editoriaisPublicas() }));
 }
 
 // Escolha do dia. `?dia=AAAA-MM-DD` serve para teste e preview; qualquer outra
@@ -592,7 +767,7 @@ function handleTodayHtml(res, diaParam) {
   }
   let pacote;
   try {
-    pacote = pacoteDoDia(data);
+    pacote = pacoteDoDia(data, { offers: offersParaEscolha(listOffers(), CONTENT_OFFERS) });
   } catch (err) {
     console.error("[aonde-affiliates] /hoje: falha ao montar a escolha do dia:", err && err.message);
     sendHtml(res, 500, renderTodayPage(null, { erro: true }));
@@ -678,36 +853,55 @@ function handleOgImage(res, pathname) {
 }
 
 function handleRobots(res) {
-  const body = `User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: ${siteBaseUrl()}/sitemap.xml\n`;
+  const body = `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /resultados\nSitemap: ${siteBaseUrl()}/sitemap.xml\n`;
   sendText(res, 200, body);
+}
+
+function dataPublicacao(valor) {
+  if (typeof valor !== "string") return null;
+  const m = /^(\d{4}-\d{2}-\d{2})/.exec(valor.trim());
+  return m ? m[1] : null;
 }
 
 function handleSitemap(res) {
   const base = siteBaseUrl();
-  const paths = ["/", "/hoje", "/ofertas", "/guias", "/mapa", "/resultados", "/ajuda", "/cancelamentos", "/alertas"];
-  for (const id of Object.keys(GUIDES)) paths.push(`/guias/${encodeURIComponent(id)}`);
-  for (const o of CONTENT_OFFERS) paths.push(`/ofertas/${encodeURIComponent(o.id)}`);
+  const hoje = chaveDoDia(new Date());
+  const entradas = [
+    { loc: "/" },
+    { loc: "/hoje", lastmod: hoje },
+    { loc: "/ofertas" },
+    { loc: "/guias" },
+    { loc: "/mapa" },
+    { loc: "/ajuda" },
+    { loc: "/cancelamentos" },
+    { loc: "/alertas" },
+  ];
+  for (const id of Object.keys(GUIDES)) entradas.push({ loc: `/guias/${encodeURIComponent(id)}` });
+  for (const hub of catalogoDescoberta().hubs) entradas.push({ loc: `/regioes/${hub.slug}` });
+  let ofertas = CONTENT_OFFERS;
+  try {
+    ofertas = offersParaEscolha(listOffers(), CONTENT_OFFERS);
+  } catch (err) {
+    console.error("[aonde-affiliates] sitemap: store de ofertas ilegível:", err && err.message);
+  }
+  const vistos = new Set();
+  for (const o of ofertas) {
+    if (!o || !o.id || vistos.has(o.id) || !viagemAindaVale(o, hoje)) continue;
+    vistos.add(o.id);
+    const lastmod = dataPublicacao(o.publicadoEm) || dataPublicacao(o.updated_at) || dataPublicacao(o.fontePrecoEm);
+    entradas.push({ loc: `/ofertas/${encodeURIComponent(o.id)}`, lastmod });
+  }
   const xml =
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-    paths.map((p) => `  <url><loc>${base}${p}</loc></url>`).join("\n") +
+    entradas
+      .map((item) => {
+        const lastmod = item.lastmod ? `<lastmod>${item.lastmod}</lastmod>` : "";
+        return `  <url><loc>${base}${item.loc}</loc>${lastmod}</url>`;
+      })
+      .join("\n") +
     `\n</urlset>\n`;
   sendText(res, 200, xml, "application/xml; charset=utf-8");
-}
-
-// Extrai um codigo IATA (3 letras) de um texto tipo "São Paulo · GRU".
-function extractIata(s) {
-  const ups = String(s || "").toUpperCase().match(/\b[A-Z]{3}\b/g);
-  return ups && ups.length ? ups[ups.length - 1] : null;
-}
-
-// Le um contador de passageiro da querystring, preso a uma faixa sa.
-function paxCount(url, nome, min, max, padrao) {
-  const bruto = url.searchParams.get(nome);
-  if (bruto === null || bruto === "") return padrao;
-  const n = Number.parseInt(bruto, 10);
-  if (!Number.isFinite(n)) return padrao;
-  return Math.min(max, Math.max(min, n));
 }
 
 /**
@@ -741,63 +935,106 @@ function paxResumo({ adultos, criancas, bebes }) {
 //                      verdade; false (ou ausente) sempre que os voos
 //                      exibidos forem os de amostra — NUNCA rotular exemplo
 //                      como real.
-async function handleResultsHtml(res, url) {
+async function handleResultsHtml(req, res, url) {
   const oQS = url.searchParams.get("origem");
   const dQS = url.searchParams.get("destino");
   const periodo = url.searchParams.get("periodo");
   const idaQS = url.searchParams.get("ida");
   const voltaQS = url.searchParams.get("volta");
-  const searched = !!(oQS || dQS);
-  const pax = {
-    adultos: paxCount(url, "adultos", 1, 9, 2),
-    criancas: paxCount(url, "criancas", 0, 8, 0),
-    bebes: paxCount(url, "bebes", 0, 4, 0),
-  };
-  const temPax = ["adultos", "criancas", "bebes"].some((k) => url.searchParams.get(k) !== null);
-  // Aceita codigo IATA OU nome de cidade. Quando nao reconhece, guarda o que
-  // a pessoa digitou para AVISAR na pagina, em vez de trocar em silencio pelo
-  // padrao — que era o comportamento antigo: "Porto Alegre" -> "Sao Paulo"
-  // virava GRU->SAO, e "xyz" era aceito como aeroporto.
-  const origemPedida = String(oQS || "").trim();
-  const destinoPedido = String(dQS || "").trim();
-  const origemIata = resolveAeroporto(origemPedida);
-  const destinoIata = resolveAeroporto(destinoPedido);
-  const naoEntendi = [
-    origemPedida && !origemIata ? origemPedida : "",
-    destinoPedido && !destinoIata ? destinoPedido : "",
-  ].filter(Boolean);
-  const rota = searched
-    ? {
-        origem: origemIata || RESULTS_ROUTE.origem,
-        destino: destinoIata || RESULTS_ROUTE.destino,
-        resumo: [periodo, temPax ? paxResumo(pax) : ""].filter(Boolean).join(" · ") || RESULTS_ROUTE.resumo,
-      }
-    : undefined;
+  const adultosQS = url.searchParams.get("adultos");
+  const criancasQS = url.searchParams.get("criancas");
+  const bebesQS = url.searchParams.get("bebes");
+  const algumCampo = [oQS, dQS, idaQS, voltaQS, adultosQS, criancasQS, bebesQS].some(
+    (valor) => valor !== null && String(valor).trim() !== ""
+  );
+  const hoje = chaveDoDia(new Date());
+  const buscaAoVivo = hasAmadeusCredentials();
 
-  // So tenta a busca ao vivo quando ha uma rota de verdade para consultar
-  // (usuario buscou algo). Sem credencial Amadeus, buscarVoosAoVivo devolve
-  // ok:false IMEDIATAMENTE (nem tenta rede) — o custo extra aqui e zero no
-  // caso comum (producao sem chave configurada). Qualquer falha ou demora
-  // tambem cai no mesmo fallback, silenciosamente: a pagina nunca quebra nem
-  // demora por causa de um parceiro externo fora do ar (ver o teto de tempo
-  // em src/flights/buscarVoos.js).
-  let voos;
-  let voosReais = false;
-  if (rota) {
-    const resultado = await buscarVoosAoVivo({
-      origem: rota.origem,
-      destino: rota.destino,
-      ida: idaQS,
-      volta: voltaQS,
-      pax,
-    });
-    if (resultado.ok && Array.isArray(resultado.voos) && resultado.voos.length > 0) {
-      voos = resultado.voos;
-      voosReais = true;
-    }
+  // Sem campos, a página de amostra não consulta parceiro.
+  if (!algumCampo) {
+    sendHtml(res, 200, renderResultsPage({ searched: false, buscaAoVivo, hoje }));
+    return;
   }
 
-  sendHtml(res, 200, renderResultsPage({ rota, searched, pax: temPax ? pax : null, voos, voosReais, naoEntendi }));
+  const pediuDatas = [idaQS, voltaQS].some((valor) => valor !== null && String(valor).trim() !== "");
+  const validacao = validarConsulta(
+    {
+      origem: oQS || "",
+      destino: dQS || "",
+      ida: idaQS || "",
+      volta: voltaQS || "",
+      adultos: adultosQS,
+      criancas: criancasQS,
+      bebes: bebesQS,
+    },
+    { hoje, exigirDatas: pediuDatas }
+  );
+  if (!validacao.ok) {
+    sendHtml(
+      res,
+      200,
+      renderResultsPage({
+        searched: true,
+        semLista: true,
+        erros: validacao.erros,
+        consulta: validacao.informada,
+        buscaAoVivo,
+        hoje,
+      })
+    );
+    return;
+  }
+
+  const consulta = validacao.consulta;
+  const pax = { adultos: consulta.adultos, criancas: consulta.criancas, bebes: consulta.bebes };
+  const temPax = ["adultos", "criancas", "bebes"].some((k) => url.searchParams.get(k) !== null);
+  const rota = {
+    origem: consulta.origem,
+    destino: consulta.destino,
+    resumo: [periodo, temPax ? paxResumo(pax) : ""].filter(Boolean).join(" · "),
+  };
+
+  let voos;
+  let voosReais = false;
+  const controleBusca = new AbortController();
+  const aoFechar = () => {
+    if (!res.writableEnded) controleBusca.abort();
+  };
+  req.on("close", aoFechar);
+  let resultado;
+  try {
+    resultado = await buscarVoosAoVivo({
+      origem: consulta.origem,
+      destino: consulta.destino,
+      ida: consulta.ida || undefined,
+      volta: consulta.volta || undefined,
+      pax,
+      signal: controleBusca.signal,
+      cliente: clientIp(req),
+    });
+  } finally {
+    req.removeListener("close", aoFechar);
+  }
+  if (resultado.ok && Array.isArray(resultado.voos) && resultado.voos.length > 0) {
+    voos = resultado.voos;
+    voosReais = true;
+  }
+
+  sendHtml(
+    res,
+    200,
+    renderResultsPage({
+      rota,
+      searched: true,
+      pax: temPax ? pax : null,
+      voos,
+      voosReais,
+      consulta,
+      buscaAoVivo,
+      buscaMotivo: resultado && resultado.ok ? "ok" : (resultado && resultado.motivo) || "erro",
+      hoje,
+    })
+  );
 }
 
 // Interstitial de saida: registra o clique e resolve o link do parceiro. Um
@@ -809,10 +1046,14 @@ async function handleResultsHtml(res, url) {
 // reconstroi o aviasalesUrl com a nova origem, permitindo que pessoas de outros
 // estados reservem a mesma rota (BUE 12-19 set).
 function handleExitHtml(req, res, id, url) {
-  const live = getOffer(id);
+  const { live, bloqueada } = ofertaPublica(req, id);
+  if (bloqueada) {
+    sendHtml(res, 404, renderOffersPage(publishedLiveOffers(), { naoEncontrada: id, editoriais: editoriaisPublicas() }));
+    return;
+  }
   const offer = live || CONTENT_OFFERS.find((o) => o.id === id);
   if (!offer) {
-    sendHtml(res, 404, renderOffersPage(publishedLiveOffers(), {}));
+    sendHtml(res, 404, renderOffersPage(publishedLiveOffers(), { editoriais: editoriaisPublicas() }));
     return;
   }
   
@@ -870,6 +1111,11 @@ function handleExitHtml(req, res, id, url) {
     return;
   }
   recordClick(id, req.headers["user-agent"]);
+  try {
+    registrarEvento({ tipo: "saida", local: "saida", alvo: id });
+  } catch (err) {
+    console.error("[aonde] saída sem evento:", err && err.message);
+  }
   sendHtml(res, 200, renderExitPage(offer, { affiliateUrl }), NOINDEX_HEADERS);
 }
 
@@ -895,7 +1141,18 @@ function handleExitFlightHtml(req, res, url) {
   }
   const origem = origemRaw.toUpperCase();
   const destino = destinoRaw.toUpperCase();
-  const searchUrl = buildAviasalesSearchUrl(origem, destino);
+  const parametro = (chave) => {
+    const valor = url.searchParams.get(chave);
+    return valor === null ? undefined : valor;
+  };
+  const busca = montarBuscaAviasales(origem, destino, {
+    ida: url.searchParams.get("ida") || "",
+    volta: url.searchParams.get("volta") || "",
+    adultos: parametro("adultos"),
+    criancas: parametro("criancas"),
+    bebes: parametro("bebes"),
+  });
+  const searchUrl = busca.url;
   // Mesma defesa em profundidade do /saida/:id: so segue com esquema
   // http/https. Na pratica buildAviasalesSearchUrl sempre gera https, mas o
   // teto de seguranca fica aqui caso isso mude no futuro.
@@ -907,7 +1164,17 @@ function handleExitFlightHtml(req, res, url) {
   // "voo:ORIGEM-DESTINO" deixa claro, na curadoria, que e clique de busca por
   // rota (e nao clique numa oferta com id do catalogo).
   recordClick(`voo:${origem}-${destino}`, req.headers["user-agent"]);
-  sendHtml(res, 200, renderExitFlightPage({ origem, destino, searchUrl }));
+  sendHtml(
+    res,
+    200,
+    renderExitFlightPage({
+      origem,
+      destino,
+      searchUrl,
+      resumoPax: busca.resumo,
+      avisoPax: busca.aviso,
+    })
+  );
 }
 
 /**
@@ -921,6 +1188,7 @@ export function createServer() {
   // instancias concorrentes (se algum dia houver mais de um processo)
   // compartilhem baldes sem querer. Ver src/inboundRateLimiter.js.
   const inboundLimiter = createInboundRateLimiter();
+  inboundAtual = inboundLimiter;
 
   // Aplica o rate limiting inbound a uma classe de rota de ESCRITA publica.
   // Retorna true (e ja respondeu 429) se a requisicao deve ser bloqueada;
@@ -944,12 +1212,17 @@ export function createServer() {
   }
 
   return http.createServer(async (req, res) => {
+    if (isAdminRequest(req)) {
+      res.setHeader("Cache-Control", "private, no-store");
+      res.setHeader("X-Robots-Tag", "noindex, nofollow");
+    }
     // Anotado aqui para que sendHtml/sendText possam comprimir sem que os 27
     // pontos de chamada precisem carregar `req` adiante.
     res.aceitaEncoding = String((req.headers && req.headers["accept-encoding"]) || "");
+    let pathname = "/";
     try {
       const url = new URL(req.url, "http://localhost");
-      const pathname = url.pathname.replace(/\/+$/, "") || "/";
+      pathname = url.pathname.replace(/\/+$/, "") || "/";
       const method = req.method || "GET";
 
       // Preflight CORS.
@@ -991,8 +1264,18 @@ export function createServer() {
         handleSitemap(res);
         return;
       }
-      if (method === "GET" && (pathname === "/" || pathname === "/home")) {
-        handleHome(res);
+      if (method === "GET" && pathname === "/home") {
+        const destino = url.search && url.search !== "?" ? `/${url.search}` : "/";
+        res.writeHead(301, {
+          Location: destino,
+          ...securityHeaders(),
+          ...corsHeaders(),
+        });
+        res.end();
+        return;
+      }
+      if (method === "GET" && pathname === "/") {
+        handleHome(res, url);
         return;
       }
       if (method === "GET" && pathname === "/ofertas") {
@@ -1000,7 +1283,7 @@ export function createServer() {
         return;
       }
       if (method === "GET" && pathname === "/resultados") {
-        await handleResultsHtml(res, url);
+        await handleResultsHtml(req, res, url);
         return;
       }
       if (method === "GET" && pathname === "/mapa") {
@@ -1008,11 +1291,32 @@ export function createServer() {
         return;
       }
       if (method === "GET" && pathname === "/guias") {
-        sendHtml(res, 200, renderGuidesIndexPage());
+        sendHtml(
+          res,
+          200,
+          renderGuidesIndexPage({
+            regiao: url.searchParams.get("regiao") || "",
+            estilo: url.searchParams.get("estilo") || "",
+          })
+        );
+        return;
+      }
+      const regiaoMatch = pathname.match(/^\/regioes\/([^/]+)$/);
+      if (method === "GET" && regiaoMatch) {
+        const html = renderRegiaoPage(decodeURIComponent(regiaoMatch[1]));
+        if (!html) {
+          sendHtml(res, 404, renderNotFoundPage({ caminho: pathname }));
+          return;
+        }
+        sendHtml(res, 200, html);
         return;
       }
       if (method === "GET" && pathname === "/ajuda") {
-        sendHtml(res, 200, renderHelpPage());
+        sendHtml(res, 200, renderHelpPage({ guia: url.searchParams.get("guia") || "" }));
+        return;
+      }
+      if (method === "GET" && pathname === "/salvos") {
+        sendHtml(res, 200, renderSalvosPage());
         return;
       }
       if (method === "GET" && pathname === "/cancelamentos") {
@@ -1036,7 +1340,7 @@ export function createServer() {
       }
       const offerHtmlMatch = pathname.match(/^\/ofertas\/([^/]+)$/);
       if (method === "GET" && offerHtmlMatch) {
-        handleOfferHtml(res, decodeURIComponent(offerHtmlMatch[1]));
+        handleOfferHtml(req, res, decodeURIComponent(offerHtmlMatch[1]));
         return;
       }
       const guideHtmlMatch = pathname.match(/^\/guias\/([^/]+)$/);
@@ -1070,6 +1374,15 @@ export function createServer() {
         return;
       }
 
+      if (pathname === "/api/newsletter/confirm-rota") {
+        if (method !== "GET") {
+          sendJson(res, 405, { error: "Método não permitido; use GET." });
+          return;
+        }
+        handleConfirmRota(req, res, url);
+        return;
+      }
+
       if (pathname === "/api/newsletter/unsubscribe") {
         // O link do e-mail e um GET. Antes devolvia 405 com JSON cru, embora o
         // proprio e-mail prometesse cancelar a inscricao em um clique. Agora
@@ -1085,6 +1398,25 @@ export function createServer() {
         }
         if (enforceInboundRateLimit(req, res, "newsletter-unsubscribe")) return;
         await handleNewsletterUnsubscribe(req, res);
+        return;
+      }
+
+      if (pathname === "/api/eventos") {
+        if (method !== "POST") {
+          sendJson(res, 405, { error: "Método não permitido; use POST." });
+          return;
+        }
+        if (enforceInboundRateLimit(req, res, "eventos")) return;
+        const lido = await readJsonBody(req);
+        if (lido.ok) {
+          try {
+            registrarEvento(lido.body);
+          } catch (err) {
+            console.error("[aonde] evento não registrado:", err && err.message);
+          }
+        }
+        res.writeHead(204, { ...securityHeaders(), ...corsHeaders() });
+        res.end();
         return;
       }
 

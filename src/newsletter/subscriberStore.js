@@ -147,16 +147,30 @@ export function subscribe({ email, whatsapp, origem, destino, precoAlvoCentavos 
   const all = readAll();
   const index = all.findIndex((s) => s && normalizeEmail(s.email) === normalizedEmail);
 
-  // Ja confirmado e ativo: nao ha o que fazer (nao reenvia opt-in).
+  const token = generateToken();
+  const tokenExpiresAt = new Date(now.getTime() + OPTIN_TTL_MS).toISOString();
+
+  // Identidade já confirmada não volta para opt-in. Uma rota nova espera um
+  // link de confirmação próprio (pending_rule) e não vira AlertRule na hora:
+  // quem souber o e-mail não cadastra alerta sem o clique.
   if (index !== -1) {
     const existing = all[index];
     if (existing.double_optin_confirmed && !existing.unsubscribed_at) {
-      return { ok: true, status: "already_confirmed", subscriber: existing };
+      if (!pendingAlert) {
+        return { ok: true, status: "already_confirmed", subscriber: existing };
+      }
+      const pending_rule = {
+        token,
+        expires_at: tokenExpiresAt,
+        origem: normalizedOrigem,
+        destino: pendingAlert.destino,
+        preco_alvo_centavos: pendingAlert.preco_alvo_centavos,
+      };
+      all[index] = { ...existing, pending_rule };
+      writeAll(all);
+      return { ok: true, status: "pending_rule", token, subscriber: all[index] };
     }
   }
-
-  const token = generateToken();
-  const tokenExpiresAt = new Date(now.getTime() + OPTIN_TTL_MS).toISOString();
 
   let subscriber;
   if (index === -1) {
@@ -290,6 +304,33 @@ export function unsubscribe(email) {
  * e criada no confirm). Escrita atomica, no-op se o assinante nao existe.
  * @param {string} id
  */
+/**
+ * Confirma uma rota pedida por quem já estava inscrito. Não mexe no opt-in.
+ * Token inexistente, expirado ou assinante descadastrado não cria regra.
+ */
+export function confirmPendingRule(token) {
+  if (typeof token !== "string" || token.trim() === "") {
+    return { ok: false, error: "O link de confirmação está incompleto ou inválido." };
+  }
+  const all = readAll();
+  const index = all.findIndex((s) => s && s.pending_rule && s.pending_rule.token === token);
+  if (index === -1) {
+    return { ok: false, error: "Esse link de confirmação não vale mais: já foi usado ou não existe." };
+  }
+  const subscriber = all[index];
+  const pending = subscriber.pending_rule;
+  const expiresAt = pending.expires_at ? new Date(pending.expires_at).getTime() : 0;
+  if (!expiresAt || Date.now() > expiresAt) {
+    return { ok: false, error: "Esse link de confirmação está expirado (ele vale por 48 horas)." };
+  }
+  if (!subscriber.double_optin_confirmed || subscriber.unsubscribed_at) {
+    return { ok: false, error: "Essa inscrição não está ativa." };
+  }
+  all[index] = { ...subscriber, origem_preferida: pending.origem, pending_rule: null };
+  writeAll(all);
+  return { ok: true, subscriber: all[index], pending };
+}
+
 export function clearPendingAlert(id) {
   const all = readAll();
   const index = all.findIndex((s) => s && s.id === id);
