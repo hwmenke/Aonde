@@ -132,7 +132,8 @@ export function scriptSalvos() {
       var item=dado.ids[i];
       var atual=achar(item);
       if(!atual){
-        html+='<article class="salvo-item"><h2>'+esc(item.tipo)+' '+esc(item.id)+'</h2><p>Este item salvo não está mais disponível.</p></article>';
+        html+='<article class="salvo-item"><h2>'+esc(item.tipo)+' '+esc(item.id)+'</h2><p>Este item salvo não está mais disponível.</p>'+
+          '<button type="button" data-salvar data-tipo="'+esc(item.tipo)+'" data-id="'+esc(item.id)+'" aria-pressed="true">Remover dos salvos</button></article>';
         continue;
       }
       html+='<article class="salvo-item"><h2><a href="'+esc(atual.href)+'">'+esc(atual.titulo)+'</a></h2>'+
