@@ -77,7 +77,6 @@ import {
   confirm as confirmNewsletter,
   confirmPendingRule,
   unsubscribe as unsubscribeNewsletter,
-  getSubscriberByEmail,
   clearPendingAlert,
 } from "./newsletter/subscriberStore.js";
 import { addAlertRule } from "./newsletter/alertRules.js";
@@ -617,37 +616,9 @@ async function handleNewsletterUnsubscribe(req, res) {
 }
 
 async function handleCreateAlert(req, res) {
-  const parsed = await readJsonBody(req);
-  if (!parsed.ok) {
-    sendJson(res, 400, { error: parsed.error });
-    return;
-  }
-  const { email, origem, destino, precoAlvoCentavos } = parsed.body || {};
-
-  const subscriber = getSubscriberByEmail(email);
-  if (!subscriber) {
-    sendJson(res, 404, { error: "Assinante não encontrado. Inscreva-se antes de criar um alerta." });
-    return;
-  }
-  if (!subscriber.double_optin_confirmed || subscriber.unsubscribed_at) {
-    sendJson(res, 409, {
-      error: "Assinante não confirmou a inscrição pelo e-mail ou está descadastrado.",
-    });
-    return;
-  }
-
-  const result = addAlertRule({
-    subscriberId: subscriber.id,
-    origem,
-    destino,
-    precoAlvoCentavos,
-    canais: subscriber.channels,
-  });
-  if (!result.ok) {
-    sendJson(res, 400, { error: result.error });
-    return;
-  }
-  sendJson(res, 201, { ok: true, rule: result.rule });
+  // Pedidos publicos exigem o link enviado ao dono do e-mail, inclusive
+  // quando a inscricao ja esta confirmada. A resposta permanece generica.
+  return handleNewsletterSubscribe(req, res);
 }
 
 // ---- Paginas HTML (front-end portado do prototipo) ----
