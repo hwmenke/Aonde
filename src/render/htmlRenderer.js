@@ -4454,15 +4454,27 @@ function enhancementScript() {
       ocupado=true;
       if(btn){btn.disabled=true;btn.setAttribute('aria-busy','true');btn.textContent='Enviando…';}
       fala('info','Enviando seu pedido…');
-      fetch(form.action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      var controller=new AbortController();
+      var expirou=false;
+      var timer;
+      var prazo=new Promise(function(resolve,reject){
+        timer=setTimeout(function(){
+          expirou=true;
+          controller.abort();
+          reject(new Error('Newsletter timeout'));
+        },15000);
+      });
+      var pedido=fetch(form.action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller.signal})
         .then(function(r){
           var espera=Number(r.headers.get('Retry-After'))||0;
           return r.json().then(
             function(d){return {ok:r.ok,status:r.status,d:d||{},espera:espera};},
             function(){return {ok:false,status:r.status,d:{},espera:espera};}
           );
-        })
+        });
+      Promise.race([pedido,prazo])
         .then(function(x){
+          clearTimeout(timer);
           livre();
           var d=x.d;
           if(x.ok&&d.status){
@@ -4485,7 +4497,12 @@ function enhancementScript() {
           fala('erro','Não conseguimos registrar seu pedido agora. O que você digitou continua aqui; tente de novo em instantes.');
         })
         .catch(function(){
+          clearTimeout(timer);
           livre();
+          if(expirou){
+            fala('erro','Não foi possível confirmar o recebimento do seu pedido. O que você digitou continua aqui; tente de novo em instantes.');
+            return;
+          }
           fala('erro','Sem conexão com o Aonde. Confira sua internet e tente de novo; o que você digitou continua aqui.');
         });
     });
