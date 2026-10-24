@@ -173,9 +173,9 @@ test("GET /saida/:id responde 404 (inexistente) e 409 (sem affiliate_url)", asyn
   assert.equal((await fetch(`${baseUrl}/saida/sem-link`)).status, 409);
 });
 
-test("GET /ajuda, /cancelamentos e /alertas servem HTML", async (t) => {
+test("GET /ajuda, /cancelamentos, /privacidade, /termos e /alertas servem HTML", async (t) => {
   const { baseUrl } = await withServer(t);
-  for (const p of ["/ajuda", "/cancelamentos", "/alertas"]) {
+  for (const p of ["/ajuda", "/cancelamentos", "/privacidade", "/termos", "/alertas"]) {
     const res = await fetch(`${baseUrl}${p}`);
     assert.equal(res.status, 200, `${p} deve responder 200`);
     assert.match(res.headers.get("content-type") || "", /text\/html/, `${p} deve ser HTML`);

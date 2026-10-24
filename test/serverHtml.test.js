@@ -101,6 +101,7 @@ test("GET /robots.txt e /sitemap.xml para SEO", async () => {
   assert.ok(sitemap.body.includes("/guias/salvador"), "sitemap inclui roteiros");
   assert.match(sitemap.body, /\/ofertas\/[a-z0-9-]+</, "sitemap inclui ofertas");
   assert.ok(sitemap.body.includes("/privacidade"), "sitemap inclui página de privacidade");
+  assert.ok(sitemap.body.includes("/termos"), "sitemap inclui termos de uso");
 });
 
 test("GET /privacidade publica a política LGPD e o rodapé linka para ela", async () => {
@@ -111,6 +112,17 @@ test("GET /privacidade publica a política LGPD e o rodapé linka para ela", asy
   assert.match(priv.body, /double opt-in/i);
   const home = await get("/");
   assert.match(home.body, /href="\/privacidade"/);
+  assert.match(home.body, /href="\/termos"/);
+});
+
+test("GET /termos publica os termos de uso com links legais no rodapé", async () => {
+  const terms = await get("/termos");
+  assert.equal(terms.status, 200);
+  assert.ok(isHtmlDoc(terms));
+  assert.match(terms.body, /Como funciona usar o Aonde/);
+  assert.match(terms.body, /links do site são afiliados/i);
+  assert.match(terms.body, /href="\/privacidade"/);
+  assert.match(terms.body, /href="\/termos"/);
 });
 
 test("respostas trazem headers de segurança", async () => {

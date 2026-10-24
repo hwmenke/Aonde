@@ -1345,12 +1345,12 @@ function siteFooter({ places, attribution } = {}) {
       if (tel) return `<a href="${telHref()}">Atendimento: ${escapeHtml(tel)}</a>`;
       return `<a href="/ajuda">Central de ajuda</a>`;
     })() +
-    `<a href="/ajuda">Central de ajuda</a><a href="/cancelamentos">Trocas e cancelamentos</a><a href="/privacidade">Privacidade (LGPD)</a></div>` +
+    `<a href="/ajuda">Central de ajuda</a><a href="/cancelamentos">Trocas e cancelamentos</a><a href="/privacidade">Privacidade (LGPD)</a><a href="/termos">Termos de uso</a></div>` +
     `</div>` +
     `<div class="foot-bar"><div class="wrap foot-bar-in">` +
     placesNote +
     `<p class="foot-lgpd">Alguns links são de parceiros afiliados: se você comprar por eles, podemos receber uma comissão, <strong>sem custo extra para você</strong>. Isso ajuda a manter o Aonde no ar. Preços e disponibilidade mudam sem aviso — confira sempre no site do parceiro.</p>` +
-    `<p class="foot-legal">© 2026 Aonde · A reserva é feita no site do parceiro · <a href="/privacidade">Privacidade</a>.</p>` +
+    `<p class="foot-legal">© 2026 Aonde · A reserva é feita no site do parceiro · <a href="/privacidade">Privacidade</a> · <a href="/termos">Termos de uso</a>.</p>` +
     `</div></div>` +
     `</footer>`
   );
@@ -2422,7 +2422,10 @@ export function renderOffersPage(
   if (filtered.length) {
     cards = filtered.map(offerCardVM).join("\n");
   } else if (!vmsAtivas.length) {
-    cards = `<p class="feed-vazio" role="status">Ainda não há achados publicados. Os achados mudam todo dia — <a href="/alertas">crie um alerta grátis</a> e a gente avisa quando aparecer um.</p>`;
+    const haviaAchados = vms.length > 0;
+    cards = haviaAchados
+      ? `<p class="feed-vazio" role="status">Hoje não há achados com datas ainda válidas — os publicados para esta janela já encerraram. <a href="/alertas">Crie um alerta grátis</a> e a gente avisa quando aparecer um novo preço.</p>`
+      : `<p class="feed-vazio" role="status">Ainda não há achados publicados. Os achados mudam todo dia — <a href="/alertas">crie um alerta grátis</a> e a gente avisa quando aparecer um.</p>`;
   } else {
     const partes =
       (origemAtiva ? ` saindo de <strong>${escapeHtml(cidadeDoIata(origemAtiva) || origemAtiva)}</strong>` : "") +
@@ -3984,6 +3987,38 @@ export function renderPrivacyPage() {
     body,
     canonical: "/privacidade",
     description: "Resumo de privacidade do Aonde: dados usados para alertas/newsletter, confirmação por e-mail, descadastro e contato.",
+  });
+}
+
+export function renderTermsPage() {
+  const body =
+    `<main id="conteudo" tabindex="-1">` +
+    `<section class="wrap map-head"><p class="eyebrow eyebrow--green">Termos de uso</p>` +
+    `<h1 class="map-title">Como funciona usar o Aonde</h1>` +
+    `<p class="map-sub">Texto direto: o Aonde mostra achados e roteiros, mas a compra e a reserva são sempre finalizadas no parceiro.</p></section>` +
+    `<section class="wrap section help-grid">` +
+    `<div class="help-group"><h2 class="det-h2">O que o Aonde entrega</h2>` +
+    `<p>Publicamos roteiros editoriais e ofertas de passagem com contexto de data e preço visto. O objetivo é ajudar você a decidir com mais clareza, não prometer disponibilidade fixa.</p>` +
+    `<p>Preço e vagas mudam sem aviso. O valor final e as regras válidas são sempre os mostrados no site do parceiro no momento da compra.</p></div>` +
+    `<div class="help-group"><h2 class="det-h2">Relação com parceiros afiliados</h2>` +
+    `<p>Alguns links do site são afiliados. Se você comprar por eles, podemos receber comissão <strong>sem custo extra para você</strong>. Isso não altera o preço publicado pelo parceiro.</p>` +
+    `<p>Não vendemos a mesma passagem dentro do Aonde: o pagamento e a emissão acontecem fora, no ambiente do parceiro.</p></div>` +
+    `<div class="help-group"><h2 class="det-h2">Limites de responsabilidade</h2>` +
+    `<p>Não controlamos estoque, regra tarifária, política de bagagem, atendimento comercial, cancelamento ou reembolso do parceiro. Esses pontos são definidos por quem processa a compra.</p>` +
+    `<p>Se um link estiver quebrado ou uma oferta parecer enganosa, avise pela <a href="/ajuda">Central de ajuda</a>. Revisamos o conteúdo e, quando couber, retiramos a publicação.</p></div>` +
+    `<div class="help-group"><h2 class="det-h2">Uso aceitável</h2>` +
+    `<p>Você concorda em não usar o site para fraude, automação abusiva, engenharia reversa maliciosa ou tentativa de burlar medidas de segurança das rotas públicas.</p>` +
+    `<p>Podemos limitar ou bloquear tráfego técnico que prejudique disponibilidade, sem aviso prévio, para proteger o serviço.</p></div>` +
+    `<div class="help-group"><h2 class="det-h2">Privacidade e atualizações</h2>` +
+    `<p>O tratamento de dados pessoais segue a nossa <a href="/privacidade">Política de Privacidade (LGPD)</a>. Em caso de conflito, ela prevalece para temas de dados pessoais.</p>` +
+    `<p>Podemos atualizar estes termos quando o produto mudar de escopo. A versão em vigor é a publicada nesta página.</p></div>` +
+    `</section></main>` +
+    siteFooter();
+  return htmlDocument({
+    title: "Termos de uso · Aonde",
+    body,
+    canonical: "/termos",
+    description: "Termos de uso do Aonde: papel do site, limites de responsabilidade e transparência sobre links afiliados.",
   });
 }
 

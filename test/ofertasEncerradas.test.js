@@ -67,7 +67,7 @@ test("home 'achados' nao lista oferta encerrada", () => {
   assert.match(noAr, /href="\/ofertas\/gru-eze"/, "em agosto gru-eze ainda estava no ar e no topo");
 });
 
-test("feed /ofertas recorta encerradas e cai no estado vazio existente", () => {
+test("feed /ofertas recorta encerradas e diferencia vazio real de janela encerrada", () => {
   const feed = renderOffersPage([], { hoje: HOJE });
   const ids = cardIds(feed);
   assert.ok(!ids.includes("gru-fln"));
@@ -83,8 +83,9 @@ test("feed /ofertas recorta encerradas e cai no estado vazio existente", () => {
   ];
   const vazio = renderOffersPage(soPassadas, { hoje: HOJE });
   assert.equal(cardsDe(vazio).length, 0);
-  assert.match(vazio, /class="feed-vazio" role="status">Ainda não há achados publicados/);
-  assert.match(vazio, /<a href="\/alertas">crie um alerta grátis<\/a>/);
+  assert.match(vazio, /class="feed-vazio" role="status">Hoje não há achados com datas ainda válidas/);
+  assert.match(vazio, /já encerraram/);
+  assert.match(vazio, /<a href="\/alertas">Crie um alerta grátis<\/a>/);
 });
 
 test("/hoje nao gira lock cuja ida ja passou; pagina vazia usa o estado existente", () => {

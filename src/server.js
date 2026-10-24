@@ -56,6 +56,7 @@ import {
   renderSalvosPage,
   renderCancelPage,
   renderPrivacyPage,
+  renderTermsPage,
   renderAlertsPage,
   renderNewsletterStatusPage,
   renderUnsubscribePage,
@@ -941,6 +942,7 @@ function handleSitemap(res) {
     { loc: "/ajuda" },
     { loc: "/cancelamentos" },
     { loc: "/privacidade" },
+    { loc: "/termos" },
     { loc: "/alertas" },
   ];
   for (const id of Object.keys(GUIDES)) entradas.push({ loc: `/guias/${encodeURIComponent(id)}` });
@@ -1411,6 +1413,10 @@ export function createServer() {
       }
       if (publicRead && pathname === "/privacidade") {
         sendHtml(res, 200, renderPrivacyPage());
+        return;
+      }
+      if (publicRead && pathname === "/termos") {
+        sendHtml(res, 200, renderTermsPage());
         return;
       }
       if (publicRead && pathname === "/alertas") {
