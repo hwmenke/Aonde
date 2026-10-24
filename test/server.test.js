@@ -8,6 +8,9 @@ import { existsSync } from "node:fs";
 import { createServer } from "../src/server.js";
 import { upsert } from "../src/store/offersStore.js";
 import { listAlertRules } from "../src/newsletter/alertRules.js";
+import { GUIDES } from "../src/render/aondeContent.js";
+import { styleAssetPath } from "../src/render/htmlRenderer.js";
+import { setFetchImpl, resetFetchImpl } from "../src/http.js";
 
 // Sobe o servidor numa porta livre (listen 0), roda `fn(baseUrl)` e encerra.
 async function withServer(t, fn) {
@@ -170,9 +173,9 @@ test("GET /saida/:id responde 404 (inexistente) e 409 (sem affiliate_url)", asyn
   assert.equal((await fetch(`${baseUrl}/saida/sem-link`)).status, 409);
 });
 
-test("GET /ajuda, /cancelamentos e /alertas servem HTML", async (t) => {
+test("GET /ajuda, /cancelamentos, /privacidade, /termos e /alertas servem HTML", async (t) => {
   const { baseUrl } = await withServer(t);
-  for (const p of ["/ajuda", "/cancelamentos", "/alertas"]) {
+  for (const p of ["/ajuda", "/cancelamentos", "/privacidade", "/termos", "/alertas"]) {
     const res = await fetch(`${baseUrl}${p}`);
     assert.equal(res.status, 200, `${p} deve responder 200`);
     assert.match(res.headers.get("content-type") || "", /text\/html/, `${p} deve ser HTML`);
@@ -253,4 +256,54 @@ test("CORS: header presente apenas quando AONDE_CORS_ORIGIN esta definido", asyn
   process.env.AONDE_CORS_ORIGIN = "https://aonde.com.br";
   res = await fetch(`${baseUrl}/api/offers`);
   assert.equal(res.headers.get("access-control-allow-origin"), "https://aonde.com.br");
+});
+
+
+test("HEAD public pages and assets match GET without bodies", async (t) => {
+  const { baseUrl } = await withServer(t);
+  for (const [pathname, status] of [
+    [`/guias/${Object.keys(GUIDES)[0]}`, 200],
+    [styleAssetPath(), 200],
+    ["/og/GRU-LIS.jpg", 200],
+    ["/pagina-inexistente", 404],
+  ]) {
+    const headers = { Accept: "text/html", "Accept-Encoding": "identity" };
+    const get = await fetch(`${baseUrl}${pathname}`, { headers });
+    const head = await fetch(`${baseUrl}${pathname}`, { method: "HEAD", headers });
+    assert.equal(get.status, status, pathname);
+    assert.equal(head.status, get.status, pathname);
+    for (const name of ["content-type", "content-length", "cache-control", "content-encoding", "vary"]) {
+      assert.equal(head.headers.get(name), get.headers.get(name), `${pathname}: ${name}`);
+    }
+    assert.equal(await head.text(), "", pathname);
+    await get.arrayBuffer();
+  }
+});
+
+test("HEAD does not record partner clicks or launch live searches", async (t) => {
+  const { baseUrl, dir } = await withServer(t);
+  seedOffer();
+  const previous = [process.env.AMADEUS_CLIENT_ID, process.env.AMADEUS_CLIENT_SECRET];
+  process.env.AMADEUS_CLIENT_ID = "head-test";
+  process.env.AMADEUS_CLIENT_SECRET = "head-test";
+  let searches = 0;
+  setFetchImpl(async () => {
+    searches++;
+    throw new Error("HEAD must not contact partners");
+  });
+  t.after(() => {
+    resetFetchImpl();
+    ["AMADEUS_CLIENT_ID", "AMADEUS_CLIENT_SECRET"].forEach((name, i) => {
+      if (previous[i] === undefined) delete process.env[name];
+      else process.env[name] = previous[i];
+    });
+  });
+  for (const pathname of ["/saida/gru-lis", "/saida/voo?origem=GRU&destino=LIS", "/resultados?origem=GRU&destino=LIS"]) {
+    const res = await fetch(`${baseUrl}${pathname}`, { method: "HEAD" });
+    assert.equal(res.status, 200, pathname);
+    assert.match(res.headers.get("content-type"), /text\/html/);
+    assert.equal(await res.text(), "");
+  }
+  assert.equal(existsSync(path.join(dir, "clicks.jsonl")), false);
+  assert.equal(searches, 0);
 });

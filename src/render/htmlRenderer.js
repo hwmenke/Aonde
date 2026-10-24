@@ -52,6 +52,7 @@ import { filtrarGuias, hubPorSlug } from "./descoberta.js";
 import { datasSugeridas } from "../flights/consulta.js";
 import { viagemAindaVale } from "../offers/elegibilidade.js";
 import { chaveDoDia } from "../daily/dailyPick.js";
+import { isIataCode, normalizeIata } from "../validate.js";
 import { ogSharePathForOffer, hojeOgSharePath } from "./ogShare.js";
 import {
   continuePlanejandoHtml,
@@ -68,6 +69,7 @@ import {
   buildTouristTrip,
   buildOfferProduct,
 } from "./structuredData.js";
+import { ofertaEncerrada } from "../offerDeparture.js";
 
 // ---------------------------------------------------------------------------
 // Atendimento — WhatsApp so quando ha um numero REAL configurado
@@ -1344,12 +1346,12 @@ function siteFooter({ places, attribution } = {}) {
       if (tel) return `<a href="${telHref()}">Atendimento: ${escapeHtml(tel)}</a>`;
       return `<a href="/ajuda">Central de ajuda</a>`;
     })() +
-    `<a href="/ajuda">Central de ajuda</a><a href="/cancelamentos">Trocas e cancelamentos</a></div>` +
+    `<a href="/ajuda">Central de ajuda</a><a href="/cancelamentos">Trocas e cancelamentos</a><a href="/privacidade">Privacidade (LGPD)</a><a href="/termos">Termos de uso</a></div>` +
     `</div>` +
     `<div class="foot-bar"><div class="wrap foot-bar-in">` +
     placesNote +
     `<p class="foot-lgpd">Alguns links são de parceiros afiliados: se você comprar por eles, podemos receber uma comissão, <strong>sem custo extra para você</strong>. Isso ajuda a manter o Aonde no ar. Preços e disponibilidade mudam sem aviso — confira sempre no site do parceiro.</p>` +
-    `<p class="foot-legal">© 2026 Aonde · A reserva é feita no site do parceiro.</p>` +
+    `<p class="foot-legal">© 2026 Aonde · A reserva é feita no site do parceiro · <a href="/privacidade">Privacidade</a> · <a href="/termos">Termos de uso</a>.</p>` +
     `</div></div>` +
     `</footer>`
   );
@@ -1437,6 +1439,25 @@ export function pageStylesCss() {
 
 /** Marcador que o servidor troca pelo <link> do CSS externo. */
 export const STYLE_TAG_RE = /<style>[\s\S]*?<\/style>/;
+
+let _scriptHashCache = null;
+/** Hash curto do JS compartilhado de realce. */
+export function scriptAssetHash() {
+  if (_scriptHashCache === null) {
+    _scriptHashCache = createHash("sha256").update(enhancementScript()).digest("hex").slice(0, 12);
+  }
+  return _scriptHashCache;
+}
+
+/** Caminho do JS compartilhado servido pelo servidor (com hash). */
+export function scriptAssetPath() {
+  return `/assets/site-${scriptAssetHash()}.js`;
+}
+
+/** Script compartilhado cru, usado no asset cacheável. */
+export function sharedEnhancementScript() {
+  return enhancementScript();
+}
 
 function styleTag() {
   return `<style>${pageStyles()}</style>`;
@@ -2144,12 +2165,14 @@ function confiancaSectionHtml(stats) {
 /** Pagina inicial (home) — porta fiel da tela "home" do prototipo. */
 export function renderHomePage(opts = {}) {
   const liveOffers = Array.isArray(opts.offers) ? opts.offers : null;
-  const dia = opts.hoje || chaveDoDia(new Date());
+  const dia = typeof opts.hoje === "string" && /^\d{4}-\d{2}-\d{2}$/.test(opts.hoje) ? opts.hoje : "";
+  const diaBusca = dia || chaveDoDia(new Date());
   const fonte = liveOffers && liveOffers.length ? liveOffers : opts.editoriais || CONTENT_OFFERS;
-  const offerVMs = fonte
-    .filter((offer) => viagemAindaVale(offer, dia))
+  const elegiveis = dia ? fonte.filter((offer) => viagemAindaVale(offer, dia)) : fonte;
+  const offerVMs = elegiveis
     .map((offer) => (liveOffers && liveOffers.length ? normalizeLiveOffer(offer) : normalizeContentOffer(offer)))
     .filter(Boolean)
+    .filter((vm) => !dia || !ofertaEncerrada(vm, dia))
     .slice(0, 4);
   const guides = Array.isArray(opts.guides) && opts.guides.length ? opts.guides : GUIDE_LIST.slice(0, 3);
 
@@ -2160,7 +2183,7 @@ export function renderHomePage(opts = {}) {
       valores: opts.busca || {},
       erros: opts.erros || [],
       buscaAoVivo: opts.buscaAoVivo === true,
-      hoje: dia,
+      hoje: diaBusca,
     }) +
     homeOffersHtml(offerVMs) +
     newsletterStripHtml() +
@@ -2203,13 +2226,16 @@ function newsletterHeroHtml() {
     `<h1>Receba os achados de passagem antes que a tarifa mude</h1>` +
     `<p>O alerta compara a tarifa com a média dos últimos 90 dias. Não há envio com hora marcada.</p>` +
     `</div>` +
-    `<form class="news-form" data-newsletter action="/api/newsletter/subscribe" method="post">` +
-    `<input name="email" type="email" required aria-label="Seu e-mail" placeholder="Seu melhor e-mail">` +
+    `<form class="news-form" data-newsletter action="/api/newsletter/subscribe" method="post" aria-describedby="news-hero-termos">` +
+    `<label class="news-label" for="news-email-hero">Seu e-mail</label>` +
+    `<input id="news-email-hero" name="email" type="email" required autocomplete="email" inputmode="email" placeholder="nome@exemplo.com.br">` +
     `<div class="news-row">` +
-    `<input name="whatsapp" aria-label="Seu WhatsApp (opcional)" placeholder="WhatsApp (opcional)">` +
-    `<select name="origem" aria-label="Sua cidade de origem">${originOptionsHtml("GRU")}</select>` +
+    `<label class="news-label" for="news-whatsapp-hero">WhatsApp (opcional)</label>` +
+    `<input id="news-whatsapp-hero" name="whatsapp" autocomplete="tel" inputmode="tel" placeholder="(11) 91234-5678">` +
+    `<label class="news-label" for="news-origem-hero">Cidade de saída</label>` +
+    `<select id="news-origem-hero" name="origem" autocomplete="off">${originOptionsHtml("GRU")}</select>` +
     `</div>` +
-    `<span class="news-whatsapp-note">Se informar o WhatsApp, também avisamos por lá — só depois de você confirmar por e-mail.</span>` +
+    `<span class="news-whatsapp-note" id="news-hero-termos">Se informar o WhatsApp, também avisamos por lá — só depois de você confirmar por e-mail.</span>` +
     `<button class="btn btn-lime" type="submit">Quero receber os alertas</button>` +
     `<span class="news-fine">Grátis. Sem spam. Cancele quando quiser.</span>` +
     `<p class="news-msg" data-newsletter-msg role="status" aria-live="polite" hidden></p>` +
@@ -2375,17 +2401,19 @@ export function renderOffersPage(
   { title = "Ofertas de viagem — Aonde", origem, q = "", tipo = "", naoEncontrada = "", hoje = "", editoriais = CONTENT_OFFERS } = {}
 ) {
   const list = Array.isArray(offers) ? offers : [];
-  const dia = /^\d{4}-\d{2}-\d{2}$/.test(hoje) ? hoje : chaveDoDia(new Date());
-  const base = (list.length ? list : editoriais).filter((offer) => viagemAindaVale(offer, dia));
+  const dia = /^\d{4}-\d{2}-\d{2}$/.test(hoje) ? hoje : "";
+  const fonte = list.length ? list : editoriais;
+  const base = dia ? fonte.filter((offer) => viagemAindaVale(offer, dia)) : fonte;
   const vms = base.map((offer) => (list.length ? normalizeLiveOffer(offer) : normalizeContentOffer(offer))).filter(Boolean);
-  const tipos = [...new Set(vms.map((v) => v.tipo).filter(Boolean))].sort();
+  const vmsAtivas = dia ? vms.filter((vm) => !ofertaEncerrada(vm, dia)) : vms;
+  const tipos = [...new Set(vmsAtivas.map((v) => v.tipo).filter(Boolean))].sort();
   const busca = limparBusca(q);
   const tipoAtivo = tipos.includes(tipo) ? tipo : "";
   const origemAtiva = origem && origem !== "Todas" ? origem : "";
   const filtros = { origem: origemAtiva, q: busca, tipo: tipoAtivo };
   const filtroAtivo = Boolean(origemAtiva || busca || tipoAtivo);
 
-  const filtered = vms.filter(
+  const filtered = vmsAtivas.filter(
     (v) =>
       (!origemAtiva || v.origem === origemAtiva) &&
       (!tipoAtivo || v.tipo === tipoAtivo) &&
@@ -2397,8 +2425,11 @@ export function renderOffersPage(
   let cards;
   if (filtered.length) {
     cards = filtered.map(offerCardVM).join("\n");
-  } else if (!vms.length) {
-    cards = `<p class="feed-vazio" role="status">Ainda não há achados publicados. Os achados mudam todo dia — <a href="/alertas">crie um alerta grátis</a> e a gente avisa quando aparecer um.</p>`;
+  } else if (!vmsAtivas.length) {
+    const haviaAchados = vms.length > 0;
+    cards = haviaAchados
+      ? `<p class="feed-vazio" role="status">Hoje não há achados com datas ainda válidas — os publicados para esta janela já encerraram. <a href="/alertas">Crie um alerta grátis</a> e a gente avisa quando aparecer um novo preço.</p>`
+      : `<p class="feed-vazio" role="status">Ainda não há achados publicados. Os achados mudam todo dia — <a href="/alertas">crie um alerta grátis</a> e a gente avisa quando aparecer um.</p>`;
   } else {
     const partes =
       (origemAtiva ? ` saindo de <strong>${escapeHtml(cidadeDoIata(origemAtiva) || origemAtiva)}</strong>` : "") +
@@ -2411,7 +2442,7 @@ export function renderOffersPage(
 
   const contagem = filtered.length === 1 ? "1 oferta ativa" : `${filtered.length} ofertas ativas`;
   const totalTxt =
-    filtroAtivo && vms.length !== filtered.length ? ` <span class="feed-total">· de ${vms.length} no total</span>` : "";
+    filtroAtivo && vmsAtivas.length !== filtered.length ? ` <span class="feed-total">· de ${vmsAtivas.length} no total</span>` : "";
 
   const aviso = naoEncontrada
     ? `<div class="wrap feed-aviso-wrap"><div class="feed-aviso" role="alert">` +
@@ -2457,12 +2488,14 @@ export function renderOffersPage(
 // ---------------------------------------------------------------------------
 
 /** Pagina de detalhe de uma oferta — porta fiel da tela "oferta". */
-export function renderOfferPage(offer, { related = [], apiKey = "", noindex = false } = {}) {
+export function renderOfferPage(offer, { related = [], apiKey = "", noindex = false, hoje } = {}) {
   const vm =
     offer && typeof offer === "object" && ("preco_centavos" in offer || "is_erro_tarifa" in offer)
       ? normalizeLiveOffer(offer)
       : normalizeContentOffer(offer);
-  if (!vm) return renderOffersPage([]);
+  if (!vm) return renderOffersPage([], { hoje });
+  const dia = typeof hoje === "string" && /^\d{4}-\d{2}-\d{2}$/.test(hoje) ? hoje : "";
+  const encerrada = dia ? ofertaEncerrada(vm, dia) : false;
 
   const destinoLabel = vm.cidade || vm.destino || "Destino";
   // Nome da cidade de origem: entra no <h1>, no <title> e na description.
@@ -2575,7 +2608,8 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
     (typeof offer.preco_centavos === "number"
       ? `<input type="hidden" name="precoAlvoCentavos" value="${escapeHtml(offer.preco_centavos)}">`
       : "") +
-    `<input class="det-alert-input" name="email" type="email" required aria-label="Seu e-mail" placeholder="Seu melhor e-mail">` +
+    `<label class="news-label" for="det-alert-email-${escapeHtml(vm.id || "oferta")}">Seu e-mail</label>` +
+    `<input class="det-alert-input" id="det-alert-email-${escapeHtml(vm.id || "oferta")}" name="email" type="email" required autocomplete="email" inputmode="email" placeholder="nome@exemplo.com.br">` +
     `<button class="btn btn-lime" type="submit">Ativar alerta grátis</button>` +
     `<p class="news-msg" data-newsletter-msg role="status" aria-live="polite" hidden></p>` +
     `</form>`;
@@ -2642,6 +2676,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
     `</div>`;
 
   const relatedCards = (Array.isArray(related) ? related : [])
+    .filter((r) => !dia || !ofertaEncerrada(r, dia))
     .map((r) => {
       const rv = "preco_centavos" in r || "is_erro_tarifa" in r ? normalizeLiveOffer(r) : normalizeContentOffer(r);
       if (!rv) return "";
@@ -2713,27 +2748,37 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
       ? "Este botão abre uma busca no Aviasales. O Aonde não vende passagem nem cobra pagamento."
       : "Você finaliza a compra no site do parceiro. O Aonde não vende passagem nem cobra pagamento."
     : "Estes são voos de exemplo desta rota. A busca de verdade e a compra acontecem no site do parceiro.";
+  const ctaBloco = encerrada
+    ? ""
+    : `<p class="det-buy-passo">${escapeHtml(passoCompra)}</p>` +
+      `<div class="det-buy-cta-row">` +
+      `<a class="btn btn-green det-buy-cta" href="${escapeHtml(ctaHref)}">${ctaLabel}</a>` +
+      fonteBuy +
+      `</div>`;
   const buyBox =
     `<div class="det-buy">` +
     `<span class="det-buy-label">a partir de</span>` +
     `<p class="det-buy-preco"${priceDataAttr}>${escapeHtml(vm.preco)}</p>` +
     `<p class="det-buy-sub">ida e volta${vm.datas ? ` · ${escapeHtml(vm.datas)}` : ""}</p>` +
-    `<p class="det-buy-passo">${escapeHtml(passoCompra)}</p>` +
-    `<div class="det-buy-cta-row">` +
-    `<a class="btn btn-green det-buy-cta" href="${escapeHtml(ctaHref)}">${ctaLabel}</a>` +
-    fonteBuy +
-    `</div>` +
+    ctaBloco +
     `<p class="det-buy-perks">Parcelamento e desconto no Pix variam conforme o parceiro — o valor final aparece no site dele, antes de você pagar.</p>` +
     precoSignificado +
     `<p class="det-buy-fine">${escapeHtml(ctaFine)}</p>` +
     trustMini +
     `</div>`;
-  const extrasAside = histBloco + alertForm + waShare + originSelector;
+  const extrasAside = histBloco + alertForm + waShare + (encerrada ? "" : originSelector);
+  const encerradaBanner = encerrada
+    ? `<div class="det-encerrada" role="status">` +
+      `Esta oferta já encerrou — as datas já passaram. ` +
+      `Veja os <a href="/ofertas">achados atuais</a> ou ` +
+      `<a href="/alertas">crie um alerta para essa rota</a>.</div>`
+    : "";
 
   const body =
     `<main id="conteudo" tabindex="-1">` +
     `<section class="wrap det">` +
     `<p class="breadcrumb"><a href="/">Início</a> · <a href="/ofertas">Ofertas</a> · <span>${escapeHtml(destinoLabel)}</span></p>` +
+    encerradaBanner +
     `<div class="det-grid${isLock ? " det-grid--lock" : ""}">` +
     `<div class="det-main">` +
     `<div class="det-badges">${badge}${pubBadge}</div>` +
@@ -2765,7 +2810,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
 
   const offerPageHref = vm.id ? `/ofertas/${encodeURIComponent(vm.id)}` : "/ofertas";
   const offerJsonld = [
-    buildOfferProduct({ ...vm, href: offerPageHref }),
+    encerrada ? null : buildOfferProduct({ ...vm, href: offerPageHref }),
     buildBreadcrumbList([
       { name: "Início", url: "/" },
       { name: "Ofertas", url: "/ofertas" },
@@ -2788,7 +2833,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
     canonical: offerPageHref,
     image: ogImageForOfferPage(vm.id, vm.thumbUrl),
     jsonld: offerJsonld,
-    noindex,
+    noindex: noindex || encerrada,
   });
   if (offerMap.loader) doc = doc.replace("</body>", `${offerMap.loader}</body>`);
   return doc;
@@ -3745,7 +3790,8 @@ export function renderResultsPage(opts = {}) {
     `<div class="res-alert-banner"><div><strong>Não vai comprar agora?</strong> ` +
     `<span>A gente avisa se ${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)} ficar mais barato.</span></div>` +
     `<form class="res-alert-form" data-newsletter action="/api/newsletter/subscribe" method="post">` +
-    `<input name="email" type="email" required aria-label="Seu e-mail" placeholder="Seu melhor e-mail">` +
+    `<label class="news-label" for="res-alert-email">Seu e-mail</label>` +
+    `<input id="res-alert-email" name="email" type="email" required autocomplete="email" inputmode="email" placeholder="nome@exemplo.com.br">` +
     `<input type="hidden" name="origem" value="${escapeHtml(rota.origem)}">` +
     `<input type="hidden" name="destino" value="${escapeHtml(rota.destino)}">` +
     `<button class="btn btn-dark" type="submit">Ativar alerta desta rota</button>` +
@@ -3917,6 +3963,71 @@ export function renderCancelPage() {
     description: "Seus direitos de arrependimento, troca e cancelamento pelo CDC e pelas regras da ANAC — e com quem resolver cada caso." });
 }
 
+export function renderPrivacyPage() {
+  const body =
+    `<main id="conteudo" tabindex="-1">` +
+    `<section class="wrap map-head"><p class="eyebrow eyebrow--green">Privacidade</p>` +
+    `<h1 class="map-title">Como tratamos seus dados no Aonde</h1>` +
+    `<p class="map-sub">Resumo em linguagem direta, no espírito da LGPD: coletamos o mínimo para fazer o que você pediu e explicamos onde cada dado entra.</p></section>` +
+    `<section class="wrap section help-grid">` +
+    `<div class="help-group"><h2 class="det-h2">Quais dados entram</h2>` +
+    `<p><strong>Alertas e newsletter:</strong> e-mail obrigatório; WhatsApp opcional; rota e preço-alvo quando você informa no formulário.</p>` +
+    `<p><strong>Medição do produto:</strong> eventos de navegação (por exemplo, clique em saída para parceiro), com data e informações técnicas da requisição.</p>` +
+    `<p><strong>Não coletamos pagamento:</strong> compra e cartão acontecem no site do parceiro. O Aonde não processa nem armazena esse dado.</p></div>` +
+    `<div class="help-group"><h2 class="det-h2">Base de consentimento (double opt-in)</h2>` +
+    `<p>Inscrição de e-mail só ativa depois do clique no link de confirmação enviado para o endereço informado. Sem essa confirmação, não há disparo de alertas por e-mail.</p>` +
+    `<p>Você pode cancelar quando quiser em <a href="/alertas">Gerenciar alertas</a> ou pelo link de descadastro de cada mensagem.</p></div>` +
+    `<div class="help-group"><h2 class="det-h2">Para que usamos</h2>` +
+    `<p>Usamos os dados de inscrição para entregar alertas de preço e mensagens relacionadas ao pedido feito. Os dados técnicos de uso servem para operar, proteger e melhorar o site.</p>` +
+    `<p>Não prometemos “nunca compartilhar”: quando o serviço precisa de fornecedores técnicos (ex.: envio de e-mail), o tratamento pode envolver esses operadores.</p></div>` +
+    `<div class="help-group"><h2 class="det-h2">Retenção (visão geral)</h2>` +
+    `<p>Guardamos os dados enquanto a inscrição estiver ativa ou enquanto forem necessários para operação e segurança. No descadastro, o envio é interrompido e o registro passa a seguir o ciclo de retenção operacional do sistema.</p>` +
+    `<p>Registros de evento e log têm retenção técnica limitada e podem ser removidos por rotina.</p></div>` +
+    `<div class="help-group"><h2 class="det-h2">Seus direitos e contato</h2>` +
+    `<p>Você pode pedir confirmação de tratamento, correção, informação sobre uso e exclusão quando aplicável. O canal do produto é a <a href="/ajuda">Central de ajuda</a>.</p>` +
+    `<p>Ao escrever, informe o e-mail da inscrição para localizar o cadastro com segurança.</p></div>` +
+    `</section></main>` +
+    siteFooter();
+  return htmlDocument({
+    title: "Privacidade (LGPD) · Aonde",
+    body,
+    canonical: "/privacidade",
+    description: "Resumo de privacidade do Aonde: dados usados para alertas/newsletter, confirmação por e-mail, descadastro e contato.",
+  });
+}
+
+export function renderTermsPage() {
+  const body =
+    `<main id="conteudo" tabindex="-1">` +
+    `<section class="wrap map-head"><p class="eyebrow eyebrow--green">Termos de uso</p>` +
+    `<h1 class="map-title">Como funciona usar o Aonde</h1>` +
+    `<p class="map-sub">Texto direto: o Aonde mostra achados e roteiros, mas a compra e a reserva são sempre finalizadas no parceiro.</p></section>` +
+    `<section class="wrap section help-grid">` +
+    `<div class="help-group"><h2 class="det-h2">O que o Aonde entrega</h2>` +
+    `<p>Publicamos roteiros editoriais e ofertas de passagem com contexto de data e preço visto. O objetivo é ajudar você a decidir com mais clareza, não prometer disponibilidade fixa.</p>` +
+    `<p>Preço e vagas mudam sem aviso. O valor final e as regras válidas são sempre os mostrados no site do parceiro no momento da compra.</p></div>` +
+    `<div class="help-group"><h2 class="det-h2">Relação com parceiros afiliados</h2>` +
+    `<p>Alguns links do site são afiliados. Se você comprar por eles, podemos receber comissão <strong>sem custo extra para você</strong>. Isso não altera o preço publicado pelo parceiro.</p>` +
+    `<p>Não vendemos a mesma passagem dentro do Aonde: o pagamento e a emissão acontecem fora, no ambiente do parceiro.</p></div>` +
+    `<div class="help-group"><h2 class="det-h2">Limites de responsabilidade</h2>` +
+    `<p>Não controlamos estoque, regra tarifária, política de bagagem, atendimento comercial, cancelamento ou reembolso do parceiro. Esses pontos são definidos por quem processa a compra.</p>` +
+    `<p>Se um link estiver quebrado ou uma oferta parecer enganosa, avise pela <a href="/ajuda">Central de ajuda</a>. Revisamos o conteúdo e, quando couber, retiramos a publicação.</p></div>` +
+    `<div class="help-group"><h2 class="det-h2">Uso aceitável</h2>` +
+    `<p>Você concorda em não usar o site para fraude, automação abusiva, engenharia reversa maliciosa ou tentativa de burlar medidas de segurança das rotas públicas.</p>` +
+    `<p>Podemos limitar ou bloquear tráfego técnico que prejudique disponibilidade, sem aviso prévio, para proteger o serviço.</p></div>` +
+    `<div class="help-group"><h2 class="det-h2">Privacidade e atualizações</h2>` +
+    `<p>O tratamento de dados pessoais segue a nossa <a href="/privacidade">Política de Privacidade (LGPD)</a>. Em caso de conflito, ela prevalece para temas de dados pessoais.</p>` +
+    `<p>Podemos atualizar estes termos quando o produto mudar de escopo. A versão em vigor é a publicada nesta página.</p></div>` +
+    `</section></main>` +
+    siteFooter();
+  return htmlDocument({
+    title: "Termos de uso · Aonde",
+    body,
+    canonical: "/termos",
+    description: "Termos de uso do Aonde: papel do site, limites de responsabilidade e transparência sobre links afiliados.",
+  });
+}
+
 export function renderAlertsPage() {
   const body =
     `<main id="conteudo" tabindex="-1">` +
@@ -3929,7 +4040,7 @@ export function renderAlertsPage() {
     `<input id="alertas-email" name="email" type="email" required autocomplete="email" inputmode="email" placeholder="nome@exemplo.com.br">` +
     `<button class="btn btn-dark" type="submit">Cancelar meus alertas</button>` +
     `<p class="news-msg news-msg--claro" data-unsubscribe-msg role="status" aria-live="polite" hidden></p>` +
-    `<noscript><p class="help-fine">Ative o JavaScript ou fale com a gente pela Central de ajuda para cancelar.</p></noscript>` +
+    `<noscript><p class="help-fine">Sem JavaScript, o botão também funciona: o cancelamento abre uma página de confirmação.</p></noscript>` +
     `</form>` +
     `<p class="help-fine">Quer mudar a rota ou o preço-alvo em vez de cancelar tudo? Fale com a gente pelo <strong>${escapeHtml(telLabel())}</strong> ou pela <a href="/ajuda">Central de ajuda</a> — ajustamos manualmente por enquanto.</p>` +
     `</section></main>` +
@@ -4033,14 +4144,30 @@ export function renderUnsubscribePage({ email = "" } = {}) {
 }
 
 /** Formulario de nova tentativa: funciona sem JavaScript (post nativo) e vem preenchido. */
-function statusRetryFormHtml(email, { resumo = "" } = {}) {
+function statusRetryFormHtml(email, { resumo = "", origem = "GRU", destino = "", precoAlvoCentavos = null } = {}) {
+  const origemNorm = isIataCode(origem) ? normalizeIata(origem) : "GRU";
+  const destinoNorm = isIataCode(destino) ? normalizeIata(destino) : "";
+  const preco = Number(precoAlvoCentavos);
+  const precoValido = Number.isSafeInteger(preco) && preco > 0;
+  const rotaEspecifica = Boolean(origemNorm && destinoNorm);
+  const alvoResumo =
+    rotaEspecifica
+      ? `Reenvia o alerta para ${escapeHtml(origemNorm)} → ${escapeHtml(destinoNorm)}${
+          precoValido ? ` abaixo de ${escapeHtml(formatBRL(preco))}` : ""
+        }.`
+      : "";
   const form =
     `<form class="status-retry" method="post" action="/api/newsletter/subscribe">` +
     `<label class="unsub-lab" for="retry-email">Seu e-mail</label>` +
     `<input class="unsub-input" id="retry-email" name="email" type="email" required autocomplete="email" ` +
     `value="${escapeHtml(email)}" placeholder="nome@exemplo.com.br">` +
-    `<label class="unsub-lab" for="retry-origem">Cidade de saída</label>` +
-    `<select class="unsub-input" id="retry-origem" name="origem">${originOptionsHtml("GRU")}</select>` +
+    (rotaEspecifica
+      ? `<input type="hidden" name="origem" value="${escapeHtml(origemNorm)}">` +
+        `<input type="hidden" name="destino" value="${escapeHtml(destinoNorm)}">` +
+        (precoValido ? `<input type="hidden" name="precoAlvoCentavos" value="${escapeHtml(preco)}">` : "") +
+        `<p class="help-fine">${alvoResumo}</p>`
+      : `<label class="unsub-lab" for="retry-origem">Cidade de saída</label>` +
+        `<select class="unsub-input" id="retry-origem" name="origem">${originOptionsHtml(origemNorm)}</select>`) +
     `<button class="btn btn-green" type="submit">Enviar de novo</button>` +
     `</form>`;
   return resumo
@@ -4052,7 +4179,18 @@ const STATUS_SAIDAS_HTML =
   `<p class="status-links"><a href="/hoje">Escolha do dia</a> · <a href="/ofertas">Ofertas</a> · ` +
   `<a href="/guias">Roteiros prontos</a> · <a href="/alertas">Gerenciar alertas</a></p>`;
 
-export function renderNewsletterStatusPage({ ok, error, pendente, descadastrado, entrega, email = "", retry = false } = {}) {
+export function renderNewsletterStatusPage({
+  ok,
+  error,
+  pendente,
+  descadastrado,
+  entrega,
+  email = "",
+  retry = false,
+  origem = "GRU",
+  destino = "",
+  precoAlvoCentavos = null,
+} = {}) {
   const enderecoSeguro = typeof email === "string" ? email.trim().slice(0, 200) : "";
   let conteudo;
   let titulo = "Confirmação · Aonde";
@@ -4087,7 +4225,12 @@ export function renderNewsletterStatusPage({ ok, error, pendente, descadastrado,
       `<li>Não chegou em alguns minutos? Olhe a caixa de spam ou promoções. O link vale por 48 horas.</li>` +
       `<li>Depois, só avisamos quando surgir uma tarifa abaixo da média para a sua cidade, sem frequência fixa. Cancelar são dois cliques, sem perguntas.</li>` +
       `</ol>` +
-      statusRetryFormHtml(enderecoSeguro, { resumo: "Digitou errado ou o e-mail não chegou? Enviar de novo" }) +
+      statusRetryFormHtml(enderecoSeguro, {
+        resumo: "Digitou errado ou o e-mail não chegou? Enviar de novo",
+        origem,
+        destino,
+        precoAlvoCentavos,
+      }) +
       `<p><a class="btn btn-green" href="/hoje">Ver a escolha do dia →</a></p>` +
       STATUS_SAIDAS_HTML;
   } else if (ok) {
@@ -4105,7 +4248,7 @@ export function renderNewsletterStatusPage({ ok, error, pendente, descadastrado,
       `<h1 class="map-title">${retry ? "Não foi possível concluir a inscrição" : "Não foi possível confirmar"}</h1>` +
       `<p class="map-sub" role="alert">${escapeHtml(error || "O link pode ter expirado ou já ter sido usado.")}</p>` +
       `<p class="map-sub">Sem problema: é só tentar de novo abaixo.</p>` +
-      statusRetryFormHtml(enderecoSeguro) +
+      statusRetryFormHtml(enderecoSeguro, { origem, destino, precoAlvoCentavos }) +
       STATUS_SAIDAS_HTML;
   }
   const body = `<main id="conteudo" tabindex="-1"><section class="wrap map-head status-page">${conteudo}</section></main>` + siteFooter();
@@ -4158,7 +4301,7 @@ function mapListHtml(destinos, { comMapa = false } = {}) {
         (d.preco ? `<span class="map-dest-preco">${escapeHtml(d.preco)}</span>` : "") +
         `</a>`;
       const mapa = comMapa
-        ? `<button type="button" class="map-pin" data-dest="${i}">Ver no mapa</button>`
+        ? `<button type="button" class="map-pin" data-dest="${i}" aria-label="Ver ${escapeHtml(d.titulo)} no mapa interativo">Ver no mapa</button>`
         : "";
       return `<div class="map-dest">${guia}${mapa}</div>`;
     })
@@ -4454,15 +4597,27 @@ function enhancementScript() {
       ocupado=true;
       if(btn){btn.disabled=true;btn.setAttribute('aria-busy','true');btn.textContent='Enviando…';}
       fala('info','Enviando seu pedido…');
-      fetch(form.action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      var controller=new AbortController();
+      var expirou=false;
+      var timer;
+      var prazo=new Promise(function(resolve,reject){
+        timer=setTimeout(function(){
+          expirou=true;
+          controller.abort();
+          reject(new Error('Newsletter timeout'));
+        },15000);
+      });
+      var pedido=fetch(form.action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller.signal})
         .then(function(r){
           var espera=Number(r.headers.get('Retry-After'))||0;
           return r.json().then(
             function(d){return {ok:r.ok,status:r.status,d:d||{},espera:espera};},
             function(){return {ok:false,status:r.status,d:{},espera:espera};}
           );
-        })
+        });
+      Promise.race([pedido,prazo])
         .then(function(x){
+          clearTimeout(timer);
           livre();
           var d=x.d;
           if(x.ok&&d.status){
@@ -4485,7 +4640,12 @@ function enhancementScript() {
           fala('erro','Não conseguimos registrar seu pedido agora. O que você digitou continua aqui; tente de novo em instantes.');
         })
         .catch(function(){
+          clearTimeout(timer);
           livre();
+          if(expirou){
+            fala('erro','Não foi possível confirmar o recebimento do seu pedido. O que você digitou continua aqui; tente de novo em instantes.');
+            return;
+          }
           fala('erro','Sem conexão com o Aonde. Confira sua internet e tente de novo; o que você digitou continua aqui.');
         });
     });

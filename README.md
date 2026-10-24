@@ -55,7 +55,7 @@ falta de chave.
 | `/resultados` | Busca de voos — ao vivo pela Amadeus quando há credencial, senão exemplos claramente rotulados |
 | `/mapa` | Mapa de destinos (Google Maps, com fallback sem chave) |
 | `/saida/:id`, `/saida/voo` | Interstitial "você está indo para o parceiro" antes de qualquer link de afiliado |
-| `/ajuda`, `/cancelamentos`, `/alertas` | Central de ajuda, política de troca/cancelamento, alertas de preço (LGPD) |
+| `/ajuda`, `/cancelamentos`, `/privacidade`, `/termos`, `/alertas` | Central de ajuda, políticas legais (LGPD/termos), trocas/cancelamento e alertas de preço |
 
 ## O robô da escolha do dia
 

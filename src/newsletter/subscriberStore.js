@@ -67,6 +67,17 @@ export function normalizeEmail(str) {
   return String(str || "").trim().toLowerCase();
 }
 
+function parsePositiveCentavos(input) {
+  if (input === undefined || input === null) return { ok: true, hasValue: false, value: null };
+  if (!(typeof input === "number" || typeof input === "string")) return { ok: false };
+  const asString = typeof input === "string" ? input.trim() : null;
+  if (asString === "") return { ok: true, hasValue: false, value: null };
+  if (typeof input === "string" && !/^\d+$/.test(asString)) return { ok: false };
+  const n = Number(typeof input === "number" ? input : asString);
+  if (!Number.isSafeInteger(n) || n <= 0) return { ok: false };
+  return { ok: true, hasValue: true, value: n };
+}
+
 /** Gera um token opaco de opt-in (32 bytes aleatorios em hex). */
 function generateToken() {
   return crypto.randomBytes(32).toString("hex");
@@ -118,10 +129,11 @@ export function subscribe({ email, whatsapp, origem, destino, precoAlvoCentavos 
   if (hasDestino && !isIataCode(destino)) {
     return { ok: false, field: "destino", error: "Destino inválido para o alerta. Use o código de 3 letras do aeroporto, como REC." };
   }
-  const hasPreco = precoAlvoCentavos !== undefined && precoAlvoCentavos !== null && precoAlvoCentavos !== "";
-  if (hasPreco && !(Number.isFinite(Number(precoAlvoCentavos)) && Number(precoAlvoCentavos) > 0)) {
-    return { ok: false, field: "preco", error: "Preço-alvo inválido. Informe um valor maior que zero." };
+  const precoParsed = parsePositiveCentavos(precoAlvoCentavos);
+  if (!precoParsed.ok) {
+    return { ok: false, field: "preco", error: "Preço-alvo inválido. Informe um valor inteiro em centavos maior que zero." };
   }
+  const hasPreco = precoParsed.hasValue;
   const hasWhatsapp = whatsapp !== undefined && whatsapp !== null && String(whatsapp).trim() !== "";
   if (hasWhatsapp && !isValidWhatsapp(whatsapp)) {
     return {
@@ -134,7 +146,7 @@ export function subscribe({ email, whatsapp, origem, destino, precoAlvoCentavos 
     hasDestino || hasPreco
       ? {
           destino: hasDestino ? normalizeIata(destino) : null,
-          preco_alvo_centavos: hasPreco ? Math.round(Number(precoAlvoCentavos)) : null,
+          preco_alvo_centavos: hasPreco ? precoParsed.value : null,
         }
       : null;
 

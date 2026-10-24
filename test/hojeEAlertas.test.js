@@ -11,7 +11,8 @@ import path from "node:path";
 
 import { createServer } from "../src/server.js";
 import { pacoteDoDia } from "../src/daily/dailyPick.js";
-import { renderTodayPage, renderNewsletterStatusPage } from "../src/render/htmlRenderer.js";
+import { renderTodayPage, renderNewsletterStatusPage, renderHomePage, renderOfferPage, renderResultsPage } from "../src/render/htmlRenderer.js";
+import { OFFERS } from "../src/render/aondeContent.js";
 import { isValidWhatsapp, subscribe, getSubscriberByEmail } from "../src/newsletter/subscriberStore.js";
 import { envioDeEmailDisponivel, enviarConfirmacaoOptin } from "../src/newsletter/optinMail.js";
 import { setFetchImpl, resetFetchImpl } from "../src/http.js";
@@ -167,6 +168,18 @@ test("faixa de alertas: rotulos visiveis, expectativas e saida para /alertas", (
   assert.match(html, /<a href="\/alertas">Gerenciar alertas<\/a>/);
   assert.match(html, /aria-describedby="news-termos-hoje"/);
   assert.match(html, /data-newsletter-msg role="status" aria-live="polite" hidden/);
+});
+
+test("formularios de alerta fora do /hoje tambem tem label visivel", () => {
+  const home = renderHomePage({});
+  assert.match(home, /<label class="news-label" for="news-email-faixa">Seu e-mail<\/label>/);
+  assert.match(home, /<label class="news-label" for="news-origem-faixa">Cidade de saída<\/label>/);
+
+  const offer = renderOfferPage(OFFERS[0], { related: [] });
+  assert.match(offer, /<label class="news-label" for="det-alert-email-/);
+
+  const results = renderResultsPage({});
+  assert.match(results, /<label class="news-label" for="res-alert-email">Seu e-mail<\/label>/);
 });
 
 test("script do cliente: valida antes de enviar e nao quebra o template", () => {
@@ -329,6 +342,16 @@ test("429 no formulario sem JS vira pagina com caminho de volta; JSON continua J
   assert.ok(Number(json.headers.get("retry-after")) > 0);
 });
 
+test("descadastro sem JavaScript funciona via formulario HTML", async (t) => {
+  const { baseUrl } = await withServer(t);
+  const res = await postForm(baseUrl, "/api/newsletter/unsubscribe", { email: "nao.importa@example.com" });
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("content-type") || "", /text\/html/);
+  const html = await res.text();
+  assert.match(html, /Cancelamento feito/);
+  assert.match(html, /Voltar para o site/);
+});
+
 test("renderNewsletterStatusPage: variantes", () => {
   const pendente = renderNewsletterStatusPage({ ok: true, pendente: true, entrega: "email", email: "a@b.com" });
   assert.match(pendente, /Confira seu e-mail/);
@@ -354,6 +377,23 @@ test("renderNewsletterStatusPage: variantes", () => {
   for (const html of [pendente, confirmado, descadastrado, expirado]) {
     assert.doesNotMatch(html, /undefined|\bnull\b/);
   }
+});
+
+test("status de retry preserva contexto de rota especifica no formulario", () => {
+  const html = renderNewsletterStatusPage({
+    ok: false,
+    retry: true,
+    error: "Falhou agora",
+    email: "rota@example.com",
+    origem: "gru",
+    destino: "rec",
+    precoAlvoCentavos: 88900,
+  });
+  assert.match(html, /name="origem" value="GRU"/);
+  assert.match(html, /name="destino" value="REC"/);
+  assert.match(html, /name="precoAlvoCentavos" value="88900"/);
+  assert.match(html, /Reenvia o alerta para GRU → REC abaixo de R\$ 889/);
+  assert.doesNotMatch(html, /id="retry-origem"/);
 });
 
 test("pagina /alertas: formulario de cancelamento tem rotulo e area de status", async (t) => {

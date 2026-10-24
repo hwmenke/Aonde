@@ -33,12 +33,12 @@ test.after(async () => {
 // OFERTA GRU-EZE: origem alteravel
 // ---------------------------------------------------------------------------
 
-test("GET /ofertas/gru-eze mostra seletor de origem", async () => {
-  const res = await fetch(`${baseUrl}/ofertas/gru-eze`);
+test("GET /ofertas/gig-ssa mostra seletor de origem", async () => {
+  const res = await fetch(`${baseUrl}/ofertas/gig-ssa`);
   assert.strictEqual(res.status, 200, "deve devolver 200 OK");
   const html = await res.text();
   
-  // Deve ter o seletor de origem.
+  // Deve ter o seletor de origem. gig-ssa (7 nov) ainda esta no ar; gru-eze ja encerrou.
   assert.ok(html.includes('data-origin-selector'), "deve ter o seletor de origem");
   assert.ok(html.includes('Saindo de'), "deve ter o rotulo 'Saindo de'");
   assert.ok(html.includes('value="GRU"'), "deve ter GRU como opcao");
@@ -141,15 +141,19 @@ test("GET /hoje sem seletor de origem para ofertas sem aviasalesUrl", async () =
 // ---------------------------------------------------------------------------
 
 test("JavaScript esconde preco quando origem != original", async () => {
-  const res = await fetch(`${baseUrl}/ofertas/gru-eze`);
+  const res = await fetch(`${baseUrl}/ofertas/gig-ssa`);
   assert.strictEqual(res.status, 200, "deve devolver 200 OK");
   const html = await res.text();
   
-  // Verifica que o JavaScript tem a logica para esconder o preco.
+  // Verifica que o HTML marca os pontos de controle, e que o JS compartilhado
+  // (agora em asset cacheável) mantém a lógica de esconder o preço.
   assert.ok(html.includes('data-origin-price'), "deve marcar preco com data-origin-price");
-  assert.ok(html.includes('data-origin-selector'), "deve ter o handler de mudanca de origem");
-  assert.ok(html.includes('el.hidden=true'), "deve ter logica para esconder o preco");
-  assert.ok(html.includes('novaOrigem!=='), "deve checar se origem mudou");
+  assert.ok(html.includes('data-origin-selector'), "deve ter o seletor de origem");
+  const asset = html.match(/<script defer src="(\/assets\/site-[0-9a-f]{12}\.js)"><\/script>/);
+  assert.ok(asset, "deve carregar o JS compartilhado por asset");
+  const js = await (await fetch(`${baseUrl}${asset[1]}`)).text();
+  assert.ok(js.includes('el.hidden=true'), "deve ter logica para esconder o preco");
+  assert.ok(js.includes('novaOrigem!=='), "deve checar se origem mudou");
 });
 
 // ---------------------------------------------------------------------------

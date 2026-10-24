@@ -253,7 +253,10 @@ test("busca inválida não consulta outra rota e a URL do parceiro leva a busca"
 
   const mapa = renderMapPage({ apiKey: "chave-teste" });
   assert.match(mapa, /<a class="map-dest-link" href="\/guias\/salvador">/);
-  assert.match(mapa, /<button type="button" class="map-pin" data-dest="\d+">Ver no mapa<\/button>/);
+  assert.match(
+    mapa,
+    /<button type="button" class="map-pin" data-dest="\d+" aria-label="Ver [^"]+ no mapa interativo">Ver no mapa<\/button>/
+  );
   assert.doesNotMatch(mapa, /<a[^>]*data-dest=/);
   assert.match(renderHomePage({}), /<fieldset class="res-filtro"|<legend>Passageiros<\/legend>/);
   assert.match(renderResultsPage({}), /<fieldset class="res-filtro"><legend class="res-filtro-title">/);
@@ -263,7 +266,7 @@ test("sitemap omite busca interna e oferta com ida já passada", async (t) => {
   const { baseUrl } = await withServer(t);
   const xml = await (await fetch(`${baseUrl}/sitemap.xml`)).text();
   assert.doesNotMatch(xml, /\/resultados/);
-  assert.match(xml, /\/ofertas\/gru-lis/);
+  assert.match(xml, /\/ofertas\/[a-z0-9-]+</);
   assert.doesNotMatch(xml, /\/ofertas\/gru-eze/);
   assert.match(xml, /<lastmod>2026-07-25<\/lastmod>/);
   const robots = await (await fetch(`${baseUrl}/robots.txt`)).text();

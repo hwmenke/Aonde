@@ -10,6 +10,7 @@ import path from "node:path";
 
 import { createServer } from "../src/server.js";
 import { OFFERS } from "../src/render/aondeContent.js";
+import { ofertasAtivas } from "../src/offerDeparture.js";
 import { formatMoedaExibicao } from "../src/render/texto.js";
 import { buildOfferProduct } from "../src/render/structuredData.js";
 import { renderOfferCard, renderOfferPage, renderOffersPage } from "../src/render/htmlRenderer.js";
@@ -92,7 +93,7 @@ test("preco em dolar aparece como US$ no card, no hero e no buy box", () => {
 });
 
 test("JSON-LD continua em USD com o numero certo (dado estruturado nao muda)", () => {
-  const html = renderOfferPage(byId("for-ssa"), { related: [] });
+  const html = renderOfferPage(byId("for-ssa"), { related: [], hoje: "2026-08-01" });
   const ld = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1]));
   const product = ld.find((j) => j["@type"] === "Product");
   assert.ok(product, "Product continua na página");
@@ -131,7 +132,7 @@ test("card sem link de parceiro leva ao detalhe e nao promete parceiro", () => {
 test("card sem botao Buy (gru-fln) nao finge reserva", () => {
   const fln = byId("gru-fln");
   assert.equal(fln.aviasalesBuy, false, "premissa: gru-fln e so busca");
-  const feed = renderOffersPage([], { hoje: "2026-09-01" });
+  const feed = renderOffersPage([], { hoje: "2026-08-01" });
   const card = feed.match(/<a class="of-card[^"]*" href="\/saida\/gru-fln">[\s\S]*?<\/a>/);
   assert.ok(card, "card do gru-fln no feed enquanto a ida ainda não passou");
   assert.match(card[0], /Ver busca no Aviasales →/);
@@ -152,7 +153,7 @@ test("card so mostra 'Visto no ...' quando a oferta traz fonte/data", () => {
 // ---------------------------------------------------------------------------
 
 test("detalhe com parceiro: passo claro antes do CTA e preco explicado", () => {
-  const html = renderOfferPage(byId("for-ssa"), { related: [] });
+  const html = renderOfferPage(byId("for-ssa"), { related: [], hoje: "2026-08-01" });
   const buy = (html.match(/<div class="det-buy">([\s\S]*?)<p class="det-buy-perks">/) || [])[1] || "";
   const passoAt = buy.indexOf("Você finaliza a compra no site do parceiro");
   const ctaAt = buy.indexOf("Reservar no Aviasales");
@@ -167,7 +168,7 @@ test("detalhe com parceiro: passo claro antes do CTA e preco explicado", () => {
 });
 
 test("detalhe sem botao Buy descreve uma busca, nao uma compra", () => {
-  const html = renderOfferPage(byId("gru-fln"), { related: [] });
+  const html = renderOfferPage(byId("gru-fln"), { related: [], hoje: "2026-08-01" });
   assert.match(html, /Este botão abre uma busca no Aviasales/);
   assert.doesNotMatch(html, /Reservar no Aviasales/);
   assert.doesNotMatch(html, /Você finaliza a compra no site do parceiro/);
@@ -207,13 +208,14 @@ test("/ofertas tem formulario de busca com role=search e sem JavaScript", () => 
 });
 
 test("busca ignora acento e caixa, e acha por cidade, pais ou companhia", () => {
-  const todos = cardsDe(renderOffersPage([])).length;
-  const flo = cardsDe(renderOffersPage([], { q: "FLORIANOPOLIS" }));
+  const catalogo = { hoje: "2026-08-01" };
+  const todos = cardsDe(renderOffersPage([], catalogo)).length;
+  const flo = cardsDe(renderOffersPage([], { q: "FLORIANOPOLIS", ...catalogo }));
   assert.ok(flo.length > 0 && flo.length < todos);
   for (const c of flo) assert.match(c, /Florianópolis/);
-  const pais = cardsDe(renderOffersPage([], { q: "portugal" }));
+  const pais = cardsDe(renderOffersPage([], { q: "portugal", ...catalogo }));
   assert.ok(pais.some((c) => /Lisboa/.test(c)));
-  const cia = cardsDe(renderOffersPage([], { q: "sky" }));
+  const cia = cardsDe(renderOffersPage([], { q: "sky", ...catalogo }));
   assert.ok(cia.length > 0);
   for (const c of cia) assert.match(c, /Sky/);
 });
@@ -273,12 +275,16 @@ test("estado vazio nomeia origem, busca e tipo juntos", () => {
 
 test("GET /ofertas?q=... filtra no servidor", async (t) => {
   const base = await withServer(t);
-  const res = await fetch(`${base}/ofertas?q=${encodeURIComponent("florianópolis")}`);
+  const ativas = ofertasAtivas(OFFERS);
+  assert.ok(ativas.length > 0, "precisa existir ao menos uma oferta ativa para testar o filtro");
+  const alvo = ativas.find((o) => /[^\u0000-\u007f]/.test(o.cidade || "")) || ativas[0];
+  const termo = String(alvo.cidade || alvo.destino || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  const res = await fetch(`${base}/ofertas?q=${encodeURIComponent(termo)}`);
   assert.equal(res.status, 200);
   const html = await res.text();
   const cards = cardsDe(html);
   assert.ok(cards.length > 0);
-  for (const c of cards) assert.match(c, /Florianópolis/);
+  for (const c of cards) assert.match(c, new RegExp(alvo.cidade || alvo.destino));
   assert.match(html, /<link rel="canonical" href="[^"]*\/ofertas">/, "filtros nao criam URL canonica nova");
   const vazio = await (await fetch(`${base}/ofertas?q=zzzz`)).text();
   assert.match(vazio, /Nenhum achado para/);

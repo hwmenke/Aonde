@@ -20,6 +20,7 @@
 import { OFFERS, GUIDES, melhorMesDoGuia } from "../render/aondeContent.js";
 import { cidadeDoIata } from "../render/aeroportos.js";
 import { viagemAindaVale } from "../offers/elegibilidade.js";
+import { ofertaEncerrada } from "../offerDeparture.js";
 
 /**
  * Data como "AAAA-MM-DD" no fuso local.
@@ -142,20 +143,20 @@ export function guiaDaOferta(offer, guides = GUIDES) {
 export function escolhaDoDia(data = new Date(), { quantidade = 2, offers = OFFERS, guides = GUIDES } = {}) {
   const chave = chaveDoDia(data);
 
+  const noAr = (offer) => offer && viagemAindaVale(offer, chave) && !ofertaEncerrada(offer, chave);
   const override = OVERRIDES_EDITORIAIS.find((item) => item.dia === chave);
   if (override) {
     const offer = offers.find((o) => o.id === override.id);
-    if (offer && viagemAindaVale(offer, chave) && (offer.aviasalesUrl || offer.affiliate_url || offer.affiliateUrl)) {
+    if (noAr(offer) && (offer.aviasalesUrl || offer.affiliate_url || offer.affiliateUrl)) {
       return [{ offer, guide: guiaDaOferta(offer, guides) }];
     }
   }
-
   const candidatos = offers
     .map((offer) => ({ offer, guide: guiaDaOferta(offer, guides) }))
     .filter((c) => c.guide) // so entra quem tem roteiro de verdade
     .filter((c) => c.offer.aviasalesUrl || c.offer.affiliate_url || c.offer.affiliateUrl) // e so entra quem e RESERVAVEL (tem wrap do Aviasales)
     .filter((c) => HOJE_LOCK_IDS.has(c.offer.id)) // for-ssa e inventario, nao /hoje
-    .filter((c) => viagemAindaVale(c.offer, chave));
+    .filter((c) => noAr(c.offer)); // ida ja passou: some da rotacao (inclui os locks)
 
   if (!candidatos.length) return [];
 

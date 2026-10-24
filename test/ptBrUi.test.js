@@ -116,7 +116,7 @@ test("erros de alerta e respostas HTTP visiveis sao pt-BR, sem double opt-in", a
       destino: "LIS",
       precoAlvoCentavos: 0,
     }).error,
-    "Preço-alvo inválido. Informe um valor em centavos maior que zero."
+    "Preço-alvo inválido. Informe um valor inteiro em centavos maior que zero."
   );
 
   const server = createServer();
