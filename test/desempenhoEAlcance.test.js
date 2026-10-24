@@ -7,7 +7,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { createServer } from "../src/server.js";
-import { renderHomePage, renderOffersPage, styleAssetPath } from "../src/render/htmlRenderer.js";
+import { renderHomePage, renderOffersPage, styleAssetPath, scriptAssetPath } from "../src/render/htmlRenderer.js";
 import { OFFERS, OFFER_ORIGINS } from "../src/render/aondeContent.js";
 
 async function withServer(t) {
@@ -38,6 +38,12 @@ test("o servidor troca o CSS inline pelo arquivo cacheavel", async (t) => {
   assert.match(html, /<link rel="stylesheet" href="\/assets\/estilo-[0-9a-f]{12}\.css">/);
 });
 
+test("o servidor troca o JS compartilhado inline por asset cacheavel", async (t) => {
+  const base = await withServer(t);
+  const html = await (await fetch(`${base}/`)).text();
+  assert.match(html, /<script defer src="\/assets\/site-[0-9a-f]{12}\.js"><\/script>/);
+});
+
 test("o CSS e servido com cache longo e some quando o hash muda", async (t) => {
   const base = await withServer(t);
   const res = await fetch(base + styleAssetPath());
@@ -48,6 +54,19 @@ test("o CSS e servido com cache longo e some quando o hash muda", async (t) => {
 
   // Hash de um deploy anterior nao pode ser servido como eterno.
   const velho = await fetch(`${base}/assets/estilo-000000000000.css`);
+  assert.equal(velho.status, 404);
+  assert.ok(!(velho.headers.get("cache-control") || "").includes("immutable"));
+});
+
+test("o JS compartilhado e servido com cache longo e some quando o hash muda", async (t) => {
+  const base = await withServer(t);
+  const res = await fetch(base + scriptAssetPath());
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("content-type") || "", /javascript/);
+  assert.match(res.headers.get("cache-control") || "", /immutable/);
+  assert.ok((await res.text()).includes("data-newsletter"), "asset JS de realce real");
+
+  const velho = await fetch(`${base}/assets/site-000000000000.js`);
   assert.equal(velho.status, 404);
   assert.ok(!(velho.headers.get("cache-control") || "").includes("immutable"));
 });

@@ -1345,12 +1345,12 @@ function siteFooter({ places, attribution } = {}) {
       if (tel) return `<a href="${telHref()}">Atendimento: ${escapeHtml(tel)}</a>`;
       return `<a href="/ajuda">Central de ajuda</a>`;
     })() +
-    `<a href="/ajuda">Central de ajuda</a><a href="/cancelamentos">Trocas e cancelamentos</a></div>` +
+    `<a href="/ajuda">Central de ajuda</a><a href="/cancelamentos">Trocas e cancelamentos</a><a href="/privacidade">Privacidade (LGPD)</a></div>` +
     `</div>` +
     `<div class="foot-bar"><div class="wrap foot-bar-in">` +
     placesNote +
     `<p class="foot-lgpd">Alguns links são de parceiros afiliados: se você comprar por eles, podemos receber uma comissão, <strong>sem custo extra para você</strong>. Isso ajuda a manter o Aonde no ar. Preços e disponibilidade mudam sem aviso — confira sempre no site do parceiro.</p>` +
-    `<p class="foot-legal">© 2026 Aonde · A reserva é feita no site do parceiro.</p>` +
+    `<p class="foot-legal">© 2026 Aonde · A reserva é feita no site do parceiro · <a href="/privacidade">Privacidade</a>.</p>` +
     `</div></div>` +
     `</footer>`
   );
@@ -1438,6 +1438,25 @@ export function pageStylesCss() {
 
 /** Marcador que o servidor troca pelo <link> do CSS externo. */
 export const STYLE_TAG_RE = /<style>[\s\S]*?<\/style>/;
+
+let _scriptHashCache = null;
+/** Hash curto do JS compartilhado de realce. */
+export function scriptAssetHash() {
+  if (_scriptHashCache === null) {
+    _scriptHashCache = createHash("sha256").update(enhancementScript()).digest("hex").slice(0, 12);
+  }
+  return _scriptHashCache;
+}
+
+/** Caminho do JS compartilhado servido pelo servidor (com hash). */
+export function scriptAssetPath() {
+  return `/assets/site-${scriptAssetHash()}.js`;
+}
+
+/** Script compartilhado cru, usado no asset cacheável. */
+export function sharedEnhancementScript() {
+  return enhancementScript();
+}
 
 function styleTag() {
   return `<style>${pageStyles()}</style>`;
@@ -2145,13 +2164,14 @@ function confiancaSectionHtml(stats) {
 /** Pagina inicial (home) — porta fiel da tela "home" do prototipo. */
 export function renderHomePage(opts = {}) {
   const liveOffers = Array.isArray(opts.offers) ? opts.offers : null;
-  const dia = opts.hoje || chaveDoDia(new Date());
+  const dia = typeof opts.hoje === "string" && /^\d{4}-\d{2}-\d{2}$/.test(opts.hoje) ? opts.hoje : "";
+  const diaBusca = dia || chaveDoDia(new Date());
   const fonte = liveOffers && liveOffers.length ? liveOffers : opts.editoriais || CONTENT_OFFERS;
-  const offerVMs = fonte
-    .filter((offer) => viagemAindaVale(offer, dia))
+  const elegiveis = dia ? fonte.filter((offer) => viagemAindaVale(offer, dia)) : fonte;
+  const offerVMs = elegiveis
     .map((offer) => (liveOffers && liveOffers.length ? normalizeLiveOffer(offer) : normalizeContentOffer(offer)))
     .filter(Boolean)
-    .filter((vm) => !ofertaEncerrada(vm, dia))
+    .filter((vm) => !dia || !ofertaEncerrada(vm, dia))
     .slice(0, 4);
   const guides = Array.isArray(opts.guides) && opts.guides.length ? opts.guides : GUIDE_LIST.slice(0, 3);
 
@@ -2162,7 +2182,7 @@ export function renderHomePage(opts = {}) {
       valores: opts.busca || {},
       erros: opts.erros || [],
       buscaAoVivo: opts.buscaAoVivo === true,
-      hoje: dia,
+      hoje: diaBusca,
     }) +
     homeOffersHtml(offerVMs) +
     newsletterStripHtml() +
@@ -2377,10 +2397,11 @@ export function renderOffersPage(
   { title = "Ofertas de viagem — Aonde", origem, q = "", tipo = "", naoEncontrada = "", hoje = "", editoriais = CONTENT_OFFERS } = {}
 ) {
   const list = Array.isArray(offers) ? offers : [];
-  const dia = /^\d{4}-\d{2}-\d{2}$/.test(hoje) ? hoje : chaveDoDia(new Date());
-  const base = (list.length ? list : editoriais).filter((offer) => viagemAindaVale(offer, dia));
+  const dia = /^\d{4}-\d{2}-\d{2}$/.test(hoje) ? hoje : "";
+  const fonte = list.length ? list : editoriais;
+  const base = dia ? fonte.filter((offer) => viagemAindaVale(offer, dia)) : fonte;
   const vms = base.map((offer) => (list.length ? normalizeLiveOffer(offer) : normalizeContentOffer(offer))).filter(Boolean);
-  const vmsAtivas = vms.filter((vm) => !ofertaEncerrada(vm, dia));
+  const vmsAtivas = dia ? vms.filter((vm) => !ofertaEncerrada(vm, dia)) : vms;
   const tipos = [...new Set(vmsAtivas.map((v) => v.tipo).filter(Boolean))].sort();
   const busca = limparBusca(q);
   const tipoAtivo = tipos.includes(tipo) ? tipo : "";
@@ -2466,7 +2487,8 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
       ? normalizeLiveOffer(offer)
       : normalizeContentOffer(offer);
   if (!vm) return renderOffersPage([], { hoje });
-  const encerrada = ofertaEncerrada(vm, hoje);
+  const dia = typeof hoje === "string" && /^\d{4}-\d{2}-\d{2}$/.test(hoje) ? hoje : "";
+  const encerrada = dia ? ofertaEncerrada(vm, dia) : false;
 
   const destinoLabel = vm.cidade || vm.destino || "Destino";
   // Nome da cidade de origem: entra no <h1>, no <title> e na description.
@@ -2646,7 +2668,7 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
     `</div>`;
 
   const relatedCards = (Array.isArray(related) ? related : [])
-    .filter((r) => !ofertaEncerrada(r, hoje))
+    .filter((r) => !dia || !ofertaEncerrada(r, dia))
     .map((r) => {
       const rv = "preco_centavos" in r || "is_erro_tarifa" in r ? normalizeLiveOffer(r) : normalizeContentOffer(r);
       if (!rv) return "";
@@ -3932,6 +3954,39 @@ export function renderCancelPage() {
     description: "Seus direitos de arrependimento, troca e cancelamento pelo CDC e pelas regras da ANAC — e com quem resolver cada caso." });
 }
 
+export function renderPrivacyPage() {
+  const body =
+    `<main id="conteudo" tabindex="-1">` +
+    `<section class="wrap map-head"><p class="eyebrow eyebrow--green">Privacidade</p>` +
+    `<h1 class="map-title">Como tratamos seus dados no Aonde</h1>` +
+    `<p class="map-sub">Resumo em linguagem direta, no espírito da LGPD: coletamos o mínimo para fazer o que você pediu e explicamos onde cada dado entra.</p></section>` +
+    `<section class="wrap section help-grid">` +
+    `<div class="help-group"><h2 class="det-h2">Quais dados entram</h2>` +
+    `<p><strong>Alertas e newsletter:</strong> e-mail obrigatório; WhatsApp opcional; rota e preço-alvo quando você informa no formulário.</p>` +
+    `<p><strong>Medição do produto:</strong> eventos de navegação (por exemplo, clique em saída para parceiro), com data e informações técnicas da requisição.</p>` +
+    `<p><strong>Não coletamos pagamento:</strong> compra e cartão acontecem no site do parceiro. O Aonde não processa nem armazena esse dado.</p></div>` +
+    `<div class="help-group"><h2 class="det-h2">Base de consentimento (double opt-in)</h2>` +
+    `<p>Inscrição de e-mail só ativa depois do clique no link de confirmação enviado para o endereço informado. Sem essa confirmação, não há disparo de alertas por e-mail.</p>` +
+    `<p>Você pode cancelar quando quiser em <a href="/alertas">Gerenciar alertas</a> ou pelo link de descadastro de cada mensagem.</p></div>` +
+    `<div class="help-group"><h2 class="det-h2">Para que usamos</h2>` +
+    `<p>Usamos os dados de inscrição para entregar alertas de preço e mensagens relacionadas ao pedido feito. Os dados técnicos de uso servem para operar, proteger e melhorar o site.</p>` +
+    `<p>Não prometemos “nunca compartilhar”: quando o serviço precisa de fornecedores técnicos (ex.: envio de e-mail), o tratamento pode envolver esses operadores.</p></div>` +
+    `<div class="help-group"><h2 class="det-h2">Retenção (visão geral)</h2>` +
+    `<p>Guardamos os dados enquanto a inscrição estiver ativa ou enquanto forem necessários para operação e segurança. No descadastro, o envio é interrompido e o registro passa a seguir o ciclo de retenção operacional do sistema.</p>` +
+    `<p>Registros de evento e log têm retenção técnica limitada e podem ser removidos por rotina.</p></div>` +
+    `<div class="help-group"><h2 class="det-h2">Seus direitos e contato</h2>` +
+    `<p>Você pode pedir confirmação de tratamento, correção, informação sobre uso e exclusão quando aplicável. O canal do produto é a <a href="/ajuda">Central de ajuda</a>.</p>` +
+    `<p>Ao escrever, informe o e-mail da inscrição para localizar o cadastro com segurança.</p></div>` +
+    `</section></main>` +
+    siteFooter();
+  return htmlDocument({
+    title: "Privacidade (LGPD) · Aonde",
+    body,
+    canonical: "/privacidade",
+    description: "Resumo de privacidade do Aonde: dados usados para alertas/newsletter, confirmação por e-mail, descadastro e contato.",
+  });
+}
+
 export function renderAlertsPage() {
   const body =
     `<main id="conteudo" tabindex="-1">` +
@@ -4173,7 +4228,7 @@ function mapListHtml(destinos, { comMapa = false } = {}) {
         (d.preco ? `<span class="map-dest-preco">${escapeHtml(d.preco)}</span>` : "") +
         `</a>`;
       const mapa = comMapa
-        ? `<button type="button" class="map-pin" data-dest="${i}">Ver no mapa</button>`
+        ? `<button type="button" class="map-pin" data-dest="${i}" aria-label="Ver ${escapeHtml(d.titulo)} no mapa interativo">Ver no mapa</button>`
         : "";
       return `<div class="map-dest">${guia}${mapa}</div>`;
     })

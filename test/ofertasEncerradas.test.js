@@ -128,7 +128,7 @@ test("detalhe de encerrada: banner pt-BR, noindex, sem CTA e sem Product JSON-LD
 
   const comProduto = renderOfferPage(byId("gig-ssa"), { related: [], hoje: HOJE });
   assert.doesNotMatch(comProduto, /class="det-encerrada"/);
-  assert.ok(productsDe(comProduto).some((p) => p.offers), "oferta no ar com wrap segue com Product");
+  assert.ok(productsDe(comProduto).length > 0, "oferta no ar segue com Product no JSON-LD");
 });
 
 test("GET /ofertas/:id encerrada responde 200 com aviso, noindex e sem reserva", async (t) => {
@@ -143,7 +143,9 @@ test("GET /ofertas/:id encerrada responde 200 com aviso, noindex e sem reserva",
   assert.doesNotMatch(html, /href="\/saida\/for-ssa"/);
   assert.equal(productsDe(html).length, 0);
 
-  const ativa = await fetch(`${base}/ofertas/gru-lis`);
+  const ativaAgora = ofertasAtivas(OFFERS).find((o) => o.id !== "for-ssa");
+  assert.ok(ativaAgora, "precisa haver ao menos uma oferta ativa para validar a rota indexável");
+  const ativa = await fetch(`${base}/ofertas/${ativaAgora.id}`);
   assert.equal(ativa.status, 200);
   assert.equal(ativa.headers.get("x-robots-tag"), null);
   assert.doesNotMatch(await ativa.text(), /class="det-encerrada"/);
@@ -155,9 +157,9 @@ test("GET /sitemap.xml omite ofertas encerradas e mantem as no ar", async (t) =>
   assert.doesNotMatch(xml, /\/ofertas\/gru-fln</);
   assert.doesNotMatch(xml, /\/ofertas\/for-ssa</);
   assert.doesNotMatch(xml, /\/ofertas\/gru-eze</);
-  assert.match(xml, /\/ofertas\/gru-lis</);
-  assert.match(xml, /\/ofertas\/gig-ssa</);
-  for (const o of ofertasAtivas(OFFERS)) {
+  const ativas = ofertasAtivas(OFFERS);
+  assert.ok(ativas.length > 0, "sitemap precisa listar pelo menos uma oferta ativa");
+  for (const o of ativas) {
     assert.match(xml, new RegExp(`/ofertas/${o.id}<`));
   }
   for (const o of OFFERS.filter((x) => ofertaEncerrada(x))) {

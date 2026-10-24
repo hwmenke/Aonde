@@ -10,6 +10,7 @@ import path from "node:path";
 
 import { createServer } from "../src/server.js";
 import { OFFERS } from "../src/render/aondeContent.js";
+import { ofertasAtivas } from "../src/offerDeparture.js";
 import { formatMoedaExibicao } from "../src/render/texto.js";
 import { buildOfferProduct } from "../src/render/structuredData.js";
 import { renderOfferCard, renderOfferPage, renderOffersPage } from "../src/render/htmlRenderer.js";
@@ -274,12 +275,16 @@ test("estado vazio nomeia origem, busca e tipo juntos", () => {
 
 test("GET /ofertas?q=... filtra no servidor", async (t) => {
   const base = await withServer(t);
-  const res = await fetch(`${base}/ofertas?q=${encodeURIComponent("florianópolis")}`);
+  const ativas = ofertasAtivas(OFFERS);
+  assert.ok(ativas.length > 0, "precisa existir ao menos uma oferta ativa para testar o filtro");
+  const alvo = ativas.find((o) => /[^\u0000-\u007f]/.test(o.cidade || "")) || ativas[0];
+  const termo = String(alvo.cidade || alvo.destino || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  const res = await fetch(`${base}/ofertas?q=${encodeURIComponent(termo)}`);
   assert.equal(res.status, 200);
   const html = await res.text();
   const cards = cardsDe(html);
   assert.ok(cards.length > 0);
-  for (const c of cards) assert.match(c, /Florianópolis/);
+  for (const c of cards) assert.match(c, new RegExp(alvo.cidade || alvo.destino));
   assert.match(html, /<link rel="canonical" href="[^"]*\/ofertas">/, "filtros nao criam URL canonica nova");
   const vazio = await (await fetch(`${base}/ofertas?q=zzzz`)).text();
   assert.match(vazio, /Nenhum achado para/);

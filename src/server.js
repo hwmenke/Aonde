@@ -55,6 +55,7 @@ import {
   renderHelpPage,
   renderSalvosPage,
   renderCancelPage,
+  renderPrivacyPage,
   renderAlertsPage,
   renderNewsletterStatusPage,
   renderUnsubscribePage,
@@ -63,7 +64,9 @@ import {
   renderTodayPage,
   renderRegiaoPage,
   styleAssetPath,
+  scriptAssetPath,
   pageStylesCss,
+  sharedEnhancementScript,
   STYLE_TAG_RE,
 } from "./render/htmlRenderer.js";
 import { renderExitFlightPage, montarBuscaAviasales } from "./render/exitFlight.js";
@@ -151,6 +154,26 @@ function externalizeStyles(html) {
   return html.replace(STYLE_TAG_RE, `<link rel="stylesheet" href="${styleAssetPath()}">`);
 }
 
+function externalizeSharedScript(html) {
+  const shared = sharedEnhancementScript();
+  const assetTag = `<script defer src="${scriptAssetPath()}"></script>`;
+  const separators = [";\n", ";\r\n", ";", "\n", "\r\n"];
+  return html.replace(/<script>([\s\S]*?)<\/script>/g, (full, body) => {
+    if (body === shared) return assetTag;
+    for (const sep of separators) {
+      const tail = sep + shared;
+      if (!body.endsWith(tail)) continue;
+      const inline = body.slice(0, -tail.length).trim();
+      return `${inline ? `<script>${inline}</script>` : ""}${assetTag}`;
+    }
+    return full;
+  });
+}
+
+function externalizeAssets(html) {
+  return externalizeSharedScript(externalizeStyles(html));
+}
+
 /**
  * Verdadeiro quando quem pediu foi um NAVEGADOR navegando (aceita text/html),
  * e o caminho nao e de API. Serve para decidir entre pagina e JSON nos erros.
@@ -224,7 +247,7 @@ function comprimir(encoding, corpo, nivelBrotli = BROTLI_NIVEL_DINAMICO) {
 const NOINDEX_HEADERS = { "X-Robots-Tag": "noindex, nofollow" };
 
 function sendHtml(res, status, rawHtml, extraHeaders) {
-  const html = externalizeStyles(rawHtml);
+  const html = externalizeAssets(rawHtml);
   const { buf, encoding } = comprimir(negociarEncoding(res.aceitaEncoding), html);
   res.writeHead(status, {
     "Content-Type": "text/html; charset=utf-8",
@@ -690,7 +713,8 @@ function handleOffersHtml(res, url) {
   const origem = url.searchParams.get("origem") || undefined;
   const q = url.searchParams.get("q") || "";
   const tipo = url.searchParams.get("tipo") || "";
-  sendHtml(res, 200, renderOffersPage(publishedLiveOffers(), { origem, q, tipo, editoriais: editoriaisPublicas() }));
+  const hoje = chaveDoDia(new Date());
+  sendHtml(res, 200, renderOffersPage(publishedLiveOffers(), { origem, q, tipo, hoje, editoriais: editoriaisPublicas() }));
 }
 
 // Ofertas semelhantes: mesmo `tipo`, exceto a propria, no maximo 3.
@@ -712,22 +736,33 @@ function ofertaPublica(req, id) {
 
 function handleOfferHtml(req, res, id) {
   const apiKey = getConfig().googleMaps.apiKey;
+  const hoje = chaveDoDia(new Date());
   const { live, bloqueada } = ofertaPublica(req, id);
   if (bloqueada) {
     sendHtml(res, 404, renderOffersPage(publishedLiveOffers(), { naoEncontrada: id, editoriais: editoriaisPublicas() }));
     return;
   }
   if (live) {
-    const encerrada = ofertaEncerrada(live);
+    const encerrada = ofertaEncerrada(live, hoje);
     const related = relatedOffers(ofertasAtivas(offersParaEscolha(listOffers(), CONTENT_OFFERS)), live);
-    sendHtml(res, 200, renderOfferPage(live, { related, apiKey, noindex: encerrada }), encerrada ? NOINDEX_HEADERS : undefined);
+    sendHtml(
+      res,
+      200,
+      renderOfferPage(live, { related, apiKey, noindex: encerrada, hoje }),
+      encerrada ? NOINDEX_HEADERS : undefined
+    );
     return;
   }
   const editorial = CONTENT_OFFERS.find((o) => o.id === id);
   if (editorial) {
-    const encerrada = ofertaEncerrada(editorial);
+    const encerrada = ofertaEncerrada(editorial, hoje);
     const related = relatedOffers(ofertasAtivas(offersParaEscolha(listOffers(), CONTENT_OFFERS)), editorial);
-    sendHtml(res, 200, renderOfferPage(editorial, { related, apiKey, noindex: encerrada }), encerrada ? NOINDEX_HEADERS : undefined);
+    sendHtml(
+      res,
+      200,
+      renderOfferPage(editorial, { related, apiKey, noindex: encerrada, hoje }),
+      encerrada ? NOINDEX_HEADERS : undefined
+    );
     return;
   }
   // Nao encontrada: devolve o feed de ofertas com 404 (pagina util, nao um JSON seco).
@@ -797,6 +832,19 @@ function cssComprimido(res, assetPath) {
   return entrada;
 }
 
+const jsComprimidoCache = new Map();
+function jsComprimido(res, assetPath) {
+  const encoding = negociarEncoding(res.aceitaEncoding);
+  const chave = `${assetPath}|${encoding}`;
+  let entrada = jsComprimidoCache.get(chave);
+  if (!entrada) {
+    if (jsComprimidoCache.size > 8) jsComprimidoCache.clear();
+    entrada = comprimir(encoding, sharedEnhancementScript(), BROTLI_NIVEL_MAXIMO);
+    jsComprimidoCache.set(chave, entrada);
+  }
+  return entrada;
+}
+
 // CSS servido como arquivo, com hash no nome. O hash muda quando o CSS muda,
 // entao pode ser cacheado para sempre sem risco de versao velha.
 function handleStyleAsset(res, pathname) {
@@ -809,6 +857,24 @@ function handleStyleAsset(res, pathname) {
   const { buf, encoding } = cssComprimido(res, pathname);
   res.writeHead(200, {
     "Content-Type": "text/css; charset=utf-8",
+    "Content-Length": buf.length,
+    ...(encoding ? { "Content-Encoding": encoding } : {}),
+    Vary: "Accept-Encoding",
+    "Cache-Control": "public, max-age=31536000, immutable",
+    ...securityHeaders(),
+    ...corsHeaders(),
+  });
+  res.end(buf);
+}
+
+function handleScriptAsset(res, pathname) {
+  if (pathname !== scriptAssetPath()) {
+    sendText(res, 404, "/* asset nao encontrado */", "application/javascript; charset=utf-8");
+    return;
+  }
+  const { buf, encoding } = jsComprimido(res, pathname);
+  res.writeHead(200, {
+    "Content-Type": "application/javascript; charset=utf-8",
     "Content-Length": buf.length,
     ...(encoding ? { "Content-Encoding": encoding } : {}),
     Vary: "Accept-Encoding",
@@ -874,6 +940,7 @@ function handleSitemap(res) {
     { loc: "/mapa" },
     { loc: "/ajuda" },
     { loc: "/cancelamentos" },
+    { loc: "/privacidade" },
     { loc: "/alertas" },
   ];
   for (const id of Object.keys(GUIDES)) entradas.push({ loc: `/guias/${encodeURIComponent(id)}` });
@@ -936,11 +1003,13 @@ function paxResumo({ adultos, criancas, bebes }) {
 //                      exibidos forem os de amostra — NUNCA rotular exemplo
 //                      como real.
 async function handleResultsHtml(req, res, url) {
+  const sendResults = (status, html) => sendHtml(res, status, html, NOINDEX_HEADERS);
   if (req.method === "HEAD") {
     // The live representation can vary: omit its length rather than run a search.
     res.writeHead(200, {
       "Content-Type": "text/html; charset=utf-8",
       Vary: "Accept-Encoding",
+      ...NOINDEX_HEADERS,
       ...securityHeaders(),
       ...corsHeaders(),
     });
@@ -963,7 +1032,7 @@ async function handleResultsHtml(req, res, url) {
 
   // Sem campos, a página de amostra não consulta parceiro.
   if (!algumCampo) {
-    sendHtml(res, 200, renderResultsPage({ searched: false, buscaAoVivo, hoje }));
+    sendResults(200, renderResultsPage({ searched: false, buscaAoVivo, hoje }));
     return;
   }
 
@@ -981,8 +1050,7 @@ async function handleResultsHtml(req, res, url) {
     { hoje, exigirDatas: pediuDatas }
   );
   if (!validacao.ok) {
-    sendHtml(
-      res,
+    sendResults(
       200,
       renderResultsPage({
         searched: true,
@@ -1031,8 +1099,7 @@ async function handleResultsHtml(req, res, url) {
     voosReais = true;
   }
 
-  sendHtml(
-    res,
+  sendResults(
     200,
     renderResultsPage({
       rota,
@@ -1257,6 +1324,10 @@ export function createServer() {
         handleStyleAsset(res, pathname);
         return;
       }
+      if (publicRead && pathname.startsWith("/assets/site-") && pathname.endsWith(".js")) {
+        handleScriptAsset(res, pathname);
+        return;
+      }
 
       // OG images para social sharing (servidos de public/og/).
       if (publicRead && pathname.startsWith("/og/")) {
@@ -1336,6 +1407,10 @@ export function createServer() {
       }
       if (publicRead && pathname === "/cancelamentos") {
         sendHtml(res, 200, renderCancelPage());
+        return;
+      }
+      if (publicRead && pathname === "/privacidade") {
+        sendHtml(res, 200, renderPrivacyPage());
         return;
       }
       if (publicRead && pathname === "/alertas") {

@@ -99,7 +99,18 @@ test("GET /robots.txt e /sitemap.xml para SEO", async () => {
   assert.equal(sitemap.status, 200);
   assert.ok(sitemap.type.includes("xml"));
   assert.ok(sitemap.body.includes("/guias/salvador"), "sitemap inclui roteiros");
-  assert.ok(sitemap.body.includes("/ofertas/gru-lis"), "sitemap inclui ofertas");
+  assert.match(sitemap.body, /\/ofertas\/[a-z0-9-]+</, "sitemap inclui ofertas");
+  assert.ok(sitemap.body.includes("/privacidade"), "sitemap inclui página de privacidade");
+});
+
+test("GET /privacidade publica a política LGPD e o rodapé linka para ela", async () => {
+  const priv = await get("/privacidade");
+  assert.equal(priv.status, 200);
+  assert.ok(isHtmlDoc(priv));
+  assert.match(priv.body, /Como tratamos seus dados no Aonde/);
+  assert.match(priv.body, /double opt-in/i);
+  const home = await get("/");
+  assert.match(home.body, /href="\/privacidade"/);
 });
 
 test("respostas trazem headers de segurança", async () => {
