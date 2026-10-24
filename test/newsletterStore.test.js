@@ -68,6 +68,17 @@ test("subscribe rejeita e-mail invalido e origem invalida", async (t) => {
   assert.equal(subscribe({ email: "ok@example.com", origem: "XX" }).ok, false);
 });
 
+test("subscribe rejeita preco-alvo fracionado, inseguro ou nao numerico", async (t) => {
+  await withTempDataDir(t);
+  const casos = ["199.9", 10.5, Number.MAX_SAFE_INTEGER + 1, "1e3", "abc"];
+  for (const precoAlvoCentavos of casos) {
+    const r = subscribe({ email: "preco@example.com", origem: "GRU", destino: "REC", precoAlvoCentavos });
+    assert.equal(r.ok, false, String(precoAlvoCentavos));
+    assert.equal(r.field, "preco");
+    assert.match(r.error, /inteiro em centavos/i);
+  }
+});
+
 test("confirm registra consentimento LGPD e apaga o token", async (t) => {
   await withTempDataDir(t);
   const { token } = subscribe({ email: "b@example.com", origem: "GRU" });
@@ -164,6 +175,11 @@ test("addAlertRule exige assinante confirmado", async (t) => {
   assert.equal(rule.rule.origem, "GRU");
   assert.equal(rule.rule.destino, "LIS");
   assert.equal(listAlertRules({ subscriberId: sub.id }).length, 1);
+
+  assert.match(
+    addAlertRule({ subscriberId: sub.id, origem: "GRU", destino: "LIS", precoAlvoCentavos: 10.5 }).error,
+    /inteiro em centavos/i
+  );
 
   const removed = removeAlertRule(rule.rule.id);
   assert.equal(removed.removed, true);

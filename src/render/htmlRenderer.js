@@ -52,6 +52,7 @@ import { filtrarGuias, hubPorSlug } from "./descoberta.js";
 import { datasSugeridas } from "../flights/consulta.js";
 import { viagemAindaVale } from "../offers/elegibilidade.js";
 import { chaveDoDia } from "../daily/dailyPick.js";
+import { isIataCode, normalizeIata } from "../validate.js";
 import { ogSharePathForOffer, hojeOgSharePath } from "./ogShare.js";
 import {
   continuePlanejandoHtml,
@@ -2225,13 +2226,16 @@ function newsletterHeroHtml() {
     `<h1>Receba os achados de passagem antes que a tarifa mude</h1>` +
     `<p>O alerta compara a tarifa com a média dos últimos 90 dias. Não há envio com hora marcada.</p>` +
     `</div>` +
-    `<form class="news-form" data-newsletter action="/api/newsletter/subscribe" method="post">` +
-    `<input name="email" type="email" required aria-label="Seu e-mail" placeholder="Seu melhor e-mail">` +
+    `<form class="news-form" data-newsletter action="/api/newsletter/subscribe" method="post" aria-describedby="news-hero-termos">` +
+    `<label class="news-label" for="news-email-hero">Seu e-mail</label>` +
+    `<input id="news-email-hero" name="email" type="email" required autocomplete="email" inputmode="email" placeholder="nome@exemplo.com.br">` +
     `<div class="news-row">` +
-    `<input name="whatsapp" aria-label="Seu WhatsApp (opcional)" placeholder="WhatsApp (opcional)">` +
-    `<select name="origem" aria-label="Sua cidade de origem">${originOptionsHtml("GRU")}</select>` +
+    `<label class="news-label" for="news-whatsapp-hero">WhatsApp (opcional)</label>` +
+    `<input id="news-whatsapp-hero" name="whatsapp" autocomplete="tel" inputmode="tel" placeholder="(11) 91234-5678">` +
+    `<label class="news-label" for="news-origem-hero">Cidade de saída</label>` +
+    `<select id="news-origem-hero" name="origem" autocomplete="off">${originOptionsHtml("GRU")}</select>` +
     `</div>` +
-    `<span class="news-whatsapp-note">Se informar o WhatsApp, também avisamos por lá — só depois de você confirmar por e-mail.</span>` +
+    `<span class="news-whatsapp-note" id="news-hero-termos">Se informar o WhatsApp, também avisamos por lá — só depois de você confirmar por e-mail.</span>` +
     `<button class="btn btn-lime" type="submit">Quero receber os alertas</button>` +
     `<span class="news-fine">Grátis. Sem spam. Cancele quando quiser.</span>` +
     `<p class="news-msg" data-newsletter-msg role="status" aria-live="polite" hidden></p>` +
@@ -2604,7 +2608,8 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
     (typeof offer.preco_centavos === "number"
       ? `<input type="hidden" name="precoAlvoCentavos" value="${escapeHtml(offer.preco_centavos)}">`
       : "") +
-    `<input class="det-alert-input" name="email" type="email" required aria-label="Seu e-mail" placeholder="Seu melhor e-mail">` +
+    `<label class="news-label" for="det-alert-email-${escapeHtml(vm.id || "oferta")}">Seu e-mail</label>` +
+    `<input class="det-alert-input" id="det-alert-email-${escapeHtml(vm.id || "oferta")}" name="email" type="email" required autocomplete="email" inputmode="email" placeholder="nome@exemplo.com.br">` +
     `<button class="btn btn-lime" type="submit">Ativar alerta grátis</button>` +
     `<p class="news-msg" data-newsletter-msg role="status" aria-live="polite" hidden></p>` +
     `</form>`;
@@ -3785,7 +3790,8 @@ export function renderResultsPage(opts = {}) {
     `<div class="res-alert-banner"><div><strong>Não vai comprar agora?</strong> ` +
     `<span>A gente avisa se ${escapeHtml(rota.origem)} → ${escapeHtml(rota.destino)} ficar mais barato.</span></div>` +
     `<form class="res-alert-form" data-newsletter action="/api/newsletter/subscribe" method="post">` +
-    `<input name="email" type="email" required aria-label="Seu e-mail" placeholder="Seu melhor e-mail">` +
+    `<label class="news-label" for="res-alert-email">Seu e-mail</label>` +
+    `<input id="res-alert-email" name="email" type="email" required autocomplete="email" inputmode="email" placeholder="nome@exemplo.com.br">` +
     `<input type="hidden" name="origem" value="${escapeHtml(rota.origem)}">` +
     `<input type="hidden" name="destino" value="${escapeHtml(rota.destino)}">` +
     `<button class="btn btn-dark" type="submit">Ativar alerta desta rota</button>` +
@@ -4034,7 +4040,7 @@ export function renderAlertsPage() {
     `<input id="alertas-email" name="email" type="email" required autocomplete="email" inputmode="email" placeholder="nome@exemplo.com.br">` +
     `<button class="btn btn-dark" type="submit">Cancelar meus alertas</button>` +
     `<p class="news-msg news-msg--claro" data-unsubscribe-msg role="status" aria-live="polite" hidden></p>` +
-    `<noscript><p class="help-fine">Ative o JavaScript ou fale com a gente pela Central de ajuda para cancelar.</p></noscript>` +
+    `<noscript><p class="help-fine">Sem JavaScript, o botão também funciona: o cancelamento abre uma página de confirmação.</p></noscript>` +
     `</form>` +
     `<p class="help-fine">Quer mudar a rota ou o preço-alvo em vez de cancelar tudo? Fale com a gente pelo <strong>${escapeHtml(telLabel())}</strong> ou pela <a href="/ajuda">Central de ajuda</a> — ajustamos manualmente por enquanto.</p>` +
     `</section></main>` +
@@ -4138,14 +4144,30 @@ export function renderUnsubscribePage({ email = "" } = {}) {
 }
 
 /** Formulario de nova tentativa: funciona sem JavaScript (post nativo) e vem preenchido. */
-function statusRetryFormHtml(email, { resumo = "" } = {}) {
+function statusRetryFormHtml(email, { resumo = "", origem = "GRU", destino = "", precoAlvoCentavos = null } = {}) {
+  const origemNorm = isIataCode(origem) ? normalizeIata(origem) : "GRU";
+  const destinoNorm = isIataCode(destino) ? normalizeIata(destino) : "";
+  const preco = Number(precoAlvoCentavos);
+  const precoValido = Number.isSafeInteger(preco) && preco > 0;
+  const rotaEspecifica = Boolean(origemNorm && destinoNorm);
+  const alvoResumo =
+    rotaEspecifica
+      ? `Reenvia o alerta para ${escapeHtml(origemNorm)} → ${escapeHtml(destinoNorm)}${
+          precoValido ? ` abaixo de ${escapeHtml(formatBRL(preco))}` : ""
+        }.`
+      : "";
   const form =
     `<form class="status-retry" method="post" action="/api/newsletter/subscribe">` +
     `<label class="unsub-lab" for="retry-email">Seu e-mail</label>` +
     `<input class="unsub-input" id="retry-email" name="email" type="email" required autocomplete="email" ` +
     `value="${escapeHtml(email)}" placeholder="nome@exemplo.com.br">` +
-    `<label class="unsub-lab" for="retry-origem">Cidade de saída</label>` +
-    `<select class="unsub-input" id="retry-origem" name="origem">${originOptionsHtml("GRU")}</select>` +
+    (rotaEspecifica
+      ? `<input type="hidden" name="origem" value="${escapeHtml(origemNorm)}">` +
+        `<input type="hidden" name="destino" value="${escapeHtml(destinoNorm)}">` +
+        (precoValido ? `<input type="hidden" name="precoAlvoCentavos" value="${escapeHtml(preco)}">` : "") +
+        `<p class="help-fine">${alvoResumo}</p>`
+      : `<label class="unsub-lab" for="retry-origem">Cidade de saída</label>` +
+        `<select class="unsub-input" id="retry-origem" name="origem">${originOptionsHtml(origemNorm)}</select>`) +
     `<button class="btn btn-green" type="submit">Enviar de novo</button>` +
     `</form>`;
   return resumo
@@ -4157,7 +4179,18 @@ const STATUS_SAIDAS_HTML =
   `<p class="status-links"><a href="/hoje">Escolha do dia</a> · <a href="/ofertas">Ofertas</a> · ` +
   `<a href="/guias">Roteiros prontos</a> · <a href="/alertas">Gerenciar alertas</a></p>`;
 
-export function renderNewsletterStatusPage({ ok, error, pendente, descadastrado, entrega, email = "", retry = false } = {}) {
+export function renderNewsletterStatusPage({
+  ok,
+  error,
+  pendente,
+  descadastrado,
+  entrega,
+  email = "",
+  retry = false,
+  origem = "GRU",
+  destino = "",
+  precoAlvoCentavos = null,
+} = {}) {
   const enderecoSeguro = typeof email === "string" ? email.trim().slice(0, 200) : "";
   let conteudo;
   let titulo = "Confirmação · Aonde";
@@ -4192,7 +4225,12 @@ export function renderNewsletterStatusPage({ ok, error, pendente, descadastrado,
       `<li>Não chegou em alguns minutos? Olhe a caixa de spam ou promoções. O link vale por 48 horas.</li>` +
       `<li>Depois, só avisamos quando surgir uma tarifa abaixo da média para a sua cidade, sem frequência fixa. Cancelar são dois cliques, sem perguntas.</li>` +
       `</ol>` +
-      statusRetryFormHtml(enderecoSeguro, { resumo: "Digitou errado ou o e-mail não chegou? Enviar de novo" }) +
+      statusRetryFormHtml(enderecoSeguro, {
+        resumo: "Digitou errado ou o e-mail não chegou? Enviar de novo",
+        origem,
+        destino,
+        precoAlvoCentavos,
+      }) +
       `<p><a class="btn btn-green" href="/hoje">Ver a escolha do dia →</a></p>` +
       STATUS_SAIDAS_HTML;
   } else if (ok) {
@@ -4210,7 +4248,7 @@ export function renderNewsletterStatusPage({ ok, error, pendente, descadastrado,
       `<h1 class="map-title">${retry ? "Não foi possível concluir a inscrição" : "Não foi possível confirmar"}</h1>` +
       `<p class="map-sub" role="alert">${escapeHtml(error || "O link pode ter expirado ou já ter sido usado.")}</p>` +
       `<p class="map-sub">Sem problema: é só tentar de novo abaixo.</p>` +
-      statusRetryFormHtml(enderecoSeguro) +
+      statusRetryFormHtml(enderecoSeguro, { origem, destino, precoAlvoCentavos }) +
       STATUS_SAIDAS_HTML;
   }
   const body = `<main id="conteudo" tabindex="-1"><section class="wrap map-head status-page">${conteudo}</section></main>` + siteFooter();

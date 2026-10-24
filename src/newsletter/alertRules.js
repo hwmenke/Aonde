@@ -25,6 +25,10 @@ function readAll() {
   return Array.isArray(data) ? data : [];
 }
 
+function isPositiveCentavos(value) {
+  return Number.isSafeInteger(value) && value > 0;
+}
+
 /**
  * Cria uma regra de alerta para um assinante confirmado.
  *
@@ -59,10 +63,10 @@ export function addAlertRule({ subscriberId, origem, destino, precoAlvoCentavos,
   }
 
   const hasPreco = precoAlvoCentavos !== undefined && precoAlvoCentavos !== null;
-  if (hasPreco && (typeof precoAlvoCentavos !== "number" || !Number.isFinite(precoAlvoCentavos) || precoAlvoCentavos <= 0)) {
+  if (hasPreco && !isPositiveCentavos(precoAlvoCentavos)) {
     return {
       ok: false,
-      error: "Preço-alvo inválido. Informe um valor em centavos maior que zero.",
+      error: "Preço-alvo inválido. Informe um valor inteiro em centavos maior que zero.",
     };
   }
 

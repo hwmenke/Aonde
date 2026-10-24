@@ -497,13 +497,19 @@ async function handleNewsletterSubscribe(req, res) {
     return;
   }
   const { email, whatsapp, origem, destino, precoAlvoCentavos } = parsed.body || {};
+  const newsletterContext = {
+    email: typeof email === "string" ? email : "",
+    origem: typeof origem === "string" ? origem : "GRU",
+    destino: typeof destino === "string" ? destino : "",
+    precoAlvoCentavos,
+  };
   const result = subscribeNewsletter({ email, whatsapp, origem, destino, precoAlvoCentavos });
   if (!result.ok) {
     if (veioDeForm) {
       sendHtml(
         res,
         400,
-        renderNewsletterStatusPage({ ok: false, error: result.error, retry: true, email: typeof email === "string" ? email : "" })
+        renderNewsletterStatusPage({ ok: false, error: result.error, retry: true, ...newsletterContext })
       );
     } else {
       sendJson(res, 400, { error: result.error, ...(result.field ? { field: result.field } : {}) });
@@ -543,7 +549,7 @@ async function handleNewsletterSubscribe(req, res) {
         err && err.message
       );
       const aviso = "Não conseguimos registrar o envio do e-mail agora. Tente de novo em instantes.";
-      if (veioDeForm) sendHtml(res, 503, renderNewsletterStatusPage({ ok: false, error: aviso, retry: true }));
+      if (veioDeForm) sendHtml(res, 503, renderNewsletterStatusPage({ ok: false, error: aviso, retry: true, ...newsletterContext }));
       else sendJson(res, 503, { error: aviso });
       return;
     }
@@ -561,7 +567,15 @@ async function handleNewsletterSubscribe(req, res) {
     sendHtml(
       res,
       200,
-      renderNewsletterStatusPage({ ok: true, pendente: true, entrega, email: result.subscriber.email })
+      renderNewsletterStatusPage({
+        ok: true,
+        pendente: true,
+        entrega,
+        email: result.subscriber.email,
+        origem: newsletterContext.origem,
+        destino: newsletterContext.destino,
+        precoAlvoCentavos: newsletterContext.precoAlvoCentavos,
+      })
     );
     return;
   }
@@ -646,11 +660,14 @@ function handleNewsletterConfirm(req, res, url) {
 
 async function handleNewsletterUnsubscribe(req, res) {
   const parsed = await readJsonBody(req);
+  const veioDeForm =
+    parsed.form === true ||
+    String((req.headers && req.headers["content-type"]) || "").includes("application/x-www-form-urlencoded");
   if (!parsed.ok) {
-    sendJson(res, 400, { error: parsed.error });
+    if (veioDeForm) sendHtml(res, 400, renderNewsletterStatusPage({ ok: false, error: parsed.error }));
+    else sendJson(res, 400, { error: parsed.error });
     return;
   }
-  const veioDeForm = parsed.form === true;
   const { email } = parsed.body || {};
   const result = unsubscribeNewsletter(email);
   if (!result.ok) {
