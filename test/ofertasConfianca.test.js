@@ -182,13 +182,18 @@ test("detalhe editorial sem link de parceiro admite que sao voos de exemplo", ()
 });
 
 test("explicacao do preco so cita dolar/media/data quando os dados existem", () => {
+  const bloco = (html) => (html.match(/<details class="det-preco-info">([\s\S]*?)<\/details>/) || [])[1] || "";
   const reais = renderOfferPage({ ...AO_VIVO, economia_centavos: undefined }, {});
-  assert.doesNotMatch(reais, /dólares/);
-  assert.doesNotMatch(reais, /O preço pode ter mudado desde essa consulta/, "sem data nao inventa consulta");
-  assert.match(reais, /valor riscado \(R\$ 920\) é a média de referência da rota informada na oferta\./);
+  const reaisInfo = bloco(reais);
+  assert.doesNotMatch(reaisInfo, /dólares/);
+  assert.doesNotMatch(reaisInfo, /O preço pode ter mudado desde essa consulta/, "sem data nao inventa consulta");
+  assert.match(reaisInfo, /valor riscado \(R\$ 920\) é a média de referência da rota informada na oferta\./);
   const semMedia = renderOfferPage({ ...AO_VIVO, media_centavos: undefined, economia_centavos: undefined }, {});
-  assert.doesNotMatch(semMedia, /valor riscado/);
-  assert.doesNotMatch(semMedia, /por pessoa|taxas inclu|bagagem inclu/i, "nada alem do que os dados dizem");
+  const semMediaInfo = bloco(semMedia);
+  assert.doesNotMatch(semMediaInfo, /valor riscado/);
+  assert.doesNotMatch(semMediaInfo, /por pessoa|taxas inclu|bagagem inclu/i, "nada alem do que os dados dizem");
+  assert.match(semMedia, /Tem bagagem inclusa\?/);
+  assert.match(semMedia, /Não está claro na consulta — confirme no parceiro antes de pagar\./);
 });
 
 // ---------------------------------------------------------------------------

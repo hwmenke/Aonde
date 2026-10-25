@@ -102,6 +102,12 @@ test("GET /robots.txt e /sitemap.xml para SEO", async () => {
   assert.match(sitemap.body, /\/ofertas\/[a-z0-9-]+</, "sitemap inclui ofertas");
   assert.ok(sitemap.body.includes("/privacidade"), "sitemap inclui página de privacidade");
   assert.ok(sitemap.body.includes("/termos"), "sitemap inclui termos de uso");
+  assert.ok(sitemap.body.includes("/metodologia"), "sitemap inclui metodologia");
+
+  const llms = await get("/llms.txt");
+  assert.equal(llms.status, 200);
+  assert.ok(llms.type.includes("text/plain"), "llms.txt e texto puro");
+  assert.ok(llms.body.includes("Metodologia"), "llms.txt cita /metodologia");
 });
 
 test("GET /privacidade publica a política LGPD e o rodapé linka para ela", async () => {

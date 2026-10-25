@@ -66,10 +66,22 @@ import {
   buildWebSite,
   buildBreadcrumbList,
   buildFaqPage,
+  buildFaqPageFromItems,
   buildTouristTrip,
   buildOfferProduct,
+  buildArticle,
 } from "./structuredData.js";
 import { ofertaEncerrada } from "../offerDeparture.js";
+import {
+  FAQ_BLOCO_A,
+  FAQ_BLOCO_C,
+  METODOLOGIA_OG_DESCRIPTION,
+  METODOLOGIA_OG_TITLE,
+  METODOLOGIA_REVISADO_EM,
+  faqDlHtml,
+  faqItemsForJsonLd,
+  fillBlocoB,
+} from "./faqContent.js";
 
 // ---------------------------------------------------------------------------
 // Atendimento — WhatsApp so quando ha um numero REAL configurado
@@ -561,6 +573,7 @@ function normalizeLiveOffer(offer) {
     fontePreco: offer.fontePreco || offer.fonte_preco || "",
     fontePrecoEm: offer.fontePrecoEm || offer.fonte_preco_em || "",
     ida: offer.ida || offer.dataIda || "",
+    volta: offer.volta || offer.dataVolta || "",
     aviasalesBuy: offer.aviasalesBuy !== false,
   };
 }
@@ -607,6 +620,7 @@ function normalizeContentOffer(o) {
     fontePreco: o.fontePreco || o.fonte_preco || "",
     fontePrecoEm: o.fontePrecoEm || o.fonte_preco_em || "",
     ida: o.ida || o.dataIda || "",
+    volta: o.volta || o.dataVolta || "",
     origemCidade: o.origemCidade || "",
     ogCredit: o.ogCredit || "",
     ogCreditHref: o.ogCreditHref || "",
@@ -787,6 +801,7 @@ function guideFromContent(g) {
     // Conselho de hospedagem proprio do destino (ver lodgingHtml). Sem isto aqui
     // o texto ficava no dado e nunca chegava a tela.
     hospedagem: g.hospedagem || null,
+    atualizadoEm: g.atualizadoEm || g.escritoEm || "",
     dias: (Array.isArray(g.dias) ? g.dias : []).map(normalizeGuideDia),
     places: false,
   };
@@ -1337,7 +1352,7 @@ function siteFooter({ places, attribution } = {}) {
     `<span class="foot-link--soon" aria-disabled="true" title="Em breve">Seguro viagem</span>` +
     `</div>` +
     `<div class="foot-col"><span class="foot-title">Conteúdo</span>` +
-    `<a href="/guias">Guias de destino</a><a href="/#estilos">Dicas de viagem</a><a href="/#roteiros">Revista Aonde</a></div>` +
+    `<a href="/guias">Guias de destino</a><a href="/metodologia">Metodologia</a><a href="/#estilos">Dicas de viagem</a><a href="/#roteiros">Revista Aonde</a></div>` +
     `<div class="foot-col"><span class="foot-title">Atendimento</span>` +
     (() => {
       const wa = waHref("Oi! Vim do site do Aonde e preciso de ajuda.");
@@ -2354,7 +2369,7 @@ function comoFuncionaHtml() {
     `<h2>Como a gente acha essas tarifas</h2>` +
     `<p class="section-sub">Transparência total: nada de preço milagroso sem explicação. Veja como o Aonde garimpa e por que você pode confiar.</p>` +
     `<div class="cf-grid">${cards}</div>` +
-    `<p class="cf-note">O Aonde recebe comissão de parceiros quando você compra pelo nosso link — sem custo extra para você. Isso mantém o serviço de alertas gratuito. Só indicamos tarifas que nós mesmos compraríamos.</p>` +
+    `<p class="cf-note">O Aonde recebe comissão de parceiros quando você compra pelo nosso link — sem custo extra para você. Isso mantém o serviço de alertas gratuito. Só indicamos tarifas que nós mesmos compraríamos. <a href="/metodologia">Como funciona</a> a consulta e a curadoria.</p>` +
     `</section>`
   );
 }
@@ -2805,12 +2820,15 @@ export function renderOfferPage(offer, { related = [], apiKey = "", noindex = fa
     `</section>` +
     offerMap.html +
     relatedBlock +
+    `<section class="wrap section">${faqOfertaHtml(offer, vm)}</section>` +
     `</main>` +
     siteFooter();
 
   const offerPageHref = vm.id ? `/ofertas/${encodeURIComponent(vm.id)}` : "/ofertas";
+  const offerFaqItems = faqItemsForJsonLd(fillBlocoB(offer, vm));
   const offerJsonld = [
     encerrada ? null : buildOfferProduct({ ...vm, href: offerPageHref }),
+    buildFaqPageFromItems(offerFaqItems),
     buildBreadcrumbList([
       { name: "Início", url: "/" },
       { name: "Ofertas", url: "/ofertas" },
@@ -3085,6 +3103,12 @@ function renderGuideVM(g, apiKey, { hoje = new Date(), offers } = {}) {
 
   const guideJsonld = [
     buildTouristTrip(g),
+    buildArticle({
+      headline: g.titulo,
+      description: g.resumo || g.intro || "",
+      dateModified: g.atualizadoEm || g.escritoEm || "",
+      url: g.id ? `/guias/${g.id}` : "/guias",
+    }),
     buildBreadcrumbList([
       { name: "Início", url: "/" },
       { name: "Guias de destino", url: "/guias" },
@@ -3431,20 +3455,37 @@ export function renderTodayPage(pacote, { aviso = null, erro = false } = {}) {
     `<p class="section-sub">Todo dia mostramos um ou dois destinos da nossa seleção, com o roteiro em tópicos: o que ver em cada dia e onde comer. O preço é o que vimos na data indicada em cada card — confirme no site do parceiro antes de comprar.</p>` +
     hojeAvisoHtml(aviso) +
     `</section>` +
+    `<div class="wrap">${faqHojeCurtoHtml()}</div>` +
     (vazioEstado ? "" : HOJE_CONFIANCA_HTML) +
     `<section class="wrap section hoje-grid">${vazioEstado ? hojeVazioHtml({ erro }) : cards}</section>` +
+    `<div class="wrap section">${faqHojeGlobalHtml()}</div>` +
     newsletterStripHtml({ titulo: stripTitulo, sub: stripSub, idSuffix: "hoje" }) +
     `</main>` +
     siteFooter();
 
+  const hojeDesc =
+    "Todo dia um ou dois destinos com roteiro pronto: o que ver em cada dia e onde comer. Preço com fonte e data; a compra é feita no site do parceiro.";
+  const primeiro = itens[0];
+  const hojeJsonld = [
+    buildFaqPageFromItems(faqItemsForJsonLd([...FAQ_BLOCO_C, ...FAQ_BLOCO_A])),
+    vazioEstado
+      ? null
+      : buildArticle({
+          headline: (primeiro && primeiro.roteiro && primeiro.roteiro.titulo) || "A escolha do dia",
+          description: (primeiro && primeiro.roteiro && primeiro.roteiro.resumo) || hojeDesc,
+          dateModified: diaMostrado,
+          url: "/hoje",
+        }),
+  ].filter(Boolean);
+
   return htmlDocument({
     title: "A escolha do dia · Aonde",
-    description:
-      "Todo dia um ou dois destinos com roteiro pronto: o que ver em cada dia e onde comer. Preço com fonte e data; a compra é feita no site do parceiro.",
+    description: hojeDesc,
     body,
     script: enhancementScript(),
     canonical: "/hoje",
     image: hojeOgSharePath(itens[0] && itens[0].oferta && itens[0].oferta.id) || "",
+    jsonld: hojeJsonld,
     noindex: erro || !!(aviso && aviso.tipo === "previa"),
   });
 }
@@ -3874,6 +3915,101 @@ export function renderExitPage(offer, { affiliateUrl, notaExtra = "", ctaLabel =
     body,
     script: enhancementScript(),
     noindex: true,
+  });
+}
+
+function faqComoFuncionaLead() {
+  return `<a href="/metodologia">Como funciona</a> a consulta e a curadoria — metodologia do Aonde.`;
+}
+
+function faqHojeCurtoHtml() {
+  return faqDlHtml(FAQ_BLOCO_C, {
+    heading: "Antes de ler o preço",
+    id: "faq-hoje",
+    className: "faq-bloco--curto",
+  });
+}
+
+function faqHojeGlobalHtml() {
+  return faqDlHtml(FAQ_BLOCO_A, {
+    heading: "Perguntas frequentes",
+    id: "faq",
+    leadHtml: faqComoFuncionaLead(),
+  });
+}
+
+function faqOfertaHtml(offer, vm) {
+  return faqDlHtml(fillBlocoB(offer, vm), {
+    heading: "Perguntas frequentes desta oferta",
+    id: "faq",
+    leadHtml: faqComoFuncionaLead(),
+  });
+}
+
+export function renderMetodologiaPage() {
+  const body =
+    `<main id="conteudo" tabindex="-1">` +
+    `<section class="wrap map-head"><p class="eyebrow eyebrow--green">Transparência</p>` +
+    `<h1 class="map-title">Metodologia — como o Aonde encontra e mostra tarifas</h1>` +
+    `<p class="map-sub">${escapeHtml(METODOLOGIA_OG_DESCRIPTION)}</p></section>` +
+    `<section class="wrap section meto-prose">` +
+    `<h2>Em uma frase</h2>` +
+    `<p>${escapeHtml(METODOLOGIA_OG_DESCRIPTION)}</p>` +
+    `<h2>O que é “consulta”</h2>` +
+    `<p>Quando você lê um preço no Aonde (por exemplo “R$ 742”), leia assim:</p>` +
+    `<ul>` +
+    `<li><strong>Consulta</strong> = o valor que vimos num motor público (em geral Google Flights ou Aviasales) <strong>na data marcada</strong> na página.</li>` +
+    `<li><strong>Não é</strong> o preço garantido da reserva. Tarifas aéreas mudam o tempo todo.</li>` +
+    `<li>Por isso cada oferta deve mostrar <strong>“consulta em DD/MM/AAAA”</strong> (e, quando soubermos, a companhia e se o voo é direto).</li>` +
+    `</ul>` +
+    `<p>Se o botão disser <strong>“Ver busca”</strong> ou <strong>“Reservar no Aviasales”</strong>, o próximo passo é no parceiro. O preço final é o que o parceiro mostrar na hora.</p>` +
+    `<h2>Como uma oferta entra no site</h2>` +
+    `<ol>` +
+    `<li><strong>Garimpo</strong> — acompanhamos rotas que saem do Brasil (e algumas na América do Sul) e comparamos com o que aquela rota costuma custar nos últimos ~90 dias, quando temos essa referência.</li>` +
+    `<li><strong>Conferido por uma pessoa</strong> — nada entra no feed só porque um robô achou barato. Alguém abre a busca, confere origem, destino, datas e o que está (ou não) incluído. Se a bagagem não estiver clara, a página diz que não está.</li>` +
+    `<li><strong>Você compra direto</strong> — o botão leva à companhia ou a um parceiro afiliado (hoje o caminho principal é Travelpayouts / Aviasales). Reserva, pagamento e suporte acontecem lá. O Aonde não acrescenta taxa.</li>` +
+    `</ol>` +
+    `<h2>O que o Aonde <strong>não</strong> faz</h2>` +
+    `<ul>` +
+    `<li>Não inventa preço, urgência (“há 2h”, “últimas 3 vagas”) nem “escrito por quem mora lá” se isso não for verdade.</li>` +
+    `<li>Não promete bagagem, assento ou milhas se a oferta não deixar isso explícito.</li>` +
+    `<li>Não troca dólar de tela por real “na mão” para parecer mais barato.</li>` +
+    `<li>Não processa cartão nem emite bilhete.</li>` +
+    `</ul>` +
+    `<h2>Parceiros e afiliados</h2>` +
+    `<p>Quando você completa uma reserva por um link do Aonde, o parceiro pode pagar uma comissão ao Aonde. Isso <strong>não muda o preço</strong> que você vê no parceiro. Se um dia houver conteúdo patrocinado, ele será marcado como patrocinado (regra do CDC art. 36: publicidade deve ser identificável).</p>` +
+    `<h2>Roteiros (guias)</h2>` +
+    `<p>Os roteiros dia a dia são editoriais: um restaurante real por dia, dica de onde ficar naquele destino, sem template genérico. Preço de hotel ou de prato no guia, se aparecer, também é consulta / referência — não pacote fechado do Aonde.</p>` +
+    `<h2>Atualização desta página</h2>` +
+    `<p>Última revisão editorial: <strong>25 de outubro de 2026</strong> (rascunho). Quando a página for ao ar, a data de revisão deve acompanhar mudanças reais de método, não de marketing.</p>` +
+    `<p class="faq-como">As perguntas frequentes do Aonde estão também em <a href="/hoje#faq">A escolha do dia</a>.</p>` +
+    `</section>` +
+    `<div class="wrap section">${faqDlHtml(FAQ_BLOCO_A, {
+      heading: "Perguntas frequentes",
+      id: "faq",
+      leadHtml: `Volte para <a href="/hoje#faq">a escolha do dia</a> ou leia acima como a consulta funciona.`,
+    })}</div>` +
+    `</main>` +
+    siteFooter();
+
+  return htmlDocument({
+    title: METODOLOGIA_OG_TITLE,
+    description: METODOLOGIA_OG_DESCRIPTION,
+    body,
+    canonical: "/metodologia",
+    jsonld: [
+      buildFaqPageFromItems(faqItemsForJsonLd(FAQ_BLOCO_A)),
+      buildArticle({
+        headline: "Metodologia — como o Aonde encontra e mostra tarifas",
+        description: METODOLOGIA_OG_DESCRIPTION,
+        dateModified: METODOLOGIA_REVISADO_EM,
+        url: "/metodologia",
+      }),
+      buildBreadcrumbList([
+        { name: "Início", url: "/" },
+        { name: "Metodologia", url: "/metodologia" },
+      ]),
+    ],
   });
 }
 

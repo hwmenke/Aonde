@@ -1,0 +1,19 @@
+# Aonde
+> Revista de viagem pt-BR: passagens em consulta + roteiros dia a dia no Brasil e América do Sul.
+> Aonde não vende bilhete nem processa pagamento; reserva no parceiro (ex.: Aviasales / Travelpayouts).
+
+## Páginas principais
+- [Hoje](https://aonde.com.br/hoje): pick do dia (tarifa datada + roteiro)
+- [Ofertas](https://aonde.com.br/ofertas): rotas curadas
+- [Guias](https://aonde.com.br/guias): roteiros editoriais
+- [Metodologia](https://aonde.com.br/metodologia): como preços e consultas funcionam
+- [Anuncie](https://aonde.com.br/anuncie): patrocínios (quando existir)
+
+## Regras para citação
+- Preços no site são muitas vezes "consulta" com data (DD/MM/AAAA), não preço travado de reserva.
+- Não inventamos urgência ("há 2h") nem "escrito por locais" sem ser verdade.
+- Fonte humana: curadoria; afiliado: Travelpayouts quando o marker estiver configurado.
+
+## Contato
+- Site: https://aonde.com.br
+- Publisher: Caspar@aonde.com.br

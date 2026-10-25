@@ -158,6 +158,44 @@ export function buildFaqPage(groups) {
   };
 }
 
+// Lista plana { q, a } — usada pelos blocos A/B/C da semana de LLM-search.
+// `a` deve ser texto puro (sem markdown), o mesmo que o visitante le.
+export function buildFaqPageFromItems(items) {
+  const valid = (Array.isArray(items) ? items : []).filter((it) => it && it.q && it.a);
+  if (!valid.length) return null;
+  return buildFaqPage([{ items: valid }]);
+}
+
+// ---------------------------------------------------------------------------
+// Article — pick do dia e roteiros. dateModified SO entra quando o chamador
+// passa uma data editorial REAL (ISO YYYY-MM-DD ou datetime). Nunca "agora".
+// ---------------------------------------------------------------------------
+
+export function buildArticle({ headline, description, dateModified, url } = {}) {
+  if (!headline) return null;
+  const article = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: String(headline),
+    inLanguage: "pt-BR",
+    author: { "@type": "Organization", name: "Aonde" },
+    publisher: { "@type": "Organization", name: "Aonde", url: SITE_URL },
+  };
+  if (description) article.description = String(description);
+  const when = editorialDate(dateModified);
+  if (when) article.dateModified = when;
+  const page = absUrl(url);
+  if (page) article.mainEntityOfPage = page;
+  return article;
+}
+
+function editorialDate(value) {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}(?:[T\s].*)?$/.test(trimmed)) return trimmed.slice(0, 10);
+  return "";
+}
+
 // ---------------------------------------------------------------------------
 // TouristTrip — roteiro/guia (dia a dia). `g` e o view model ja normalizado
 // por guideFromContent/guideFromItinerary em htmlRenderer.js: espera
