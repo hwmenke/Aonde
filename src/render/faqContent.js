@@ -219,7 +219,7 @@ export function fillBlocoB(offer = {}, vm = {}) {
   const consultaIso = vm.fontePrecoEm || offer.fontePrecoEm || offer.fonte_preco_em || "";
   const consultaData = isoToDdMmAaaa(consultaIso);
   const fonte = String(vm.fontePreco || offer.fontePreco || offer.fonte_preco || "").trim();
-  const fonteTxt = fonte || "Google Flights ou Aviasales";
+  const fonteTxt = fonte || "a fonte marcada nesta página";
   const conexao = inferConexao(offer, vm);
   const cia = String(vm.cia || offer.cia || "").trim();
   const ciaTxt = cia || "não informada nesta consulta";

@@ -121,8 +121,8 @@ test("/metodologia renderiza o texto aprovado com canonical e og", () => {
     html,
     /<meta property="og:description" content="O Aonde é uma revista de viagem com busca:/
   );
-  assert.match(html, /href="\/metodologia"/);
-  assert.match(html, /Como funciona/);
+  assert.match(html, /href="\/metodologia">Metodologia<\/a>/);
+  assert.match(html, /href="\/hoje#faq"/);
   assertFaqMatch(html);
   const article = extractJsonLd(html).find((o) => o["@type"] === "Article");
   assert.equal(article.dateModified, "2026-10-25");
@@ -160,8 +160,9 @@ test("oferta gru-fln tem FAQ B com consulta datada e CTA de busca", () => {
   assert.match(html, /10\/09\/2026/);
   assert.match(html, /R\$ 1\.566/);
   assert.match(html, /Ver busca/);
-  assert.match(html, /consulta em/);
-  assert.doesNotMatch(html.replace(/há 2h[\s\S]*não for verdade/, ""), /publicado há 2h/);
+  assert.match(html, /consulta/);
+  assert.match(html, /Visto no Google Flights, 10 set 2026/);
+  assert.doesNotMatch(html, /publicado há 2h/);
 });
 
 test("guia ganha Article sem dateModified inventado", () => {
