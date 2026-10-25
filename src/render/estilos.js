@@ -913,6 +913,21 @@ export function pageStyles() {
   .faq-item summary::after{content:"+";float:right;color:var(--green);font-weight:700;}
   .faq-item[open] summary::after{content:"–";}
   .faq-item p{margin:10px 0 0;color:var(--muted);line-height:1.55;}
+  .faq-bloco{margin:0 0 8px;}
+  .faq-bloco--curto{padding-top:8px;}
+  .faq-como{margin:0 0 12px;font-size:15px;line-height:1.55;color:var(--muted);}
+  .faq-dl{margin:0;}
+  .faq-dl .faq-item{margin:0;}
+  .faq-dl dt{margin:0;}
+  .faq-dl h3{margin:0;font-size:16px;font-weight:600;line-height:1.4;}
+  .faq-dl dd{margin:8px 0 0;color:var(--muted);line-height:1.55;}
+  .meto-prose{max-width:760px;}
+  .meto-prose h2{font-size:22px;margin:28px 0 10px;line-height:1.25;}
+  .meto-prose p,.meto-prose li{font-size:16px;line-height:1.65;color:var(--muted);}
+  .meto-prose p{margin:0 0 12px;}
+  .meto-prose ul,.meto-prose ol{margin:0 0 16px;padding-left:1.2em;}
+  .meto-prose li{margin:0 0 8px;}
+  .meto-prose strong{color:var(--text);}
   .help-fine{font-size:13px;color:var(--muted-2);}
   .alerts-form{display:flex;flex-direction:column;gap:12px;max-width:420px;}
   .alerts-form input[type=email]{border:1px solid var(--border-2);border-radius:12px;padding:13px 14px;font-family:var(--sans);font-size:15px;}

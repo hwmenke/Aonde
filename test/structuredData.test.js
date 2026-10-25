@@ -20,6 +20,8 @@ import {
   buildFaqPage,
   buildTouristTrip,
   buildOfferProduct,
+  buildArticle,
+  buildFaqPageFromItems,
   FAQ_GROUPS,
 } from "../src/render/structuredData.js";
 
@@ -85,6 +87,22 @@ test("buildFaqPage usa FAQ_GROUPS por padrao e cobre todas as perguntas", () => 
 
 test("buildFaqPage devolve null sem perguntas", () => {
   assert.equal(buildFaqPage([]), null);
+});
+
+test("buildArticle so leva dateModified editorial", () => {
+  const comData = buildArticle({
+    headline: "A escolha do dia",
+    description: "Pick",
+    dateModified: "2026-08-21",
+    url: "/hoje",
+  });
+  assert.equal(comData["@type"], "Article");
+  assert.equal(comData.dateModified, "2026-08-21");
+  assert.equal(comData.inLanguage, "pt-BR");
+  assert.equal(comData.mainEntityOfPage, `${SITE_URL}/hoje`);
+  const semData = buildArticle({ headline: "Roteiro", url: "/guias/salvador" });
+  assert.equal(semData.dateModified, undefined);
+  assert.equal(buildFaqPageFromItems([]), null);
 });
 
 test("buildTouristTrip monta o itinerario a partir dos dias/pontos do guia", () => {

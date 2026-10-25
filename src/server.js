@@ -63,6 +63,7 @@ import {
   renderNotFoundPage,
   renderServerErrorPage,
   renderTodayPage,
+  renderMetodologiaPage,
   renderRegiaoPage,
   styleAssetPath,
   scriptAssetPath,
@@ -99,6 +100,8 @@ import { createInboundRateLimiter, clientIp } from "./inboundRateLimiter.js";
 import { httpCacheStats } from "./httpCache.js";
 import { estatisticasBuscaAoVivo } from "./flights/buscaAoVivoLimite.js";
 import { registrarEvento } from "./analytics/events.js";
+import { buildLlmsTxt } from "./render/llmsTxt.js";
+import { METODOLOGIA_REVISADO_EM } from "./render/faqContent.js";
 
 let inboundAtual = null;
 
@@ -941,6 +944,10 @@ function handleRobots(res) {
   sendText(res, 200, body);
 }
 
+function handleLlmsTxt(res) {
+  sendText(res, 200, buildLlmsTxt(siteBaseUrl()), "text/plain; charset=utf-8");
+}
+
 function dataPublicacao(valor) {
   if (typeof valor !== "string") return null;
   const m = /^(\d{4}-\d{2}-\d{2})/.exec(valor.trim());
@@ -955,6 +962,7 @@ function handleSitemap(res) {
     { loc: "/hoje", lastmod: hoje },
     { loc: "/ofertas" },
     { loc: "/guias" },
+    { loc: "/metodologia", lastmod: METODOLOGIA_REVISADO_EM },
     { loc: "/mapa" },
     { loc: "/ajuda" },
     { loc: "/cancelamentos" },
@@ -1359,6 +1367,10 @@ export function createServer() {
         handleRobots(res);
         return;
       }
+      if (publicRead && pathname === "/llms.txt") {
+        handleLlmsTxt(res);
+        return;
+      }
       // A escolha do dia — o que o robo diario publica (ver src/daily/dailyPick.js).
       if (publicRead && pathname === "/hoje") {
         // Permite forcar uma data especifica via ?dia=AAAA-MM-DD (para testes e preview).
@@ -1434,6 +1446,10 @@ export function createServer() {
       }
       if (publicRead && pathname === "/termos") {
         sendHtml(res, 200, renderTermsPage());
+        return;
+      }
+      if (publicRead && pathname === "/metodologia") {
+        sendHtml(res, 200, renderMetodologiaPage());
         return;
       }
       if (publicRead && pathname === "/alertas") {
