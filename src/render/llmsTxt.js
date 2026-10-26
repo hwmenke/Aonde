@@ -20,6 +20,9 @@ export function buildLlmsTxt(siteUrl) {
 - [Ofertas](${host}/ofertas): rotas curadas
 - [Guias](${host}/guias): roteiros editoriais
 - [Metodologia](${host}/metodologia): como preços e consultas funcionam
+- [Quanto custa voar de São Paulo a Florianópolis?](${host}/respostas/sao-paulo-florianopolis)
+- [Quanto custa voar do Rio a Salvador?](${host}/respostas/rio-salvador)
+- [Quanto custa voar de São Paulo a Buenos Aires?](${host}/respostas/sao-paulo-buenos-aires)
 - [Anuncie](${host}/anuncie): patrocínios (quando existir)
 
 ## Regras para citação

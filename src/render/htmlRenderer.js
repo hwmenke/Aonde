@@ -81,7 +81,15 @@ import {
   faqDlHtml,
   faqItemsForJsonLd,
   fillBlocoB,
+  faqAnswerHtml,
+  linkInternalPathsHtml,
 } from "./faqContent.js";
+import {
+  RESPOSTAS_REVISADO_EM,
+  consultaVivaDaOferta,
+  listaRespostas,
+  respostaPorSlug,
+} from "./respostasContent.js";
 
 // ---------------------------------------------------------------------------
 // Atendimento — WhatsApp so quando ha um numero REAL configurado
@@ -1352,7 +1360,11 @@ function siteFooter({ places, attribution } = {}) {
     `<span class="foot-link--soon" aria-disabled="true" title="Em breve">Seguro viagem</span>` +
     `</div>` +
     `<div class="foot-col"><span class="foot-title">Conteúdo</span>` +
-    `<a href="/guias">Guias de destino</a><a href="/metodologia">Metodologia</a><a href="/#estilos">Dicas de viagem</a><a href="/#roteiros">Revista Aonde</a></div>` +
+    `<a href="/guias">Guias de destino</a><a href="/metodologia">Metodologia</a>` +
+    listaRespostas()
+      .map((p) => `<a href="/respostas/${escapeHtml(p.slug)}">${escapeHtml(p.h1)}</a>`)
+      .join("") +
+    `<a href="/#estilos">Dicas de viagem</a><a href="/#roteiros">Revista Aonde</a></div>` +
     `<div class="foot-col"><span class="foot-title">Atendimento</span>` +
     (() => {
       const wa = waHref("Oi! Vim do site do Aonde e preciso de ajuda.");
@@ -3980,8 +3992,15 @@ export function renderMetodologiaPage() {
     `<p>Quando você completa uma reserva por um link do Aonde, o parceiro pode pagar uma comissão ao Aonde. Isso <strong>não muda o preço</strong> que você vê no parceiro. Se um dia houver conteúdo patrocinado, ele será marcado como patrocinado (regra do CDC art. 36: publicidade deve ser identificável).</p>` +
     `<h2>Roteiros (guias)</h2>` +
     `<p>Os roteiros dia a dia são editoriais: um restaurante real por dia, dica de onde ficar naquele destino, sem template genérico. Preço de hotel ou de prato no guia, se aparecer, também é consulta / referência — não pacote fechado do Aonde.</p>` +
+    `<h2 id="respostas">Quanto custa voar?</h2>` +
+    `<p>Três respostas curtas, com o mesmo critério de consulta desta página:</p>` +
+    `<ul>` +
+    listaRespostas()
+      .map((p) => `<li><a href="/respostas/${escapeHtml(p.slug)}">${escapeHtml(p.h1)}</a></li>`)
+      .join("") +
+    `</ul>` +
     `<h2>Atualização desta página</h2>` +
-    `<p>Última revisão editorial: <strong>25 de outubro de 2026</strong> (rascunho). Quando a página for ao ar, a data de revisão deve acompanhar mudanças reais de método, não de marketing.</p>` +
+    `<p>Última revisão editorial: <strong>26 de outubro de 2026</strong> (rascunho). Quando a página for ao ar, a data de revisão deve acompanhar mudanças reais de método, não de marketing.</p>` +
     `<p class="faq-como">As perguntas frequentes do Aonde estão também em <a href="/hoje#faq">A escolha do dia</a>.</p>` +
     `</section>` +
     `<div class="wrap section">${faqDlHtml(FAQ_BLOCO_A, {
@@ -4008,6 +4027,99 @@ export function renderMetodologiaPage() {
       buildBreadcrumbList([
         { name: "Início", url: "/" },
         { name: "Metodologia", url: "/metodologia" },
+      ]),
+    ],
+  });
+}
+
+function respostaProseHtml(text) {
+  const raw = String(text || "");
+  const withMarks = raw.replace(/\*\*(.+?)\*\*/g, "{{strong:$1}}");
+  return linkInternalPathsHtml(faqAnswerHtml(withMarks));
+}
+
+function consultaBoxHtml(page, consulta) {
+  if (!consulta) return "";
+  const fonteTxt = consulta.fonte ? ` no ${escapeHtml(consulta.fonte)}` : "";
+  const offerHref = `/ofertas/${encodeURIComponent(page.offerId)}`;
+  const rotaLabel = String(page.offerId || "")
+    .split("-")
+    .map((p) => p.toUpperCase())
+    .join("–");
+  return (
+    `<aside class="resp-consulta">` +
+    `<h2>Consulta nesta oferta</h2>` +
+    `<p>Na oferta <a href="${escapeHtml(offerHref)}">${escapeHtml(rotaLabel)}</a>, ` +
+    `vimos <strong>${escapeHtml(consulta.preco)}</strong>${fonteTxt} ` +
+    `em <time datetime="${escapeHtml(consulta.iso)}">${escapeHtml(consulta.dataBr)}</time>. ` +
+    `É consulta, não o preço travado da reserva.</p>` +
+    `</aside>`
+  );
+}
+
+export function renderRespostaPage(slug, { offer, hoje } = {}) {
+  const page = respostaPorSlug(slug);
+  if (!page) return null;
+  const dia =
+    typeof hoje === "string" && /^\d{4}-\d{2}-\d{2}$/.test(hoje) ? hoje : chaveDoDia(hoje || new Date());
+  const resolved =
+    offer !== undefined ? offer : CONTENT_OFFERS.find((o) => o && o.id === page.offerId) || null;
+  const consulta = consultaVivaDaOferta(resolved, dia);
+  const offerHref = `/ofertas/${encodeURIComponent(page.offerId)}`;
+  const guideHref = `/guias/${encodeURIComponent(page.guideId)}`;
+  const offerCta = consulta ? "Oferta atual" : "Ver oferta";
+  const afeta = (page.afetaPreco || [])
+    .map((item) => `<li>${respostaProseHtml(item)}</li>`)
+    .join("");
+  const mostra = (page.mostra || [])
+    .map((item) => `<li>${respostaProseHtml(item)}</li>`)
+    .join("");
+  const faqItems = page.faq || [];
+  const canonical = `/respostas/${page.slug}`;
+
+  const body =
+    `<main id="conteudo" tabindex="-1">` +
+    `<section class="wrap map-head"><p class="eyebrow eyebrow--green">Resposta</p>` +
+    `<h1 class="map-title">${escapeHtml(page.h1)}</h1>` +
+    `<p class="map-sub">${escapeHtml(page.meta)}</p></section>` +
+    `<section class="wrap section meto-prose">` +
+    `<h2>Resposta curta</h2>` +
+    `<p class="resp-curta">${respostaProseHtml(page.respostaCurta)}</p>` +
+    consultaBoxHtml(page, consulta) +
+    `<div class="resp-cta">` +
+    `<a class="btn btn-green" href="${escapeHtml(offerHref)}">${escapeHtml(offerCta)}</a>` +
+    `<a class="btn btn-dark" href="${escapeHtml(guideHref)}">Guia</a>` +
+    `<a class="btn btn-ghost btn-ghost--claro" href="/metodologia">Metodologia</a>` +
+    `</div>` +
+    `<h2>O que afeta o preço</h2>` +
+    `<ul>${afeta}</ul>` +
+    `<h2>Como o Aonde mostra isso</h2>` +
+    `<ul>${mostra}</ul>` +
+    `</section>` +
+    `<div class="wrap section">${faqDlHtml(faqItems, {
+      heading: "Perguntas frequentes",
+      id: "faq",
+      leadHtml: faqComoFuncionaLead(),
+    })}</div>` +
+    `</main>` +
+    siteFooter();
+
+  return htmlDocument({
+    title: page.title,
+    description: page.meta,
+    body,
+    canonical,
+    jsonld: [
+      buildFaqPageFromItems(faqItemsForJsonLd(faqItems)),
+      buildArticle({
+        headline: page.h1,
+        description: page.meta,
+        dateModified: RESPOSTAS_REVISADO_EM,
+        url: canonical,
+      }),
+      buildBreadcrumbList([
+        { name: "Início", url: "/" },
+        { name: page.h1, url: canonical },
       ]),
     ],
   });

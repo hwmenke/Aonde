@@ -7,6 +7,9 @@
 - [Ofertas](https://aonde.com.br/ofertas): rotas curadas
 - [Guias](https://aonde.com.br/guias): roteiros editoriais
 - [Metodologia](https://aonde.com.br/metodologia): como preços e consultas funcionam
+- [Quanto custa voar de São Paulo a Florianópolis?](https://aonde.com.br/respostas/sao-paulo-florianopolis)
+- [Quanto custa voar do Rio a Salvador?](https://aonde.com.br/respostas/rio-salvador)
+- [Quanto custa voar de São Paulo a Buenos Aires?](https://aonde.com.br/respostas/sao-paulo-buenos-aires)
 - [Anuncie](https://aonde.com.br/anuncie): patrocínios (quando existir)
 
 ## Regras para citação
