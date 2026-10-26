@@ -9,12 +9,12 @@ and 9:16 stills for Instagram / WhatsApp stories.
 - **GRU-EZE.jpg** (1200×630) - Catalog card for GRU-EZE offer page: cities only, NO price
 - **GRU-FLN.jpg** (1200×630) - Catalog card for GRU-FLN offer: São Paulo → Florianópolis
 - **GIG-SSA.jpg** (1200×630) - Catalog card for GIG-SSA offer: Rio de Janeiro → Salvador
-- **FOR-SSA.jpg** (1200×630) - Catalog card for FOR-SSA: Fortaleza → Salvador, 3–10 out, NO price. WhatsApp og:image. JPEG bytes did not land in this checkout. Do not remake. When the file is in this folder, `/ofertas/for-ssa` uses `/og/FOR-SSA.jpg`. Until then OG falls back to the Salvador dest photo (`thumbUrl`). Never GIG-SSA.jpg (Rio) and never HOJE.jpg. Caspar skipped the gist: do not add `FOR-SSA-story.jpg` or `FOR-SSA-ig.jpg`.
-- **GRU-SCL.jpg** (1200×630) - São Paulo → Santiago, 2–9 nov. JPEG bytes did not land in this checkout. Do not remake. When present, `/ofertas/gru-scl` uses `/og/GRU-SCL.jpg`. Never Güldem Üstün.
-- **REC-GIG.jpg** (1200×630) - Recife → Rio de Janeiro, 10–17 out. JPEG bytes did not land in this checkout. Do not remake. When present, `/ofertas/rec-gig` uses `/og/REC-GIG.jpg`. Never GRU, never Salvador, never GIG-SSA.jpg.
-- **POA-MVD.jpg** (1200×630) - Porto Alegre → Montevidéu, 10–17 out. JPEG bytes did not land in this checkout. Do not remake. When present, `/ofertas/poa-mvd` uses `/og/POA-MVD.jpg`.
-- **CGH-IGU.jpg** (1200×630) - Congonhas → Foz do Iguaçu, 10–17 out. Title Congonhas, NOT GRU. JPEG bytes did not land in this checkout. Do not remake. When present, `/ofertas/cgh-igu` uses `/og/CGH-IGU.jpg`. Never GRU-EZE.jpg, never a GRU origin card.
-- **GRU-BRC.jpg** (1200×630) - São Paulo → Bariloche, 11–18 out. JPEG bytes did not land in this checkout. Do not remake. When present, `/ofertas/gru-brc` uses `/og/GRU-BRC.jpg`.
+- **FOR-SSA.jpg** (1200×630) - Catalog card for FOR-SSA: Fortaleza → Salvador, 3–10 out, NO price. WhatsApp og:image. `/ofertas/for-ssa` uses `/og/FOR-SSA.jpg`. Never GIG-SSA.jpg (Rio) and never HOJE.jpg. Do not add `FOR-SSA-story.jpg` or `FOR-SSA-ig.jpg`.
+- **GRU-SCL.jpg** (1200×630) - São Paulo → Santiago, 2–9 nov. `/ofertas/gru-scl` uses `/og/GRU-SCL.jpg`. Never Güldem Üstün. Never a GRU-LIS or Andes-only still.
+- **REC-GIG.jpg** (1200×630) - Recife → Rio, 10–17 out. `/ofertas/rec-gig` uses `/og/REC-GIG.jpg`. Never GRU, never Salvador, never GIG-SSA.jpg.
+- **POA-MVD.jpg** (1200×630) - Porto Alegre → Montevidéu, 10–17 out. `/ofertas/poa-mvd` uses `/og/POA-MVD.jpg`.
+- **CGH-IGU.jpg** (1200×630) - Congonhas → Foz, 10–17 out. Title Congonhas, NOT GRU. `/ofertas/cgh-igu` uses `/og/CGH-IGU.jpg`. Never GRU-EZE.jpg, never a GRU origin card.
+- **GRU-BRC.jpg** (1200×630) - São Paulo → Bariloche, 11–18 out. `/ofertas/gru-brc` uses `/og/GRU-BRC.jpg`.
 - **VCP-BUE.jpg** (1200×630) - Catalog card for VCP-BUE offer: Campinas → Buenos Aires
 - **GRU-LIS.jpg** (1200×630) - Catalog card for GRU-LIS offer: São Paulo → Lisboa
 
@@ -32,11 +32,11 @@ Do not use the 9:16 story files as og:image. Do not add `*-story.jpg` or `*-ig.j
 - GRU-FLN.jpg: Ponte Hercílio Luz, Florianópolis.
 - GIG-SSA.jpg: Elevador Lacerda, Salvador.
 - FOR-SSA.jpg: Largo do Pelourinho, Salvador. Photo: Paul R. Burley, CC BY-SA 4.0. File: Largo do Pelourinho Salvador 2019-9754.jpg. https://commons.wikimedia.org/wiki/File:Largo_do_Pelourinho_Salvador_2019-9754.jpg
-- GRU-SCL.jpg: Cerro San Cristóbal / Gran Torre, Santiago. Photo: Omnespsx, CC BY-SA 4.0. NOT Güldem Üstün.
-- REC-GIG.jpg: Botafogo / Pão de Açúcar, Rio de Janeiro. Photo: Donatas Dabravolskas, CC BY-SA 4.0.
-- POA-MVD.jpg: Palacio Salvo, Montevidéu. Photo: Christian Córdova, CC BY 2.0.
-- CGH-IGU.jpg: Iguaçu Falls. Photo: Emesbe, CC BY-SA 3.0.
-- GRU-BRC.jpg: Centro Cívico, Bariloche. Photo: Phil Whitehouse, CC BY 2.0.
+- GRU-SCL.jpg: Cerro San Cristóbal / Gran Torre, Santiago. Photo: Omnespsx, CC BY-SA 4.0. File: Santiago de Chile, Desde Cerro San Cristóbal.jpg. https://commons.wikimedia.org/wiki/File:Santiago_de_Chile,_Desde_Cerro_San_Cristóbal.jpg NOT Güldem Üstün.
+- REC-GIG.jpg: Botafogo / Pão de Açúcar, Rio de Janeiro. Photo: Donatas Dabravolskas, CC BY-SA 4.0. File: Botafogo_com_Pao_de_Acucar.jpg. https://commons.wikimedia.org/wiki/File:Botafogo_com_Pao_de_Acucar.jpg
+- POA-MVD.jpg: Palacio Salvo, Montevidéu. Photo: Christian Córdova, CC BY 2.0. File: Palacio_Salvo-02.jpg. https://commons.wikimedia.org/wiki/File:Palacio_Salvo-02.jpg
+- CGH-IGU.jpg: Iguaçu Falls. Photo: Emesbe, CC BY-SA 3.0. File: Iguazu_Falls.jpg. https://commons.wikimedia.org/wiki/File:Iguazu_Falls.jpg
+- GRU-BRC.jpg: Centro Cívico, Bariloche. Photo: Phil Whitehouse, CC BY 2.0. File: Bariloche_Centro_Civico.jpg. https://commons.wikimedia.org/wiki/File:Bariloche_Centro_Civico.jpg
 - GRU-FLN-story.jpg: Ponte Hercílio Luz — Rodrigo Soldon, CC BY 2.0
 - GIG-SSA-story.jpg: Elevador Lacerda — Ciroamado, CC BY-SA 4.0
 - VCP-BUE.jpg: Obelisco, Buenos Aires. Photo: Roberto Fiadone, CC BY-SA 4.0
@@ -55,11 +55,11 @@ og:image / twitter:image (landscape cards only):
 - /ofertas/gru-eze → GRU-EZE.jpg
 - /ofertas/gru-fln → GRU-FLN.jpg
 - /ofertas/gig-ssa → GIG-SSA.jpg
-- /ofertas/for-ssa → /og/FOR-SSA.jpg when the file exists; otherwise Salvador dest photo. Never GIG-SSA.jpg. Never HOJE.jpg.
-- /ofertas/gru-scl → /og/GRU-SCL.jpg when the file exists; otherwise Santiago dest photo
-- /ofertas/rec-gig → /og/REC-GIG.jpg when the file exists; otherwise Rio dest photo. Never GIG-SSA.jpg.
-- /ofertas/poa-mvd → /og/POA-MVD.jpg when the file exists; otherwise Palacio Salvo dest photo
-- /ofertas/cgh-igu → /og/CGH-IGU.jpg when the file exists; otherwise Iguaçu dest photo. Never a GRU card. Origin is Congonhas.
-- /ofertas/gru-brc → /og/GRU-BRC.jpg when the file exists; otherwise dest photo
+- /ofertas/for-ssa → /og/FOR-SSA.jpg. Never GIG-SSA.jpg. Never HOJE.jpg.
+- /ofertas/gru-scl → /og/GRU-SCL.jpg
+- /ofertas/rec-gig → /og/REC-GIG.jpg. Never GIG-SSA.jpg.
+- /ofertas/poa-mvd → /og/POA-MVD.jpg
+- /ofertas/cgh-igu → /og/CGH-IGU.jpg. Never a GRU card. Origin is Congonhas.
+- /ofertas/gru-brc → /og/GRU-BRC.jpg
 - /ofertas/vcp-bue → VCP-BUE.jpg (when available)
 - /ofertas/gru-lis → GRU-LIS.jpg (when available)
