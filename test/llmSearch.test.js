@@ -196,6 +196,16 @@ test("GET /metodologia, /llms.txt e sitemap", async (t) => {
   assert.match(txt, /^# Aonde/);
   assert.match(txt, /\/metodologia/);
   assert.match(txt, /Caspar@aonde\.com\.br/);
+  for (const slug of [
+    "sao-paulo-florianopolis",
+    "rio-salvador",
+    "sao-paulo-buenos-aires",
+    "fortaleza-salvador",
+    "sao-paulo-santiago",
+    "sao-paulo-foz-do-iguacu",
+  ]) {
+    assert.match(txt, new RegExp(`/respostas/${slug}`));
+  }
 
   const map = await (await fetch(`${baseUrl}/sitemap.xml`)).text();
   assert.match(map, /\/metodologia/);
