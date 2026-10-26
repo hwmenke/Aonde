@@ -928,6 +928,11 @@ export function pageStyles() {
   .meto-prose ul,.meto-prose ol{margin:0 0 16px;padding-left:1.2em;}
   .meto-prose li{margin:0 0 8px;}
   .meto-prose strong{color:var(--text);}
+  .resp-cta{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0 12px;}
+  .resp-consulta{background:var(--tint);border:1px solid var(--tint-border);border-radius:var(--r);padding:16px 18px;margin:16px 0 8px;}
+  .resp-consulta h2{font-size:16px;margin:0 0 8px;color:var(--text);}
+  .resp-consulta p{margin:0;font-size:15px;line-height:1.55;color:var(--muted);}
+  .resp-curta{font-size:18px;line-height:1.6;color:var(--text);}
   .help-fine{font-size:13px;color:var(--muted-2);}
   .alerts-form{display:flex;flex-direction:column;gap:12px;max-width:420px;}
   .alerts-form input[type=email]{border:1px solid var(--border-2);border-radius:12px;padding:13px 14px;font-family:var(--sans);font-size:15px;}

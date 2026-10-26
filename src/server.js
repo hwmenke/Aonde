@@ -64,6 +64,7 @@ import {
   renderServerErrorPage,
   renderTodayPage,
   renderMetodologiaPage,
+  renderRespostaPage,
   renderRegiaoPage,
   styleAssetPath,
   scriptAssetPath,
@@ -102,6 +103,7 @@ import { estatisticasBuscaAoVivo } from "./flights/buscaAoVivoLimite.js";
 import { registrarEvento } from "./analytics/events.js";
 import { buildLlmsTxt } from "./render/llmsTxt.js";
 import { METODOLOGIA_REVISADO_EM } from "./render/faqContent.js";
+import { RESPOSTAS_REVISADO_EM, listaRespostas, respostaPorSlug } from "./render/respostasContent.js";
 
 let inboundAtual = null;
 
@@ -806,6 +808,30 @@ function handleGuideHtml(res, id) {
   sendHtml(res, 404, renderHomePage({ offers: publishedLiveOffers(), editoriais: editoriaisPublicas() }));
 }
 
+function handleRespostaHtml(req, res, slug, pathname) {
+  const page = respostaPorSlug(slug);
+  if (!page) {
+    sendHtml(res, 404, renderNotFoundPage({ caminho: pathname }));
+    return;
+  }
+  sendHtml(
+    res,
+    200,
+    renderRespostaPage(slug, {
+      offer: ofertaPublicadaOuEditorial(req, page.offerId),
+      hoje: chaveDoDia(new Date()),
+    })
+  );
+}
+
+function ofertaPublicadaOuEditorial(req, id) {
+  if (!id) return null;
+  const { live, bloqueada } = ofertaPublica(req, id);
+  if (bloqueada) return null;
+  if (live) return live;
+  return CONTENT_OFFERS.find((o) => o && o.id === id) || null;
+}
+
 // Escolha do dia. `?dia=AAAA-MM-DD` serve para teste e preview; qualquer outra
 // coisa vira um aviso na propria pagina em vez de ser ignorada em silencio. Se
 // montar o pacote falhar, a pessoa ainda recebe uma pagina util (com saidas),
@@ -963,6 +989,7 @@ function handleSitemap(res) {
     { loc: "/ofertas" },
     { loc: "/guias" },
     { loc: "/metodologia", lastmod: METODOLOGIA_REVISADO_EM },
+    ...listaRespostas().map((p) => ({ loc: `/respostas/${p.slug}`, lastmod: RESPOSTAS_REVISADO_EM })),
     { loc: "/mapa" },
     { loc: "/ajuda" },
     { loc: "/cancelamentos" },
@@ -1450,6 +1477,11 @@ export function createServer() {
       }
       if (publicRead && pathname === "/metodologia") {
         sendHtml(res, 200, renderMetodologiaPage());
+        return;
+      }
+      const respostaMatch = pathname.match(/^\/respostas\/([a-z0-9-]+)$/);
+      if (publicRead && respostaMatch) {
+        handleRespostaHtml(req, res, respostaMatch[1], pathname);
         return;
       }
       if (publicRead && pathname === "/alertas") {

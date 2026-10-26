@@ -9,7 +9,7 @@ import { GUIDES } from "./aondeContent.js";
 export const METODOLOGIA_OG_TITLE = "Metodologia · Aonde";
 export const METODOLOGIA_OG_DESCRIPTION =
   "O Aonde é uma revista de viagem com busca: a gente aponta uma passagem e um roteiro dia a dia; você reserva no site do parceiro. O Aonde não vende a passagem e não processa pagamento.";
-export const METODOLOGIA_REVISADO_EM = "2026-10-25";
+export const METODOLOGIA_REVISADO_EM = "2026-10-26";
 
 /** Bloco A — FAQ global (usar em /hoje e no rodape de /metodologia). */
 export const FAQ_BLOCO_A = [
@@ -74,10 +74,18 @@ export function faqAnswerHtml(text) {
   );
 }
 
+/** Transforma caminhos internos já escapados em <a href>. Texto visível = o path. */
+export function linkInternalPathsHtml(escaped) {
+  return String(escaped || "").replace(
+    /\/(?:ofertas|guias)\/[a-z0-9-]+|\/metodologia(?![a-z0-9-/])/g,
+    (path) => `<a href="${path}">${path}</a>`
+  );
+}
+
 function answerToHtml(text) {
   const raw = String(text || "");
   const withMarks = raw.replace(/\*\*(.+?)\*\*/g, "{{strong:$1}}");
-  return faqAnswerHtml(withMarks);
+  return linkInternalPathsHtml(faqAnswerHtml(withMarks));
 }
 
 export function faqItemsForJsonLd(items) {

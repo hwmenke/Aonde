@@ -114,7 +114,7 @@ test("/metodologia renderiza o texto aprovado com canonical e og", () => {
   assert.match(html, /<h1 class="map-title">Metodologia — como o Aonde encontra e mostra tarifas<\/h1>/);
   assert.match(html, /revista de viagem com busca/);
   assert.match(html, /O que é “consulta”/);
-  assert.match(html, /25 de outubro de 2026/);
+  assert.match(html, /26 de outubro de 2026/);
   assert.match(html, /<link rel="canonical" href="https:\/\/aonde\.com\.br\/metodologia">/);
   assert.match(html, /<meta property="og:title" content="Metodologia · Aonde">/);
   assert.match(
@@ -125,7 +125,7 @@ test("/metodologia renderiza o texto aprovado com canonical e og", () => {
   assert.match(html, /href="\/hoje#faq"/);
   assertFaqMatch(html);
   const article = extractJsonLd(html).find((o) => o["@type"] === "Article");
-  assert.equal(article.dateModified, "2026-10-25");
+  assert.equal(article.dateModified, "2026-10-26");
 });
 
 test("/hoje mostra Bloco A + C em HTML e o FAQPage bate", () => {
