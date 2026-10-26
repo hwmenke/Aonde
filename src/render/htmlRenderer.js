@@ -3993,7 +3993,7 @@ export function renderMetodologiaPage() {
     `<h2>Roteiros (guias)</h2>` +
     `<p>Os roteiros dia a dia são editoriais: um restaurante real por dia, dica de onde ficar naquele destino, sem template genérico. Preço de hotel ou de prato no guia, se aparecer, também é consulta / referência — não pacote fechado do Aonde.</p>` +
     `<h2 id="respostas">Quanto custa voar?</h2>` +
-    `<p>Três respostas curtas, com o mesmo critério de consulta desta página:</p>` +
+    `<p>Seis respostas curtas, com o mesmo critério de consulta desta página:</p>` +
     `<ul>` +
     listaRespostas()
       .map((p) => `<li><a href="/respostas/${escapeHtml(p.slug)}">${escapeHtml(p.h1)}</a></li>`)

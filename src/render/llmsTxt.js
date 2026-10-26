@@ -23,6 +23,9 @@ export function buildLlmsTxt(siteUrl) {
 - [Quanto custa voar de São Paulo a Florianópolis?](${host}/respostas/sao-paulo-florianopolis)
 - [Quanto custa voar do Rio a Salvador?](${host}/respostas/rio-salvador)
 - [Quanto custa voar de São Paulo a Buenos Aires?](${host}/respostas/sao-paulo-buenos-aires)
+- [Quanto custa voar de Fortaleza a Salvador?](${host}/respostas/fortaleza-salvador)
+- [Quanto custa voar de São Paulo a Santiago?](${host}/respostas/sao-paulo-santiago)
+- [Quanto custa voar de São Paulo a Foz do Iguaçu?](${host}/respostas/sao-paulo-foz-do-iguacu)
 - [Anuncie](${host}/anuncie): patrocínios (quando existir)
 
 ## Regras para citação

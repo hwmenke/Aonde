@@ -23,6 +23,9 @@ const SLUGS = [
   "sao-paulo-florianopolis",
   "rio-salvador",
   "sao-paulo-buenos-aires",
+  "fortaleza-salvador",
+  "sao-paulo-santiago",
+  "sao-paulo-foz-do-iguacu",
 ];
 
 function extractJsonLd(html) {
@@ -96,9 +99,9 @@ async function withServer(t) {
   return { baseUrl };
 }
 
-test("tres respostas no catalogo com H1, meta, FAQ e 40–60 palavras na curta", () => {
+test("seis respostas no catalogo com H1, meta, FAQ e 40–60 palavras na curta", () => {
   const lista = listaRespostas();
-  assert.equal(lista.length, 3);
+  assert.equal(lista.length, 6);
   for (const slug of SLUGS) {
     const page = respostaPorSlug(slug);
     assert.ok(page, slug);
@@ -236,7 +239,7 @@ test("Article dateModified e editorial, nao o instante do request", () => {
   assert.equal(db, da);
 });
 
-test("metodologia e rodape apontam para as tres respostas", () => {
+test("metodologia e rodape apontam para as seis respostas", () => {
   const html = renderMetodologiaPage();
   for (const slug of SLUGS) {
     assert.match(html, new RegExp(`href="/respostas/${slug}"`));
@@ -269,6 +272,77 @@ test("GET /respostas/* 200 com FAQPage; /llms.txt e sitemap listam as URLs", asy
   for (const slug of SLUGS) {
     assert.match(map, new RegExp(`/respostas/${slug}`));
   }
+});
+
+test("Fortaleza–Salvador nao mistura preco GIG–SSA na mesma frase que FOR–SSA", () => {
+  const html = renderRespostaPage("fortaleza-salvador", {
+    offer: offerById("for-ssa"),
+    hoje: "2026-10-26",
+  });
+  assert.match(html, /href="\/ofertas\/for-ssa"/);
+  assert.match(html, /href="\/ofertas\/gig-ssa"/);
+  assert.match(html, /href="\/guias\/salvador"/);
+  assert.doesNotMatch(html, /USD \$242/);
+  assert.doesNotMatch(html, /\$242/);
+  assert.doesNotMatch(html, /R\$ 1\.320/);
+  const curta = html.match(/<p class="resp-curta">([\s\S]*?)<\/p>/);
+  assert.ok(curta);
+  const texto = stripTags(curta[1]);
+  assert.match(texto, /FOR–SSA|for-ssa/i);
+  assert.doesNotMatch(texto, /242/);
+  assert.doesNotMatch(texto, /1\.320/);
+  const viva = renderRespostaPage("fortaleza-salvador", {
+    offer: offerById("for-ssa"),
+    hoje: "2026-08-28",
+  });
+  assert.match(viva, /USD \$242|\$242/);
+  assert.doesNotMatch(viva, /R\$ 1\.320/);
+  const mesmaFrase = viva.match(/\$242[\s\S]{0,120}1\.320|1\.320[\s\S]{0,120}\$242/);
+  assert.equal(mesmaFrase, null);
+});
+
+test("São Paulo–Santiago cita GRU–SCL e nao inventa tarifa na curta", () => {
+  const html = renderRespostaPage("sao-paulo-santiago", {
+    offer: offerById("gru-scl"),
+    hoje: "2026-12-01",
+  });
+  assert.match(html, /href="\/ofertas\/gru-scl"/);
+  assert.match(html, /href="\/guias\/santiago"/);
+  assert.doesNotMatch(html, /USD \$268/);
+  assert.doesNotMatch(html, /\$268/);
+  const curta = html.match(/<p class="resp-curta">([\s\S]*?)<\/p>/);
+  assert.ok(curta);
+  assert.doesNotMatch(stripTags(curta[1]), /268|299/);
+  const viva = renderRespostaPage("sao-paulo-santiago", {
+    offer: offerById("gru-scl"),
+    hoje: "2026-10-01",
+  });
+  assert.match(viva, /USD \$268|\$268/);
+  assert.match(viva, />Oferta atual</);
+});
+
+test("São Paulo–Foz deixa claro que a oferta curada é CGH, não GRU", () => {
+  const html = renderRespostaPage("sao-paulo-foz-do-iguacu", {
+    offer: offerById("cgh-igu"),
+    hoje: "2026-12-01",
+  });
+  assert.match(html, /href="\/ofertas\/cgh-igu"/);
+  assert.match(html, /href="\/guias\/foz"/);
+  assert.match(html, /CGH/);
+  assert.match(html, /Congonhas/);
+  const vis = visibleFaq(html);
+  const aero = vis.find((it) => /aeroporto/i.test(it.q));
+  assert.ok(aero, "FAQ fala do aeroporto");
+  assert.match(aero.a, /CGH/);
+  assert.match(aero.a, /Congonhas/);
+  assert.match(aero.a, /não GRU|nao GRU|não GRU/i);
+  assert.doesNotMatch(html, /USD \$279/);
+  const viva = renderRespostaPage("sao-paulo-foz-do-iguacu", {
+    offer: offerById("cgh-igu"),
+    hoje: "2026-08-28",
+  });
+  assert.match(viva, /USD \$279|\$279/);
+  assert.doesNotMatch(viva, /achado hoje/i);
 });
 
 test("GET /llms.txt usa AONDE_SITE_URL nas respostas", async (t) => {
