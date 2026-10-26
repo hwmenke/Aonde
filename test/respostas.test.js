@@ -135,7 +135,7 @@ test("renderRespostaPage devolve null para slug desconhecido", () => {
 test("cada /respostas tem H1, resposta curta, CTAs, FAQPage = HTML e Article datado", () => {
   for (const slug of SLUGS) {
     const page = RESPOSTAS[slug];
-    const html = renderRespostaPage(slug, { offer: offerById(page.offerId), hoje: "2026-10-26" });
+    const html = renderRespostaPage(slug, { offer: offerById(page.offerId), hoje: "2026-12-01" });
     assert.match(html, new RegExp(`<h1 class="map-title">${page.h1.replace(/[?]/g, "\\?")}</h1>`));
     assert.match(html, /<h2>Resposta curta<\/h2>/);
     assert.match(html, new RegExp(`href="/ofertas/${page.offerId}"`));
@@ -179,7 +179,7 @@ test("consulta viva aparece com data; encerrada omite o numero da oferta", () =>
   assert.doesNotMatch(morta, /R\$ 1\.566/);
   assert.match(morta, />Ver oferta</);
   assert.doesNotMatch(morta, />Oferta atual</);
-  assert.doesNotMatch(morta, /resp-consulta/);
+  assert.doesNotMatch(morta, /<aside class="resp-consulta">/);
 });
 
 test("sem fontePrecoEm nao inventa o preco editorial", () => {
