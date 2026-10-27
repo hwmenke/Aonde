@@ -99,6 +99,7 @@ import { createInboundRateLimiter, clientIp } from "./inboundRateLimiter.js";
 import { httpCacheStats } from "./httpCache.js";
 import { estatisticasBuscaAoVivo } from "./flights/buscaAoVivoLimite.js";
 import { registrarEvento } from "./analytics/events.js";
+import { analyticsCspOrigins } from "./render/analyticsSnippet.js";
 
 let inboundAtual = null;
 
@@ -116,7 +117,22 @@ function corsHeaders() {
 // A CSP declara default-src e libera explicitamente so o que o site usa
 // (fontes do Google, Maps, imagens https). 'unsafe-inline' segue necessario
 // porque ha <script>/<style> embutidos — trocar por nonce e o proximo passo.
+function cspTokenList(items) {
+  const seen = new Set();
+  const out = [];
+  for (const item of items) {
+    if (!item || seen.has(item)) continue;
+    seen.add(item);
+    out.push(item);
+  }
+  return out.join(" ");
+}
+
 function securityHeaders() {
+  // Plausible (opcional): so entra na CSP quando PLAUSIBLE_DOMAIN e um
+  // hostname valido — senão o script nem e injetado. Self-hosted usa a
+  // origem de PLAUSIBLE_SCRIPT_SRC, nao um host inventado.
+  const analyticsOrigins = analyticsCspOrigins();
   return {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
@@ -129,11 +145,21 @@ function securityHeaders() {
     // <style> embutidos; o passo seguinte e trocar por nonce por resposta.
     "Content-Security-Policy": [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com",
+      `script-src ${cspTokenList([
+        "'self'",
+        "'unsafe-inline'",
+        "https://maps.googleapis.com",
+        "https://maps.gstatic.com",
+        ...analyticsOrigins,
+      ])}`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: https:",
-      "connect-src 'self' https://maps.googleapis.com",
+      `connect-src ${cspTokenList([
+        "'self'",
+        "https://maps.googleapis.com",
+        ...analyticsOrigins,
+      ])}`,
       "frame-src 'none'",
       "object-src 'none'",
       "base-uri 'self'",
