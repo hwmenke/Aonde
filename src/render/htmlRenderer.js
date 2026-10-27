@@ -38,6 +38,7 @@ import {
   FLIGHTS,
 } from "./aondeContent.js";
 import { escapeHtml, formatBRL, semAcento, formatMoedaExibicao } from "./texto.js";
+import { analyticsSnippet } from "./analyticsSnippet.js";
 import { getRouteSeries } from "../store/priceHistory.js";
 import { renderRouteSparkline } from "./sparkline.js";
 import { preparativosDoGuia, FONTES, lembreteDeRevisao } from "./preparativos.js";
@@ -1616,6 +1617,7 @@ ${canonicalTag}
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap"></noscript>
 ${styleTag()}
 ${jsonLdTags(jsonld)}
+${analyticsSnippet()}
 </head>
 <body>
 ${seasons3dHtml()}
@@ -3973,6 +3975,7 @@ export function renderPrivacyPage() {
     `<div class="help-group"><h2 class="det-h2">Quais dados entram</h2>` +
     `<p><strong>Alertas e newsletter:</strong> e-mail obrigatório; WhatsApp opcional; rota e preço-alvo quando você informa no formulário.</p>` +
     `<p><strong>Medição do produto:</strong> eventos de navegação (por exemplo, clique em saída para parceiro), com data e informações técnicas da requisição.</p>` +
+    `<p><strong>Audiência (opcional):</strong> quando a medição de visitas está ligada, usamos o Plausible — um script de página sem cookies e sem identificador persistente. Quando está desligada (o padrão), o script não é carregado.</p>` +
     `<p><strong>Não coletamos pagamento:</strong> compra e cartão acontecem no site do parceiro. O Aonde não processa nem armazena esse dado.</p></div>` +
     `<div class="help-group"><h2 class="det-h2">Base de consentimento (double opt-in)</h2>` +
     `<p>Inscrição de e-mail só ativa depois do clique no link de confirmação enviado para o endereço informado. Sem essa confirmação, não há disparo de alertas por e-mail.</p>` +

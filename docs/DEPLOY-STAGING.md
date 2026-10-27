@@ -23,6 +23,7 @@ Exact click path:
    - `TRAVELPAYOUTS_MARKER` — Partner ID
    - `TRAVELPAYOUTS_TOKEN` — optional; leave blank if you only need link templates
 8. Confirm `AONDE_SITE_URL` is `https://test.aonde.com.br`.
+   Optional analytics (dashboard only — not in the Blueprint): after creating a Plausible site for **`test.aonde.com.br`**, set `PLAUSIBLE_DOMAIN=test.aonde.com.br` on the service. Leave it blank to keep analytics off. `PLAUSIBLE_SCRIPT_SRC` only if you self-host Plausible.
 9. Click **Deploy Blueprint**. Wait until the web service is **Live**.
 10. Open the service → copy the generated URL, e.g. `https://aonde-staging-xxxx.onrender.com`.
 11. Smoke-check: `https://<that-host>/api/health` must return HTTP 200 JSON `{ "ok": true, ... }`.
@@ -56,6 +57,7 @@ Free instances may sleep; first request after idle can be slow. Upgrade the serv
    - `AONDE_SITE_URL` = `https://test.aonde.com.br`
    - `TRAVELPAYOUTS_MARKER` (optional until you want tracked links)
    - `TRAVELPAYOUTS_TOKEN` (optional)
+   - `PLAUSIBLE_DOMAIN` (optional; `test.aonde.com.br` after the Plausible site exists)
 4. **Settings** → **Networking** → **Generate Domain**. Copy `xxx.up.railway.app`.
 5. Smoke-check `/api/health` on that host.
 6. **Settings** → **Networking** → **Custom Domain** → `test.aonde.com.br`.
@@ -68,6 +70,8 @@ Free instances may sleep; first request after idle can be slow. Upgrade the serv
 | `AONDE_SITE_URL` | yes for staging SEO | Default in Blueprint: `https://test.aonde.com.br` |
 | `TRAVELPAYOUTS_MARKER` | no | Partner ID; enables `tp.media` affiliate links |
 | `TRAVELPAYOUTS_TOKEN` | no | Data API search |
+| `PLAUSIBLE_DOMAIN` | no | Dashboard only. Hostname of the Plausible site (staging: `test.aonde.com.br`). Blank = no analytics tag. |
+| `PLAUSIBLE_SCRIPT_SRC` | no | Dashboard only. Override for self-hosted Plausible. Default is `https://plausible.io/js/script.js`. |
 | `PORT` | set by host | Do not hardcode |
 
 Do not invent affiliate URLs. Without a marker, deals stay editorial / untracked — that is expected.
