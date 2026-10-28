@@ -1,6 +1,6 @@
 # Deploy staging — `test.aonde.com.br`
 
-One-click host for this repo as a Node web service. **Render is primary.** Railway is the fallback. After the host is live, point DNS `test` at it.
+Deploy this repo as a Node web service. **Render Blueprint is primary.** Railway is the optional fallback. DNS already has `test.aonde.com.br` as a CNAME to `aonde-staging-2026.onrender.com`; the Blueprint must create that hostname. The service still needs to be created and deployed in Render; these repository changes do not make staging live.
 
 Do **not** put a real Travelpayouts marker or token in git, in `render.yaml`, or in this file. Set them only in the host dashboard.
 
@@ -18,14 +18,14 @@ Exact click path:
    - **Blueprint Name:** e.g. `aonde-staging`
    - **Branch:** `main`
    - **Blueprint Path:** leave default (`render.yaml` at repo root)
-6. Review the planned service `aonde-staging` (Node web, start `node scripts/serve.js`, health `/api/health`).
+6. Review the planned service **`aonde-staging-2026`** (Node web, start `node scripts/serve.js`, health `/api/health`). Keep this exact service name from `render.yaml` so Render assigns `aonde-staging-2026.onrender.com`. The Blueprint Name above is only a label; it does not replace the service name.
 7. When Render prompts for `sync: false` env vars, paste from Travelpayouts → Profile (never from a commit):
    - `TRAVELPAYOUTS_MARKER` — Partner ID
    - `TRAVELPAYOUTS_TOKEN` — optional; leave blank if you only need link templates
 8. Confirm `AONDE_SITE_URL` is `https://test.aonde.com.br`.
 9. Click **Deploy Blueprint**. Wait until the web service is **Live**.
-10. Open the service → copy the generated URL, e.g. `https://aonde-staging-xxxx.onrender.com`.
-11. Smoke-check: `https://<that-host>/api/health` must return HTTP 200 JSON `{ "ok": true, ... }`.
+10. Open the service and confirm its generated URL is exactly `https://aonde-staging-2026.onrender.com`. If Render assigned a different hostname, rename or recreate the service with the exact name `aonde-staging-2026`, then confirm the assigned URL before continuing. No rename or recreation is needed when the hostname matches.
+11. After the service is **Live**, smoke-check `https://aonde-staging-2026.onrender.com/api/health`: it must return HTTP 200 JSON `{ "ok": true, ... }`. Also open `https://aonde-staging-2026.onrender.com/`.
 
 Render injects `PORT`. `scripts/serve.js` listens on `PORT || AONDE_PORT || 3333` at `0.0.0.0`.
 
@@ -33,16 +33,16 @@ Render injects `PORT`. `scripts/serve.js` listens on `PORT || AONDE_PORT || 3333
 
 12. In the **same** service: **Settings** → **Custom Domains** → **+ Add Custom Domain**.
 13. Enter `test.aonde.com.br` → **Save**.
-14. Render shows the CNAME target (the `*.onrender.com` hostname).
-15. At the DNS host for `aonde.com.br` (Registro.br, Cloudflare, etc.):
+14. Confirm Render shows `aonde-staging-2026.onrender.com` as the CNAME target.
+15. The existing DNS record already matches; leave it in place:
 
     | Type  | Name | Value                          |
     |-------|------|--------------------------------|
-    | CNAME | `test` | `aonde-staging-xxxx.onrender.com` |
+    | CNAME | `test` | `aonde-staging-2026.onrender.com` |
 
-    Use the **exact** hostname Render displays (no `https://`, no trailing slash). Remove any `AAAA` on `test`.
-16. Back in Render Custom Domains, click **Verify**. Wait for the TLS cert (minutes, sometimes longer).
-17. Open `https://test.aonde.com.br/api/health` and `https://test.aonde.com.br/`.
+    This deployment concerns only `test.aonde.com.br`. Leave the apex `aonde.com.br` and `www` on their existing host.
+16. Back in Render Custom Domains, click **Verify**. Wait for Render to issue the TLS certificate and confirm HTTPS works.
+17. Smoke-check `https://test.aonde.com.br/api/health` for HTTP 200 JSON and open `https://test.aonde.com.br/` over HTTPS.
 
 Hobby includes a small number of custom domains; add-ons are billed by Render if you exceed the plan.
 
