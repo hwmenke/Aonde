@@ -2,7 +2,7 @@
 # Secrets are prompted in the Render Dashboard (sync: false). Never commit real values.
 services:
   - type: web
-    name: aonde-staging
+    name: aonde-staging-2026
     runtime: node
     buildCommand: "true"
     startCommand: node scripts/serve.js
