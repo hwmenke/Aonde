@@ -1428,7 +1428,14 @@ export function createServer() {
       }
       const regiaoMatch = pathname.match(/^\/regioes\/([^/]+)$/);
       if (publicRead && regiaoMatch) {
-        const html = renderRegiaoPage(decodeURIComponent(regiaoMatch[1]));
+        // Same two sources /ofertas lists: live offers plus public editorial ones.
+        const vistos = new Set();
+        const offers = [...publishedLiveOffers(), ...editoriaisPublicas()]
+          .filter((o) => o && o.id && !vistos.has(o.id) && vistos.add(o.id));
+        const html = renderRegiaoPage(decodeURIComponent(regiaoMatch[1]), {
+          offers,
+          hoje: chaveDoDia(new Date()),
+        });
         if (!html) {
           sendHtml(res, 404, renderNotFoundPage({ caminho: pathname }));
           return;

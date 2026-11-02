@@ -679,7 +679,7 @@ function offerCardVM(vm) {
   // Quando e onde o preco foi visto: so aparece se a oferta traz fonte e/ou
   // data. Sem isso o card nao inventa frescor.
   const fonteLinha = fontePrecoLinha(vm.fontePreco, vm.fontePrecoEm);
-  const fonteCard = fonteLinha ? `<span class="of-fonte">${escapeHtml(fonteLinha)}</span>` : "";
+  const fonteCard = fonteLinha ? `<span class="of-fonte">${fonteLinha}</span>` : "";
   // Dois avaliadores independentes travaram no termo "erro de tarifa" sem
   // saber o que significa. Texto reescrito para ser autoexplicativo no
   // proprio card (o card e um <a>, entao nao da para linkar a FAQ aqui dentro).
@@ -1558,11 +1558,32 @@ function formatFontePrecoDataLonga(iso) {
  * Linha honesta da origem do preco. So imprime o que existe: fonte e/ou data.
  * Sem os dois, devolve "" — quem chama nao inventa "ao vivo" nem data.
  */
+/** Pure source timestamp markup: never supplies a missing observation date. */
+export function fontePrecoTempoHtml(value) {
+  const iso = String(value || "").trim();
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(iso);
+  if (!dateOnly && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})$/.test(iso)) return "";
+  const day = iso.slice(0, 10);
+  const calendar = new Date(`${day}T00:00:00Z`);
+  if (!Number.isFinite(calendar.getTime()) || calendar.toISOString().slice(0, 10) !== day) return "";
+  const date = new Date(dateOnly ? `${iso}T00:00:00Z` : iso);
+  if (!Number.isFinite(date.getTime())) return "";
+  let text = formatFontePrecoData(iso);
+  if (!dateOnly) {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", {
+      timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "numeric",
+      hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+    }).formatToParts(date).map(({ type, value }) => [type, value]));
+    text = `${Number(parts.day)} ${MESES_CURTOS_PT[Number(parts.month) - 1]} ${parts.year}, ${parts.hour}:${parts.minute}`;
+  }
+  return `<time datetime="${escapeHtml(iso)}">${escapeHtml(text)}</time>`;
+}
+
 function fontePrecoLinha(fonte, isoDate) {
   const nome = String(fonte || "").trim();
-  const quando = formatFontePrecoData(isoDate);
-  if (nome && quando) return `Visto no ${nome}, ${quando}`;
-  if (nome) return `Visto no ${nome}`;
+  const quando = fontePrecoTempoHtml(isoDate);
+  if (nome && quando) return `Visto no ${escapeHtml(nome)}, ${quando}`;
+  if (nome) return `Visto no ${escapeHtml(nome)}`;
   if (quando) return `Visto em ${quando}`;
   return "";
 }
@@ -1571,7 +1592,7 @@ function fontePrecoHtml(fonte, isoDate, className, originIata) {
   const linha = fontePrecoLinha(fonte, isoDate);
   if (!linha) return "";
   const originAttr = originIata ? ` data-origin-price="${escapeHtml(originIata)}"` : "";
-  return `<p class="${escapeHtml(className)}"${originAttr}>${escapeHtml(linha)}</p>`;
+  return `<p class="${escapeHtml(className)}"${originAttr}>${linha}</p>`;
 }
 
 function htmlDocument({ title, body, script, description, jsonld, canonical, image, noindex = false, robotsFollow = false, seasonal = true }) {
@@ -2377,7 +2398,7 @@ function precoSignificadoHtml(vm) {
       : `É o preço de <strong>ida e volta</strong> da rota mostrada nesta página.`
   );
   const linha = fontePrecoLinha(vm.fontePreco, vm.fontePrecoEm);
-  if (linha) itens.push(`${escapeHtml(linha)}. O preço pode ter mudado desde essa consulta.`);
+  if (linha) itens.push(`${linha}. O preço pode ter mudado desde essa consulta.`);
   if (/US\$/.test(vm.preco)) {
     itens.push(`O valor está em <strong>dólares (US$)</strong>, não em reais. O Aonde não converte nem estima o valor em reais.`);
   }
@@ -3206,9 +3227,31 @@ export function regiaoDescription(nome, guias) {
   return `${words.join(" ")}…`;
 }
 
-export function renderRegiaoPage(slug) {
+// Match exact IATA from guide.opt.destName's parentheses, or exact city from
+// guide.cidade / opt.destName without the IATA suffix (case/accent insensitive).
+// Observation timestamps alone determine recency; missing/invalid ones are excluded.
+export function renderRegiaoPage(slug, { offers = [], hoje = chaveDoDia(new Date()) } = {}) {
   const hub = hubPorSlug(slug);
   if (!hub) return null;
+  const normalize = (value) => semAcento(String(value || "").trim()).toLowerCase();
+  const iatas = new Set();
+  const cities = new Set();
+  for (const guide of hub.guias) {
+    const destination = guide.opt?.destName || "";
+    const iata = /\(([A-Z]{3})\)/.exec(destination)?.[1];
+    if (iata) iatas.add(iata);
+    for (const city of [guide.cidade, destination.replace(/\s*\([A-Z]{3}\)\s*$/, "")]) {
+      if (city) cities.add(normalize(city));
+    }
+  }
+  const recent = offers.filter((offer) => offer && offer.id && viagemAindaVale(offer, hoje) &&
+      !ofertaEncerrada(offer, hoje) && (iatas.has(String(offer.destino || "").toUpperCase()) ||
+      cities.has(normalize(offer.cidade)) || cities.has(normalize(offer.destino))))
+    .map((offer) => ({ offer, timestamp: offer.fontePrecoEm || offer.fonte_preco_em }))
+    .filter(({ timestamp }) => fontePrecoTempoHtml(timestamp))
+    .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp)).slice(0, 3);
+  const recentHtml = recent.length ? `<section><h2>Ofertas recentes para ${escapeHtml(hub.nome)}</h2><ul>` +
+    recent.map(({ offer, timestamp }) => `<li><a href="/ofertas/${encodeURIComponent(offer.id)}">${escapeHtml(offer.cidade || offer.destino)} · ${escapeHtml(offer.preco ?? (Number.isFinite(offer.preco_centavos) ? formatBRL(offer.preco_centavos) : ""))}</a> — Visto em ${fontePrecoTempoHtml(timestamp)}</li>`).join("") + `</ul></section>` : "";
   const cards = hub.guias
     .map(
       (g) =>
@@ -3225,7 +3268,7 @@ export function renderRegiaoPage(slug) {
     `<h1 class="map-title">Roteiros em ${escapeHtml(hub.nome)}</h1>` +
     `<p class="map-sub">Estes são os roteiros de 5 dias já publicados cuja tag editorial cita ${escapeHtml(hub.nome)}. ` +
     `A lista não cobre todo destino possível dessa região — só o que está no catálogo.</p>` +
-    `<ol class="regiao-lista">${cards}</ol>` +
+    `<ol class="regiao-lista">${cards}</ol>` + recentHtml +
     `<p class="map-sub"><a href="/guias">Catálogo inteiro</a></p>` +
     `</section></main>` +
     siteFooter();

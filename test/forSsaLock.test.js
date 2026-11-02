@@ -151,7 +151,7 @@ test("pagina /ofertas/for-ssa mostra USD $242 no Aviasales, nao R$ 287 nem R$ 24
 
   assert.match(html, /US\$ 242/);
   assert.doesNotMatch(html, /USD \$/, "um unico marcador de moeda na tela");
-  assert.match(html, /Visto no Aviasales, 28 ago 2026/);
+  assert.match(html, /Visto no Aviasales, <time datetime="2026-08-28">28 ago 2026<\/time>/);
   assert.match(html, /LATAM/);
   assert.match(html, /1h50/);
   assert.match(html, /Fortaleza/);
@@ -261,7 +261,7 @@ test("a semana editorial FOR-SSA vive so em /ofertas/for-ssa, nao em /guias/salv
   assert.match(oferta, /Fortaleza \(FOR\) → Salvador \(SSA\)/);
   assert.match(oferta, /US\$ 242/);
   assert.match(oferta, /Tarifa vista no Aviasales em 28 de agosto de 2026/);
-  assert.match(oferta, /Visto no Aviasales, 28 ago 2026/);
+  assert.match(oferta, /Visto no Aviasales, <time datetime="2026-08-28">28 ago 2026<\/time>/);
   assert.match(oferta, /Alameda das Algarobas/);
   assert.match(oferta, /Rua do Meio 178/);
   assert.doesNotMatch(oferta, /Tarifa ao vivo/);
