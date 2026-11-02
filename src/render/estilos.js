@@ -1110,6 +1110,9 @@ export function pageStyles() {
     .dia,.prep-item,.lodging,.fontes-painel,.res-voo,.salvo-item{break-inside:avoid;}
     a{text-decoration:underline;}
   }
-  `;
+
+@media (max-width:640px){.seasons3d{display:none}}
+@media (prefers-reduced-motion:reduce){.seasons3d{display:none}}
+`;
   return _pageStylesCache;
 }

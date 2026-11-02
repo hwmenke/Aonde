@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 // API REST zero-dependencia (node:http, sem framework).
 //
 // createServer() retorna o http.Server SEM dar listen — quem chama decide a
@@ -247,8 +248,32 @@ function comprimir(encoding, corpo, nivelBrotli = BROTLI_NIVEL_DINAMICO) {
 // acompanha o <meta robots> para crawlers que so olham a resposta HTTP.
 const NOINDEX_HEADERS = { "X-Robots-Tag": "noindex, nofollow" };
 
+export function htmlCachePolicy(method, url) {
+  const path = url.pathname.replace(/\/+$/, "") || "/";
+  // Only known editorial filter parameters are safe; every other query may
+  // contain a token or personal data and therefore disables shared caching.
+  const safeQuery = [...url.searchParams.keys()].every((key) =>
+    path === "/guias" && ["regiao", "estilo"].includes(key));
+  const editorial = /^\/(guias(?:\/[^/]+)?|regioes\/[^/]+|privacidade|termos|metodologia|sobre)$/.test(path);
+  return ["GET", "HEAD"].includes(method) && safeQuery && editorial
+    ? "public, max-age=300, stale-while-revalidate=600"
+    : "private, no-store";
+}
+
 function sendHtml(res, status, rawHtml, extraHeaders) {
   const html = externalizeAssets(rawHtml);
+  const cacheable = status === 200 && String(res.htmlCacheControl).startsWith("public,");
+  if (!cacheable) res.setHeader("Cache-Control", "private, no-store");
+  if (cacheable) {
+    const etag = `W/"${createHash("sha256").update(html).digest("hex")}"`;
+    res.setHeader("ETag", etag);
+    const candidates = String(res.ifNoneMatch || "").split(",").map(value => value.trim().replace(/^W\//, ""));
+    if (candidates.includes("*") || candidates.includes(etag.replace(/^W\//, ""))) {
+      res.writeHead(304, { Vary: "Accept-Encoding", ...securityHeaders(), ...corsHeaders(), ...(extraHeaders || {}) });
+      res.end();
+      return;
+    }
+  }
   const { buf, encoding } = comprimir(negociarEncoding(res.aceitaEncoding), html);
   res.writeHead(status, {
     "Content-Type": "text/html; charset=utf-8",
@@ -1304,11 +1329,15 @@ export function createServer() {
     // Anotado aqui para que sendHtml/sendText possam comprimir sem que os 27
     // pontos de chamada precisem carregar `req` adiante.
     res.aceitaEncoding = String((req.headers && req.headers["accept-encoding"]) || "");
+    res.setHeader("Cache-Control", "private, no-store");
+    res.ifNoneMatch = req.headers["if-none-match"];
     let pathname = "/";
     try {
       const url = new URL(req.url, "http://localhost");
       pathname = url.pathname.replace(/\/+$/, "") || "/";
       const method = req.method || "GET";
+      res.htmlCacheControl = isAdminRequest(req) ? "private, no-store" : htmlCachePolicy(method, url);
+      res.setHeader("Cache-Control", res.htmlCacheControl);
       // Node suppresses response bodies for HEAD while preserving GET headers.
       const publicRead = method === "GET" || method === "HEAD";
 
@@ -1386,6 +1415,7 @@ export function createServer() {
           res,
           200,
           renderGuidesIndexPage({
+            otherFilters: [...url.searchParams.keys()].some(key => !["regiao", "estilo"].includes(key)) || url.searchParams.getAll("regiao").length > 1,
             regiao: url.searchParams.get("regiao") || "",
             estilo: url.searchParams.get("estilo") || "",
           })
