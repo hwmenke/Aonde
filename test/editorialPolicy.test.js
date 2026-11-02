@@ -6,6 +6,7 @@ import { createServer } from '../src/server.js';
 import * as serverModule from '../src/server.js';
 import { catalogoDescoberta } from '../src/render/descoberta.js';
 import { renderGuidesIndexPage, renderRegiaoPage, renderResultsPage, renderHomePage } from '../src/render/htmlRenderer.js';
+import * as renderer from '../src/render/htmlRenderer.js';
 const catalog = catalogoDescoberta();
 test('regional filters consolidate into hubs; other combinations use the index', () => {
   const hubSlugs = new Set(catalog.hubs.map(h => h.slug));
@@ -34,6 +35,24 @@ test('regional filters consolidate into hubs; other combinations use the index',
   assert.match(combo, /rel="canonical" href="[^"]*\/guias"/);
   assert.match(combo, /name="robots" content="noindex, follow"/);
   assert.match(renderGuidesIndexPage({estilo:catalog.estilos[0].slug}), /rel="canonical" href="[^"]*\/guias"/);
+});
+test('regional descriptions fit 155 characters and retain complete guide names', () => {
+  const describe = renderer.regiaoDescription;
+  assert.equal(typeof describe, 'function');
+  assert.equal(describe('Brasil', [{ breadcrumb: 'Salvador' }, { titulo: 'Recife' }]),
+    '2 roteiros de 5 dias em Brasil: Salvador, Recife.');
+  assert.equal(describe('Brasil', []), '0 roteiros de 5 dias em Brasil.');
+  const guides = Array.from({ length: 12 }, () => ({ titulo: 'São Miguel dos Milagres' }));
+  const description = describe('Brasil', guides);
+  assert.ok(description.length <= 155);
+  assert.equal(description, '12 roteiros de 5 dias em Brasil: São Miguel dos Milagres, São Miguel dos Milagres, São Miguel dos Milagres, São Miguel dos Milagres e mais 8');
+  assert.equal(describe('Brasil', [{ titulo: 'Destino '.repeat(30).trim() }]), '1 roteiro de 5 dias em Brasil.');
+  for (const hub of catalog.hubs) {
+    const html = renderRegiaoPage(hub.slug);
+    const description = html.match(/name="description" content="([^"]*)"/)[1];
+    assert.ok(description.length <= 155);
+    assert.ok(html.includes(`property="og:description" content="${description}"`));
+  }
 });
 test('pure route policy limits caching to editorial reads without sensitive queries', () => {
   const policy = serverModule.htmlCachePolicy;
@@ -92,6 +111,18 @@ test('editorial HTTP validators, HEAD, sitemap and sensitive queries', async t =
     assert.equal(res.headers.get('cache-control'),'private, no-store');
     assert.equal(res.headers.get('etag'),null);
     await res.text();
+  }
+  for (const path of ['/sitemap.xml', '/robots.txt']) {
+    for (const method of ['GET', 'HEAD']) {
+      const response = await fetch(base + path, { method });
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get('cache-control'), 'public, max-age=3600');
+      if (method === 'HEAD') assert.equal(await response.text(), '');
+      const query = await fetch(base + path + '?x=1', { method });
+      assert.equal(query.headers.get('cache-control'), 'private, no-store');
+    }
+    const post = await fetch(base + path, { method: 'POST' });
+    assert.equal(post.headers.get('cache-control'), 'private, no-store');
   }
   const sitemap = await (await fetch(base+'/sitemap.xml')).text();
   for (const r of catalog.hubs) assert.ok(sitemap.includes(`/regioes/${r.slug}`));

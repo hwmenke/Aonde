@@ -3188,6 +3188,24 @@ export function renderGuidesIndexPage({ regiao = "", estilo = "", otherFilters =
   });
 }
 
+/** Build hub metadata from catalog names, keeping whole names within 155 characters. */
+export function regiaoDescription(nome, guias) {
+  const prefix = `${guias.length} ${guias.length === 1 ? "roteiro" : "roteiros"} de 5 dias em ${nome}`;
+  if (!guias.length) return `${prefix}.`;
+  const names = guias.map((g) => g.breadcrumb || g.titulo);
+  for (let count = names.length; count >= 1; count--) {
+    const remaining = names.length - count;
+    const ending = remaining ? ` e mais ${remaining}` : ".";
+    const description = `${prefix}: ${names.slice(0, count).join(", ")}${ending}`;
+    if (description.length <= 155) return description;
+  }
+  if (prefix.length + 1 <= 155) return `${prefix}.`;
+  // Defensive fallback for an unusually long region name: never split a word.
+  const words = prefix.split(/\s+/);
+  while (words.length && `${words.join(" ")}…`.length > 155) words.pop();
+  return `${words.join(" ")}…`;
+}
+
 export function renderRegiaoPage(slug) {
   const hub = hubPorSlug(slug);
   if (!hub) return null;
@@ -3213,7 +3231,7 @@ export function renderRegiaoPage(slug) {
     siteFooter();
   return htmlDocument({
     title: `${hub.guias.length} roteiros em ${hub.nome} · Aonde`,
-    description: `${hub.guias.length} roteiros de 5 dias em ${hub.nome}: ${hub.guias.map((g) => g.breadcrumb || g.titulo).join(", ")}. Veja o dia a dia de cada destino.`,
+    description: regiaoDescription(hub.nome, hub.guias),
     body,
     script: enhancementScript(),
     canonical: `/regioes/${hub.slug}`,

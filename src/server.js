@@ -250,6 +250,10 @@ const NOINDEX_HEADERS = { "X-Robots-Tag": "noindex, nofollow" };
 
 export function htmlCachePolicy(method, url) {
   const path = url.pathname.replace(/\/+$/, "") || "/";
+  if (["GET", "HEAD"].includes(method) && !url.search &&
+      ["/sitemap.xml", "/robots.txt"].includes(path)) {
+    return "public, max-age=3600";
+  }
   // Only known editorial filter parameters are safe; every other query may
   // contain a token or personal data and therefore disables shared caching.
   const safeQuery = [...url.searchParams.keys()].every((key) =>
