@@ -213,7 +213,7 @@ test("o dia mostra logística só quando o roteiro trouxe, e o plano original fi
 
 test("filtros de guias nascem das tags, ficam na URL e o catálogo inteiro existe sem JS", () => {
   const praia = renderGuidesIndexPage({ estilo: "praia" });
-  assert.match(praia, /rel="canonical" href="[^"]*\/guias\?estilo=praia"/);
+  assert.match(praia, /rel="canonical" href="[^"]*\/guias"/);
   assert.match(praia, /aria-current="true"/);
   assert.match(praia, /href="\/guias">Limpar filtros/);
   assert.match(praia, /<span class="chip-n">/);

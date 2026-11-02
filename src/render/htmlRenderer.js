@@ -49,7 +49,7 @@ import { createHash } from "node:crypto";
 
 import { getConfig } from "../config.js";
 import { rotuloAeroporto, cidadeDoIata, opcoesAeroporto } from "./aeroportos.js";
-import { filtrarGuias, hubPorSlug } from "./descoberta.js";
+import { catalogoDescoberta, filtrarGuias, hubPorSlug } from "./descoberta.js";
 import { datasSugeridas } from "../flights/consulta.js";
 import { viagemAindaVale } from "../offers/elegibilidade.js";
 import { chaveDoDia } from "../daily/dailyPick.js";
@@ -1574,7 +1574,7 @@ function fontePrecoHtml(fonte, isoDate, className, originIata) {
   return `<p class="${escapeHtml(className)}"${originAttr}>${escapeHtml(linha)}</p>`;
 }
 
-function htmlDocument({ title, body, script, description, jsonld, canonical, image, noindex = false }) {
+function htmlDocument({ title, body, script, description, jsonld, canonical, image, noindex = false, robotsFollow = false, seasonal = true }) {
   const desc = description || DEFAULT_DESCRIPTION;
   const t = escapeHtml(title);
   const d = escapeHtml(desc);
@@ -1590,7 +1590,7 @@ function htmlDocument({ title, body, script, description, jsonld, canonical, ima
 <script>${THEME_INIT_SCRIPT}</script>
 <title>${t}</title>
 <meta name="description" content="${d}">
-${noindex ? '<meta name="robots" content="noindex, nofollow">\n' : ""}<link rel="icon" href="${FAVICON_SVG}">
+${noindex ? `<meta name="robots" content="noindex, ${robotsFollow ? "follow" : "nofollow"}">\n` : ""}<link rel="icon" href="${FAVICON_SVG}">
 ${canonicalTag}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Aonde">
@@ -1619,7 +1619,7 @@ ${styleTag()}
 ${jsonLdTags(jsonld)}
 </head>
 <body>
-${seasons3dHtml()}
+${seasonal ? seasons3dHtml() : ""}
 <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 ${siteHeader()}
 ${body}
@@ -2203,6 +2203,7 @@ export function renderHomePage(opts = {}) {
     body,
     script: enhancementScript(),
     canonical: "/",
+    seasonal: !Object.keys(opts.busca || {}).length && !(opts.erros || []).length,
     jsonld: [buildOrganization(), buildWebSite()],
   });
 }
@@ -3114,8 +3115,11 @@ function chipFiltro(href, nome, n, ativo) {
   );
 }
 
+// Only editorial hubs (>= 3 guides, see catalogoDescoberta) get /regioes pages.
+const HUB_SLUGS = new Set(catalogoDescoberta().hubs.map((h) => h.slug));
 function hrefGuias({ regiao = "", estilo = "" } = {}) {
   const params = new URLSearchParams();
+  if (regiao && !estilo && HUB_SLUGS.has(regiao)) return `/regioes/${regiao}`;
   if (regiao) params.set("regiao", regiao);
   if (estilo) params.set("estilo", estilo);
   const q = params.toString();
@@ -3123,7 +3127,7 @@ function hrefGuias({ regiao = "", estilo = "" } = {}) {
 }
 
 /** Indice de todos os guias/roteiros editoriais (grid da "Revista Aonde"). */
-export function renderGuidesIndexPage({ regiao = "", estilo = "" } = {}) {
+export function renderGuidesIndexPage({ regiao = "", estilo = "", otherFilters = false } = {}) {
   const filtro = filtrarGuias(GUIDE_LIST, { regiao, estilo });
   const avisoFiltro =
     !filtro.regiaoConhecida || !filtro.estiloConhecido
@@ -3137,13 +3141,15 @@ export function renderGuidesIndexPage({ regiao = "", estilo = "" } = {}) {
     .map((e) => chipFiltro(hrefGuias({ regiao: filtro.regiaoSlug, estilo: e.slug }), e.nome, e.guias.length, filtro.estiloSlug === e.slug))
     .join("");
   const regioes = filtro.regioes
-    .map((r) => chipFiltro(hrefGuias({ regiao: r.slug, estilo: filtro.estiloSlug }), r.nome, r.guias.length, filtro.regiaoSlug === r.slug))
+    .map((r) => chipFiltro(hrefGuias({ regiao: r.slug }), r.nome, r.guias.length, filtro.regiaoSlug === r.slug))
     .join("");
   const hubs = filtro.hubs
     .map((h) => `<a href="/regioes/${escapeHtml(h.slug)}">${escapeHtml(h.nome)}</a>`)
     .join(" · ");
   const limpar = filtro.regiaoSlug || filtro.estiloSlug ? `<p class="map-sub"><a href="/guias">Limpar filtros</a></p>` : "";
-  const canonical = hrefGuias({ regiao: filtro.regiaoSlug, estilo: filtro.estiloSlug });
+  const regional = filtro.regiaoSlug && !estilo && !otherFilters && filtro.regiaoConhecida && HUB_SLUGS.has(filtro.regiaoSlug);
+  const canonical = regional ? `/regioes/${filtro.regiaoSlug}` : "/guias";
+  const thin = Boolean(regiao || estilo || otherFilters) && !regional && filtro.guias.length <= 2;
   const body =
     `<main id="conteudo" tabindex="-1">` +
     `<section class="wrap map-head"><p class="eyebrow eyebrow--green">Revista Aonde</p>` +
@@ -3176,6 +3182,8 @@ export function renderGuidesIndexPage({ regiao = "", estilo = "" } = {}) {
     body,
     script: enhancementScript(),
     canonical,
+    noindex: thin,
+    robotsFollow: true,
     description: `${GUIDE_LIST.length} roteiros de destino com o dia a dia na ordem certa, um restaurante para cada dia e onde ficar. Filtre pelo destino que você quer.`,
   });
 }
@@ -3200,12 +3208,12 @@ export function renderRegiaoPage(slug) {
     `<p class="map-sub">Estes são os roteiros de 5 dias já publicados cuja tag editorial cita ${escapeHtml(hub.nome)}. ` +
     `A lista não cobre todo destino possível dessa região — só o que está no catálogo.</p>` +
     `<ol class="regiao-lista">${cards}</ol>` +
-    `<p class="map-sub"><a href="${escapeHtml(hrefGuias({ regiao: hub.slug }))}">Ver só estes no índice</a> · <a href="/guias">Catálogo inteiro</a></p>` +
+    `<p class="map-sub"><a href="/guias">Catálogo inteiro</a></p>` +
     `</section></main>` +
     siteFooter();
   return htmlDocument({
-    title: `Roteiros em ${hub.nome} · Aonde`,
-    description: `Roteiros de 5 dias publicados para ${hub.nome}. Cada link abre o guia daquele destino.`,
+    title: `${hub.guias.length} roteiros em ${hub.nome} · Aonde`,
+    description: `${hub.guias.length} roteiros de 5 dias em ${hub.nome}: ${hub.guias.map((g) => g.breadcrumb || g.titulo).join(", ")}. Veja o dia a dia de cada destino.`,
     body,
     script: enhancementScript(),
     canonical: `/regioes/${hub.slug}`,
@@ -3816,6 +3824,7 @@ export function renderResultsPage(opts = {}) {
     : `Exemplos de voo de ${rota.origem} para ${rota.destino}, com horário, paradas e duração. O preço real você confere no site do parceiro.`;
   return htmlDocument({
     title: `Voos ${rota.origem} ⇄ ${rota.destino} · Aonde`,
+    seasonal: false,
     description: semLista ? `Recupere sua busca de ${rota.origem} para ${rota.destino}. Edite datas ou busque no parceiro.` : descricaoRota,
     body,
     script: enhancementScript(),
