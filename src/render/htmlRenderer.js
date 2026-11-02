@@ -1,3 +1,4 @@
+import { partnerName } from "./partnerName.js";
 // htmlRenderer — PAGINAS HTML de producao do Aonde.com.br.
 //
 // Este renderizador e a PORTA FIEL do prototipo de design entregue em
@@ -1699,7 +1700,7 @@ function erroDoCampo(erros, campo) {
   return (Array.isArray(erros) ? erros : []).find((item) => item && item.campo === campo) || null;
 }
 
-function searchCardHtml({ valores = {}, erros = [], buscaAoVivo = false, hoje } = {}) {
+function searchCardHtml({ valores = {}, erros = [], buscaAoVivo = false, recuperacao = false, hoje } = {}) {
   const dia = hoje || chaveDoDia(new Date());
   const sugeridas = datasSugeridas(dia);
   const field = (label, name, value, type) => {
@@ -1738,7 +1739,9 @@ function searchCardHtml({ valores = {}, erros = [], buscaAoVivo = false, hoje } 
   const idaValor = valores.ida || sugeridas.ida || "";
   const voltaValor = valores.volta || sugeridas.volta || "";
   const adultosValor = Number.isFinite(Number(valores.adultos)) ? Number(valores.adultos) : 2;
-  const avisoBusca = buscaAoVivo
+  const avisoBusca = recuperacao
+    ? `<p class="sc-notice">Edite os campos para tentar outra busca. Preços e disponibilidade no parceiro só são confirmados no site dele.</p>`
+    : buscaAoVivo
     ? `<p class="sc-notice"><strong class="sc-notice-tag">Busca ao vivo ligada:</strong> o botão Buscar voos consulta o parceiro com as datas e os passageiros que você informar. O preço final continua sendo o do site do parceiro.</p>`
     : `<p class="sc-notice"><strong class="sc-notice-tag">Como funciona por aqui:</strong> o botão Buscar voos mostra <strong>exemplos</strong> — ainda não há preço em tempo real. Os cards mais abaixo são outra lista: achados que já conferimos, com a data da consulta.</p>`;
   return (
@@ -2217,13 +2220,14 @@ function originOptionsHtml(active) {
     .join("");
 }
 
-function newsletterHeroHtml() {
+function newsletterHeroHtml(origem = "") {
+  if (!OFFER_ORIGINS.includes(origem) || origem === "Todas") origem = "";
   return (
     `<section class="wrap news-wrap">` +
     `<div class="news-card">` +
     `<div class="news-copy">` +
     `<p class="eyebrow eyebrow--lime">Alertas de preço</p>` +
-    `<h1>Receba os achados de passagem antes que a tarifa mude</h1>` +
+    `<h2>Receba os achados de passagem antes que a tarifa mude</h2>` +
     `<p>O alerta compara a tarifa com a média dos últimos 90 dias. Não há envio com hora marcada.</p>` +
     `</div>` +
     `<form class="news-form" data-newsletter action="/api/newsletter/subscribe" method="post" aria-describedby="news-hero-termos">` +
@@ -2233,7 +2237,7 @@ function newsletterHeroHtml() {
     `<label class="news-label" for="news-whatsapp-hero">WhatsApp (opcional)</label>` +
     `<input id="news-whatsapp-hero" name="whatsapp" autocomplete="tel" inputmode="tel" placeholder="(11) 91234-5678">` +
     `<label class="news-label" for="news-origem-hero">Cidade de saída</label>` +
-    `<select id="news-origem-hero" name="origem" autocomplete="off">${originOptionsHtml("GRU")}</select>` +
+    `<select id="news-origem-hero" name="origem" autocomplete="off">${!origem ? `<option value="" selected>Escolha a cidade de saída</option>` : ""}${originOptionsHtml(origem)}</select>` +
     `</div>` +
     `<span class="news-whatsapp-note" id="news-hero-termos">Se informar o WhatsApp, também avisamos por lá — só depois de você confirmar por e-mail.</span>` +
     `<button class="btn btn-lime" type="submit">Quero receber os alertas</button>` +
@@ -2455,19 +2459,17 @@ export function renderOffersPage(
     `<main id="conteudo" tabindex="-1">` +
     originFilterHtml(origemAtiva, filtros) +
     aviso +
-    // No celular a captura de e-mail desce para DEPOIS da lista (ver CSS
-    // .feed-ordem): um usuario de primeira viagem rolou 1,5 tela ate achar as
-    // ofertas e perguntou "cade a lista, gente?".
+    // Inventory precedes newsletter on every screen size.
     `<div class="feed-ordem">` +
-    newsletterHeroHtml() +
     `<section class="wrap section feed-lista">` +
     `<div class="section-head section-head--tight">` +
-    `<h2>Achados de hoje</h2>` +
+    `<h1>Achados de hoje</h1>` +
     `<p class="feed-resumo"><span class="feed-count">${contagem}</span>${totalTxt}</p>` +
     `</div>` +
     filtrosOfertasHtml({ q: busca, tipo: tipoAtivo, tipos, origem: origemAtiva, ativo: filtroAtivo }) +
     `<div class="of-grid">${cards}</div>` +
     `</section>` +
+    newsletterHeroHtml(origemAtiva === "Todas" ? "" : origemAtiva) +
     `</div>` +
     comoFuncionaHtml() +
     `</main>` +
@@ -3590,23 +3592,24 @@ function alterarBuscaHref(consulta) {
 }
 
 export function renderResultsPage(opts = {}) {
-  const semLista = opts.semLista === true;
+  const recuperacao = opts.searched === true && !(opts.voosReais === true && Array.isArray(opts.voos) && opts.voos.length > 0);
+  const semLista = opts.semLista === true || recuperacao;
   const consulta = opts.consulta && typeof opts.consulta === "object" ? opts.consulta : null;
-  const rota = semLista
+  const rota = opts.semLista === true
     ? {
         origem: (consulta && consulta.origem) || "Busca",
         destino: (consulta && consulta.destino) || "incompleta",
         resumo: "",
       }
-    : opts.rota || RESULTS_ROUTE;
+    : opts.rota || (consulta ? { origem: consulta.origem, destino: consulta.destino, resumo: "" } : RESULTS_ROUTE);
   const voos = semLista ? [] : Array.isArray(opts.voos) && opts.voos.length ? opts.voos : FLIGHTS;
   // Crianca e bebe de colo tem tarifa e regra propria. Se a pessoa informou que
   // viaja com eles, dizemos na cara que o valor de exemplo abaixo e por adulto —
   // uma mae de familia travou exatamente aqui na auditoria.
   const pax = opts.pax || null;
   // voosReais so e verdade quando a busca ao vivo (Amadeus) respondeu de fato —
-  // ver src/flights/buscarVoos.js. Nunca deduzir de opts.voos existir: em
-  // fallback o servidor nao manda voos e caimos em FLIGHTS, que E exemplo.
+  // ver src/flights/buscarVoos.js. Nunca deduzir de opts.voos existir.
+  // Buscas sem retorno mostram recuperacao; FLIGHTS fica so na demonstracao.
   // Rotular exemplo como preco real seria a pior mentira possivel aqui.
   const voosReais = opts.voosReais === true && Array.isArray(opts.voos) && opts.voos.length > 0;
   const rotuloVoos = voosReais ? "voos encontrados" : "voos de exemplo";
@@ -3762,9 +3765,15 @@ export function renderResultsPage(opts = {}) {
     `</aside>` +
     `<div class="res-list">` +
     (semLista
-      ? `<div class="res-erros" role="alert"><p>Não consultamos nenhuma rota. Corrija os campos abaixo — origem, destino, datas e passageiros continuam como você enviou.</p></div>` +
+      ? (opts.semLista
+          ? `<div class="res-erros" role="alert"><p>Não consultamos nenhuma rota. Corrija os campos abaixo — origem, destino, datas e passageiros continuam como você enviou.</p></div>`
+          : avisoFalha + (naoEntendi.length ? `<p role="alert">Não reconhecemos ${naoEntendi.map((t) => `<strong>${escapeHtml(t)}</strong>`).join(" nem ")}.</p>` : "") + `<div class="res-recovery" role="status"><h2>Não recebemos voos para esta busca</h2><p>Não consultamos a disponibilidade no parceiro. Você pode buscar esta rota diretamente lá.</p>` +
+            `<a class="btn btn-green" href="${escapeHtml(selecionarHref)}">Buscar esta rota no parceiro</a> ` +
+            `<a class="btn btn-ghost" href="${escapeHtml(tentarDeNovo)}">Tentar de novo</a>` +
+            `<h2>Editar datas</h2></div>`) +
         searchCardHtml({
           valores: consulta || {},
+          recuperacao: true,
           erros: opts.erros || [],
           buscaAoVivo: opts.buscaAoVivo === true,
           hoje: opts.hoje,
@@ -3807,7 +3816,7 @@ export function renderResultsPage(opts = {}) {
     : `Exemplos de voo de ${rota.origem} para ${rota.destino}, com horário, paradas e duração. O preço real você confere no site do parceiro.`;
   return htmlDocument({
     title: `Voos ${rota.origem} ⇄ ${rota.destino} · Aonde`,
-    description: descricaoRota,
+    description: semLista ? `Recupere sua busca de ${rota.origem} para ${rota.destino}. Edite datas ou busque no parceiro.` : descricaoRota,
     body,
     script: enhancementScript(),
     noindex: true,
@@ -3825,7 +3834,7 @@ export function renderResultsPage(opts = {}) {
  * ainda vai escolher entre varias opcoes no parceiro antes de pagar) — antes
  * isso era feito com replace("</main>") por quem chamava, o que era fragil.
  */
-export function renderExitPage(offer, { affiliateUrl, notaExtra = "", ctaLabel = "" } = {}) {
+export function renderExitPage(offer, { affiliateUrl, notaExtra = "" } = {}) {
   const vm =
     offer && typeof offer === "object" && ("preco_centavos" in offer || "is_erro_tarifa" in offer)
       ? normalizeLiveOffer(offer)
@@ -3833,11 +3842,9 @@ export function renderExitPage(offer, { affiliateUrl, notaExtra = "", ctaLabel =
   if (!vm || !affiliateUrl) return renderOffersPage([]);
 
   const destinoLabel = vm.cidade || vm.destino || "seu destino";
-  // Honestidade: a pessoa vai para o Aviasales (parceiro/agregador), nao para
-  // a cia aerea direto. O nome da cia pode continuar na linha do voo ("Azul,
-  // 3–10 set"), mas o CTA e o titulo da interstitial devem dizer para ONDE a
-  // pessoa realmente vai.
-  const parceiro = "Aviasales";
+  // Only trusted host/provider metadata determines the displayed partner.
+  const nomeParceiro = partnerName(affiliateUrl, offer.provider || offer.partner);
+  const parceiro = nomeParceiro === "site parceiro" ? "o site parceiro" : nomeParceiro;
   const exitSub = vm.exitSub
     ? escapeHtml(vm.exitSub)
     : `A reserva de <strong>${escapeHtml(destinoLabel)}</strong> é feita e paga direto no site deles — o Aonde não processa pagamento nem emite passagem.`;
@@ -3846,10 +3853,10 @@ export function renderExitPage(offer, { affiliateUrl, notaExtra = "", ctaLabel =
     `<main id="conteudo" tabindex="-1"><section class="wrap exit">` +
     `<p class="breadcrumb"><a href="/">Início</a> · <a href="/ofertas">Ofertas</a> · <a href="${escapeHtml(vm.id ? `/ofertas/${encodeURIComponent(vm.id)}` : "/ofertas")}">${escapeHtml(destinoLabel)}</a> · <span>Saindo do Aonde</span></p>` +
     `<div class="exit-card">` +
-    `<p class="eyebrow eyebrow--lime">Redirecionando</p>` +
+    `<p class="eyebrow eyebrow--lime">Saindo do Aonde</p>` +
     `<h1>Você está indo para ${escapeHtml(parceiro)}</h1>` +
     `<p class="exit-sub">${exitSub}</p>` +
-    `<a class="btn btn-green exit-cta" href="${escapeHtml(affiliateUrl)}" target="_blank" rel="noopener sponsored" data-evento="parceiro" data-local="saida" data-alvo="${escapeHtml(vm.id || "")}">${escapeHtml(ctaLabel || `Continuar para ${parceiro} →`)}</a>` +
+    `<a class="btn btn-green exit-cta" href="${escapeHtml(affiliateUrl)}" target="_blank" rel="noopener sponsored" data-evento="parceiro" data-local="saida" data-alvo="${escapeHtml(vm.id || "")}">${escapeHtml(`Continuar para ${parceiro} →`)}<span class="visually-hidden">(abre em nova aba)</span></a><p class="exit-fine">O link abre em uma nova aba.</p>` +
     `<p class="exit-fine">Preço e disponibilidade podem mudar no site do parceiro — as vagas e as tarifas são controladas por eles, não pelo Aonde.</p>` +
     `</div>` +
     `<div class="exit-grid">` +

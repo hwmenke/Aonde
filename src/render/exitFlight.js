@@ -174,7 +174,6 @@ export function renderExitFlightPage({
   origem,
   destino,
   searchUrl,
-  ctaLabel = "Buscar esta rota no parceiro",
   resumoPax = "",
   avisoPax = "",
 } = {}) {
@@ -200,5 +199,5 @@ export function renderExitFlightPage({
   else if (resumoPax) {
     notas.push("O link do parceiro abre com essa quantidade. Confira os passageiros no site dele antes de pagar.");
   }
-  return renderExitPage(syntheticOffer, { affiliateUrl: searchUrl, notaExtra: notas.join(" "), ctaLabel });
+  return renderExitPage(syntheticOffer, { affiliateUrl: searchUrl, notaExtra: notas.join(" ") });
 }

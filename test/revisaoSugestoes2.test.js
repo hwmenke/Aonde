@@ -152,8 +152,8 @@ test("lote 2 item 3: falha da busca ao vivo não se apresenta como sucesso", () 
   });
   assert.match(timeout, /demorou demais/);
   assert.match(timeout, /Tentar de novo/);
-  assert.match(timeout, /Exemplos, separados desta busca/);
-  assert.match(timeout, /voos de exemplo/);
+  assert.match(timeout, /Não recebemos voos para esta busca/);
+  assert.doesNotMatch(timeout, /<article class="res-voo/);
   assert.doesNotMatch(timeout, /Preços buscados ao vivo agora/);
 
   const vazio = renderResultsPage({
@@ -165,8 +165,8 @@ test("lote 2 item 3: falha da busca ao vivo não se apresenta como sucesso", () 
   assert.match(vazio, /não quer dizer que a rota não exista/);
 
   const semCredencial = renderResultsPage({ searched: true, buscaMotivo: "sem-credencial" });
-  assert.match(semCredencial, /Busca de voos ao vivo em breve/);
-  assert.match(semCredencial, /voos de exemplo/);
+  assert.match(semCredencial, /Não recebemos voos para esta busca/);
+  assert.doesNotMatch(semCredencial, /<article class="res-voo/);
   assert.doesNotMatch(semCredencial, /Preços buscados ao vivo agora/);
 });
 

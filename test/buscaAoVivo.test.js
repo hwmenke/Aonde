@@ -378,13 +378,38 @@ async function get(base, path) {
   return { status: res.status, body };
 }
 
-test("GET /resultados sem credencial Amadeus: continua servindo os voos de exemplo (200)", async (t) => {
+test("GET /resultados sem credencial Amadeus: oferece recuperação sem exemplos (200)", async (t) => {
   await setupAmadeus(t, null, { creds: false });
 
   await withServer(async (base) => {
     const r = await get(base, "/resultados?origem=GRU&destino=REC");
     assert.equal(r.status, 200);
-    assert.ok(r.body.includes("voos de exemplo"), "sem credencial, deve continuar mostrando os voos de exemplo");
+    assert.ok(r.body.includes("Não recebemos voos para esta busca"));
+    assert.ok(!r.body.includes('<article class="res-voo'));
+  });
+});
+
+test("GET /resultados sem retornos mantém consulta e oferece recuperação sem voos de exemplo", async (t) => {
+  await setupAmadeus(t, async (url) => {
+    if (String(url).includes("/security/oauth2/token")) return amadeusToken();
+    return offersResponse([]);
+  });
+  await withServer(async (base) => {
+    const params = new URLSearchParams({ origem: "REC", destino: "SSA", ida: "2027-08-12", volta: "2027-08-19", adultos: "2", criancas: "1", bebes: "1" });
+    const r = await get(base, `/resultados?${params}`);
+    assert.equal(r.status, 200);
+    assert.ok(!r.body.includes('<article class="res-voo'));
+    assert.match(r.body, /Não consultamos a disponibilidade no parceiro/);
+    for (const label of ["Buscar esta rota no parceiro", "Tentar de novo"]) {
+      const href = r.body.match(new RegExp(`href="([^\"]+)">${label}`))[1];
+      const url = new URL(href.replaceAll("&amp;", "&"), base);
+      for (const [key, value] of params) assert.equal(url.searchParams.get(key), value);
+    }
+    assert.match(r.body, /name="ida"[^>]*value="2027-08-12"/);
+    assert.match(r.body, /name="volta"[^>]*value="2027-08-19"/);
+    assert.match(r.body, /name="adultos"[^>]*>.*?<option value="2" selected/);
+    assert.match(r.body, /name="criancas"[^>]*>.*?<option value="1" selected/);
+    assert.match(r.body, /name="bebes"[^>]*>.*?<option value="1" selected/);
   });
 });
 
@@ -408,13 +433,14 @@ test("GET /resultados com credencial + Amadeus respondendo: mostra voos reais ma
   });
 });
 
-test("GET /resultados com credencial mas Amadeus fora do ar: cai no fallback, nunca 500", async (t) => {
+test("GET /resultados com credencial mas Amadeus fora do ar: recupera a busca, nunca 500", async (t) => {
   await setupAmadeus(t, async () => jsonResponse({ error: "fora do ar" }, 503));
 
   await withServer(async (base) => {
     const r = await get(base, "/resultados?origem=GRU&destino=REC");
     assert.equal(r.status, 200);
-    assert.ok(r.body.includes("voos de exemplo"), "erro na Amadeus deve cair no fallback de exemplo");
+    assert.ok(r.body.includes("Não recebemos voos para esta busca"));
+    assert.ok(!r.body.includes('<article class="res-voo'));
   });
 });
 
@@ -432,7 +458,7 @@ test("GET /resultados com credencial e Amadeus travando (timeout curto): respond
     const r = await get(base, "/resultados?origem=GRU&destino=REC");
     const duracaoMs = Date.now() - inicio;
     assert.equal(r.status, 200);
-    assert.ok(r.body.includes("voos de exemplo"));
+    assert.ok(r.body.includes("Não recebemos voos para esta busca"));
     assert.ok(duracaoMs < 3000, `pagina nao deveria travar esperando a Amadeus, levou ${duracaoMs}ms`);
   });
 });

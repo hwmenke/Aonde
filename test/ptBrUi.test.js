@@ -51,7 +51,7 @@ test("mapa usa Explore o mundo e a preposicao pelo", () => {
 
 test("resultados evita jargao de venda e mantem o aviso por adulto", () => {
   const html = renderResultsPage({
-    searched: true,
+    searched: false,
     pax: { adultos: 1, criancas: 1, bebes: 0 },
   });
   assert.match(html, /calcular o total da viagem/);

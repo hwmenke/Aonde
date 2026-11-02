@@ -1006,21 +1006,7 @@ function paxResumo({ adultos, criancas, bebes }) {
   return partes.slice(0, -1).join(", ") + " e " + partes[partes.length - 1];
 }
 
-// Busca ao vivo (Amadeus Flight Offers Search, ver src/flights/buscarVoos.js)
-// integrada aqui: renderResultsPage ja aceita opts.voos no formato de FLIGHTS
-// (src/render/aondeContent.js), entao so precisamos alimentar voos REAIS
-// quando existirem — o renderer nao muda. Passamos tambem opts.voosReais,
-// para quem cuida do texto na tela (src/render/htmlRenderer.js — NAO e
-// arquivo deste modulo) saber se pode trocar o aviso de "exemplo" por algo
-// que diga que os voos sao reais. Contrato exposto (ver relatorio da tarefa):
-//   opts.voos      -> array no MESMO formato de FLIGHTS (cia, numero, saida,
-//                      chegada, duracao, paradas, direto, preco, parcela,
-//                      melhor) quando a busca ao vivo deu certo; ausente
-//                      (undefined) quando caiu no fallback de exemplo.
-//   opts.voosReais -> true SOMENTE quando opts.voos veio da Amadeus de
-//                      verdade; false (ou ausente) sempre que os voos
-//                      exibidos forem os de amostra — NUNCA rotular exemplo
-//                      como real.
+// Submitted searches display live inventory or recovery; only the unsubmitted page uses examples.
 async function handleResultsHtml(req, res, url) {
   const sendResults = (status, html) => sendHtml(res, status, html, NOINDEX_HEADERS);
   if (req.method === "HEAD") {
@@ -1092,7 +1078,7 @@ async function handleResultsHtml(req, res, url) {
     resumo: [periodo, temPax ? paxResumo(pax) : ""].filter(Boolean).join(" · "),
   };
 
-  let voos;
+  let voos = [];
   let voosReais = false;
   const controleBusca = new AbortController();
   const aoFechar = () => {
