@@ -87,7 +87,9 @@ test("a composicao de passageiros chega na tela de resultados", async (t) => {
 
   const familia = await get("origem=GRU&destino=REC&adultos=2&criancas=2");
   assert.match(resumo(familia), /2 adultos e 2 crianças/);
-  assert.ok(avisoPax(familia), "avisa que o valor de exemplo e por adulto");
+  // Busca enviada sem voos reais: recuperação, sem tarifas de exemplo (logo, sem aviso por adulto).
+  assert.ok(familia.includes("Não recebemos voos para esta busca"), "busca enviada sem voos mostra recuperação");
+  assert.ok(!familia.includes('<article class="res-voo'), "sem voos de exemplo após busca enviada");
 
   const sozinho = await get("origem=GRU&destino=REC&adultos=1");
   assert.match(resumo(sozinho), /1 adulto/, "plural correto no singular");
@@ -95,7 +97,7 @@ test("a composicao de passageiros chega na tela de resultados", async (t) => {
 
   const bebe = await get("origem=GRU&destino=REC&adultos=1&bebes=1");
   assert.match(resumo(bebe), /1 adulto e 1 bebê de colo/);
-  assert.ok(avisoPax(bebe), "bebê de colo tambem dispara o aviso");
+  assert.ok(!bebe.includes('<article class="res-voo'), "bebê de colo: busca enviada sem voos também não mostra exemplos");
 });
 
 test("valores absurdos de passageiro sao contidos, nao propagados", async (t) => {

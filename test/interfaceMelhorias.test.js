@@ -110,8 +110,8 @@ const VOOS_REAIS = [
   { cia: "GOL", saida: "13:40", chegada: "16:20", duracao: "2h40", paradas: "Direto", direto: true, preco: "R$ 688", melhor: false },
 ];
 
-test("sem busca ao vivo, a pagina diz que os voos sao exemplo", () => {
-  const h = renderResultsPage({ searched: true });
+test("sem busca enviada, a pagina diz que os voos sao exemplo", () => {
+  const h = renderResultsPage({ searched: false });
   assert.match(h, /são <strong>exemplos<\/strong>/, "deveria rotular como exemplo");
   assert.match(h, /voos de exemplo · ordenar por/, "a contagem deveria dizer 'de exemplo'");
   assert.match(h, /Preços acima são exemplos\./, "a letra miuda deveria dizer exemplo");
@@ -136,8 +136,8 @@ test("voosReais so vale com voos de verdade na mao — nunca rotula exemplo como
     const h = renderResultsPage(opts);
     assert.match(
       h,
-      /são <strong>exemplos<\/strong>/,
-      `deveria cair para "exemplo" com opts=${JSON.stringify(Object.keys(opts))}`
+      /Não recebemos voos para esta busca/,
+      `deveria recuperar a busca com opts=${JSON.stringify(Object.keys(opts))}`
     );
     assert.doesNotMatch(h, /Preços buscados ao vivo agora/, "prometeu busca ao vivo sem ter");
   }
@@ -145,7 +145,7 @@ test("voosReais so vale com voos de verdade na mao — nunca rotula exemplo como
 
 test("o aviso de crianca/bebe acompanha real x exemplo", () => {
   const pax = { adultos: 2, criancas: 1, bebes: 0 };
-  const exemplo = renderResultsPage({ searched: true, pax });
+  const exemplo = renderResultsPage({ searched: false, pax });
   assert.match(exemplo, /valores de exemplo abaixo são <strong>por adulto<\/strong>/);
   const real = renderResultsPage({ searched: true, pax, voos: VOOS_REAIS, voosReais: true });
   assert.match(real, /valores abaixo são <strong>por adulto<\/strong>/);

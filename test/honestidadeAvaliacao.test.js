@@ -164,7 +164,7 @@ test("o contador de voos do cliente le o rotulo do servidor", () => {
   assert.match(h, /data-res-rotulo="voos encontrados"/, "o servidor precisa publicar o rotulo");
   assert.doesNotMatch(h, /'\s*voos de exemplo · ordenar por'/, "o JS nao pode cravar o rotulo");
 
-  const exemplo = renderResultsPage({ searched: true });
+  const exemplo = renderResultsPage({ searched: false });
   assert.match(exemplo, /data-res-rotulo="voos de exemplo"/);
 });
 

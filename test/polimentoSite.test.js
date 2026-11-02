@@ -123,7 +123,7 @@ test("páginas sem valor de busca saem do índice (noindex) e as públicas não"
   const noindex = /<meta name="robots" content="noindex, nofollow">/;
   const exit = renderExitFlightPage({ origem: "GRU", destino: "REC", searchUrl: "https://example.com/busca" });
   assert.match(exit, noindex);
-  assert.match(exit, /<meta name="description" content="Você está saindo do Aonde para Aviasales/);
+  assert.match(exit, /<meta name="description" content="Você está saindo do Aonde para o site parceiro/);
   assert.match(renderExitPage(OFFERS[0], { affiliateUrl: "https://example.com/x" }), noindex);
   assert.match(renderNotFoundPage({ caminho: "/nada" }), noindex);
   assert.match(renderUnsubscribePage({}), noindex);

@@ -245,7 +245,7 @@ test("busca inválida não consulta outra rota e a URL do parceiro leva a busca"
   assert.equal(saida.status, 200);
   const urlParceiro = (interstitial.match(/https:\/\/www\.aviasales\.com\/search\/[A-Za-z0-9]+/) || [])[0] || "";
   assert.match(urlParceiro, /\/search\/GRU1208REC19082$/);
-  assert.match(interstitial, /Buscar esta rota no parceiro/);
+  assert.match(interstitial, /Continuar para Aviasales/);
 
   const home = await fetch(`${baseUrl}/home`, { redirect: "manual" });
   assert.equal(home.status, 301);
