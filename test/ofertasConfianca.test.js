@@ -142,7 +142,7 @@ test("card sem botao Buy (gru-fln) nao finge reserva", () => {
 
 test("card so mostra 'Visto no ...' quando a oferta traz fonte/data", () => {
   const comFonte = renderOfferCard({ ...AO_VIVO, fonte_preco: "Aviasales", fonte_preco_em: "2026-08-28" });
-  assert.match(comFonte, /<span class="of-fonte">Visto no Aviasales, 28 ago 2026<\/span>/);
+  assert.match(comFonte, /<span class="of-fonte">Visto no Aviasales, <time datetime="2026-08-28">28 ago 2026<\/time><\/span>/);
   const semFonte = renderOfferCard(AO_VIVO);
   assert.doesNotMatch(semFonte, /Visto/);
   assert.doesNotMatch(semFonte, /of-fonte/);
@@ -162,7 +162,7 @@ test("detalhe com parceiro: passo claro antes do CTA e preco explicado", () => {
   assert.match(buy, /O Aonde não vende passagem nem cobra pagamento/);
   assert.match(html, /<details class="det-preco-info"><summary>O que significa este preço\?<\/summary>/);
   assert.match(html, /preço de <strong>ida e volta<\/strong> para as datas <strong>3–10 out<\/strong>/);
-  assert.match(html, /Visto no Aviasales, 28 ago 2026\. O preço pode ter mudado desde essa consulta\./);
+  assert.match(html, /Visto no Aviasales, <time datetime="2026-08-28">28 ago 2026<\/time>\. O preço pode ter mudado desde essa consulta\./);
   assert.match(html, /valor está em <strong>dólares \(US\$\)<\/strong>, não em reais/);
   assert.match(html, /só são confirmados no site do parceiro, antes de você pagar/);
 });

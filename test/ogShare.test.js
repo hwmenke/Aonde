@@ -258,13 +258,13 @@ test("seletor Saindo de atualiza o rotulo da origem e esconde o preco; foto do d
 
 test("oferta reservavel com fonte/data imprime o visto honesto; sem fonte nao inventa data", () => {
   const fln = renderOfferPage(offerById("gru-fln"), { related: [] });
-  assert.match(fln, /Visto no Google Flights, 10 set 2026/);
+  assert.match(fln, /Visto no Google Flights, <time datetime="2026-09-10">10 set 2026<\/time>/);
   const ssa = renderOfferPage(offerById("gig-ssa"), { related: [] });
-  assert.match(ssa, /Visto no Google Flights, 21 ago 2026/);
+  assert.match(ssa, /Visto no Google Flights, <time datetime="2026-08-21">21 ago 2026<\/time>/);
   const eze = renderOfferPage(offerById("gru-eze"), { related: [] });
-  assert.match(eze, /Visto no Google Flights, 21 ago 2026/);
+  assert.match(eze, /Visto no Google Flights, <time datetime="2026-08-21">21 ago 2026<\/time>/);
   const forSsa = renderOfferPage(offerById("for-ssa"), { related: [] });
-  assert.match(forSsa, /Visto no Aviasales, 28 ago 2026/);
+  assert.match(forSsa, /Visto no Aviasales, <time datetime="2026-08-28">28 ago 2026<\/time>/);
   assert.match(forSsa, /US\$ 242/);
   assert.doesNotMatch(forSsa, /R\$\s*287/);
   assert.doesNotMatch(forSsa, /R\$\s*242/);
@@ -275,7 +275,7 @@ test("oferta reservavel com fonte/data imprime o visto honesto; sem fonte nao in
   assert.doesNotMatch(lis, /preço ao vivo|preco ao vivo/i);
 
   const hojeFln = renderTodayPage(pacoteDoDia("2026-08-22"));
-  assert.match(hojeFln, /Visto no Google Flights, 10 set 2026/);
+  assert.match(hojeFln, /Visto no Google Flights, <time datetime="2026-09-10">10 set 2026<\/time>/);
   assert.match(hojeFln, /data-dest-photo/);
 });
 

@@ -58,7 +58,7 @@ test("GET /ofertas/gru-fln mostra consulta Google Flights 10 set, sem Buy invent
   const html = await res.text();
 
   assert.ok(html.includes("R$ 1.566"), "deve mostrar R$ 1.566");
-  assert.match(html, /Visto no Google Flights, 10 set 2026/, "R$ 1.566 e consulta Google Flights 10 set");
+  assert.match(html, /Visto no Google Flights, <time datetime="2026-09-10">10 set 2026<\/time>/, "R$ 1.566 e consulta Google Flights 10 set");
   assert.match(html, /10 de setembro de 2026/, "consulta vigente e 10 set");
   assert.match(html, /consulta, não preço de reserva|Não é preço de reserva/);
 
@@ -184,7 +184,7 @@ test("a semana editorial GRU-FLN vive so em /ofertas/gru-fln, nao no guia de Flo
   assert.match(oferta, /São Paulo \(GRU\) → Florianópolis \(FLN\)/);
   assert.match(oferta, /R\$ 1\.566/);
   assert.match(oferta, /Tarifa vista no Google Flights em 10 de setembro de 2026/);
-  assert.match(oferta, /Visto no Google Flights, 10 set 2026/);
+  assert.match(oferta, /Visto no Google Flights, <time datetime="2026-09-10">10 set 2026<\/time>/);
   assert.match(oferta, /16h50 GRU/);
   assert.match(oferta, /19h30 FLN/);
   assert.match(oferta, /Horários da consulta no Google Flights em 10 de setembro de 2026/);
@@ -258,7 +258,7 @@ test("GET /guias/florianopolis nao tem a semana lock; GET /ofertas/gru-fln tem, 
   assert.match(oferta, /Editorial, escrito em 28 de agosto de 2026/);
   assert.match(oferta, /id="semana-gru-fln"/);
   assert.match(oferta, /Tarifa vista no Google Flights em 10 de setembro de 2026/);
-  assert.match(oferta, /Visto no Google Flights, 10 set 2026/);
+  assert.match(oferta, /Visto no Google Flights, <time datetime="2026-09-10">10 set 2026<\/time>/);
   assert.doesNotMatch(oferta, /Tarifa ao vivo/);
   assert.doesNotMatch(oferta, /R\$\s*158\b/);
   assert.doesNotMatch(oferta, /R\$\s*153\b/);
@@ -291,7 +291,7 @@ test("lock GRU-FLN abre na semana datada, consulta ao lado de Reservar, sem coun
 
   const buy = (html.match(/<div class="det-buy">([\s\S]*?)<p class="det-buy-perks">/) || [])[1] || "";
   const ctaAt = buy.indexOf("Ver busca no Aviasales");
-  const fonteAt = buy.indexOf("Visto no Google Flights, 10 set 2026");
+  const fonteAt = buy.indexOf('Visto no Google Flights, <time datetime="2026-09-10">10 set 2026</time>');
   assert.ok(ctaAt > -1 && fonteAt > ctaAt, "fontePreco fica ao lado do CTA, nao acima");
   assert.match(html, /class="det-fonte-preco det-buy-fonte"/);
   assert.doesNotMatch(html, /Reservar no Aviasales/);
