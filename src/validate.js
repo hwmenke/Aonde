@@ -101,5 +101,22 @@ export function validateSearchOptions(options = {}) {
     normalized.dateTo = String(dateTo).trim();
   }
 
+  if (normalized.origin === normalized.destination) {
+    return { ok: false, error: "origin e destination devem ser diferentes" };
+  }
+
+  if (normalized.dateFrom && normalized.dateTo) {
+    // Um mes representa uma janela inteira: rejeitar apenas quando nenhuma
+    // combinacao de dias permite ida antes da volta. O dia 31 serve como
+    // limite lexical inclusivo mesmo para meses mais curtos.
+    const primeiraIda = normalized.dateFrom.length === 7
+      ? `${normalized.dateFrom}-01` : normalized.dateFrom;
+    const ultimaVolta = normalized.dateTo.length === 7
+      ? `${normalized.dateTo}-31` : normalized.dateTo;
+    if (primeiraIda > ultimaVolta) {
+      return { ok: false, error: "dateTo deve ser igual ou posterior a dateFrom" };
+    }
+  }
+
   return { ok: true, normalized };
 }

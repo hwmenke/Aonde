@@ -54,7 +54,8 @@ function safeUrl(url) {
  * vezes: uma no corpo (parametro `rodapeVisivelHtml`, cor normal de link) e
  * outra no rodape — nunca so no rodape cinza.
  */
-function montarHtml({ tituloPreheader, corpoHtml, unsubscribeUrl, email }) {
+function montarHtml({ titulo, tituloPreheader, corpoHtml, unsubscribeUrl, email }) {
+  const tituloSeguro = escapeHtml(titulo || "Aonde");
   const preheader = escapeHtml(tituloPreheader || "");
   const unsubHref = escapeHtml(safeUrl(unsubscribeUrl));
   const emailSeguro = escapeHtml(email || "");
@@ -62,14 +63,15 @@ function montarHtml({ tituloPreheader, corpoHtml, unsubscribeUrl, email }) {
     `<!doctype html>` +
     `<html lang="pt-BR">` +
     `<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">` +
-    `<title>Aonde</title></head>` +
+    `<title>${tituloSeguro}</title></head>` +
     `<body style="margin:0;padding:0;background-color:${COR_FUNDO_PAGINA};font-family:Arial,Helvetica,sans-serif;">` +
-    `<span style="display:none;max-height:0;overflow:hidden;opacity:0;">${preheader}</span>` +
+    `<span aria-hidden="true" style="display:none;max-height:0;overflow:hidden;opacity:0;">${preheader}</span>` +
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${COR_FUNDO_PAGINA};padding:24px 0;">` +
     `<tr><td align="center">` +
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border-radius:8px;">` +
     `<tr><td style="padding:24px 28px 4px 28px;font-size:20px;font-weight:bold;color:${COR_TEXTO};">Aonde</td></tr>` +
-    `<tr><td style="padding:4px 28px 20px 28px;font-size:15px;line-height:1.6;color:${COR_TEXTO};">${corpoHtml}</td></tr>` +
+    `<tr><td style="padding:4px 28px 20px 28px;font-size:15px;line-height:1.6;color:${COR_TEXTO};">` +
+    `<h1 style="margin:0 0 16px 0;font-size:22px;line-height:1.3;">${tituloSeguro}</h1>${corpoHtml}</td></tr>` +
     `<tr><td style="padding:16px 28px 28px 28px;border-top:1px solid ${COR_BORDA};font-size:13px;line-height:1.5;color:${COR_MUTED};">` +
     `Este e-mail foi enviado para ${emailSeguro} porque este endereço está (ou pediu para estar) nos alertas de preço do Aonde.<br>` +
     `<a href="${unsubHref}" style="color:${COR_LINK};font-weight:bold;">Cancelar inscrição</a>` +
@@ -184,6 +186,7 @@ export function buildConfirmationEmail({
     linhaDescadastroHtml(unsubscribeUrl);
 
   const html = montarHtml({
+    titulo: assunto,
     tituloPreheader: "Confirme sua inscrição para começar a receber alertas de preço.",
     corpoHtml,
     unsubscribeUrl,
@@ -280,6 +283,7 @@ export function buildPriceAlertEmail({
     linhaDescadastroHtml(unsubscribeUrl);
 
   const html = montarHtml({
+    titulo: assunto,
     tituloPreheader: `${rotaLabel} por ${precoLabel}. O preço se confirma no site do parceiro.`,
     corpoHtml,
     unsubscribeUrl,
@@ -353,6 +357,7 @@ export function buildWelcomeEmail({
     linhaDescadastroHtml(unsubscribeUrl);
 
   const html = montarHtml({
+    titulo: assunto,
     tituloPreheader: "Inscrição confirmada. Veja o que esperar dos próximos alertas.",
     corpoHtml,
     unsubscribeUrl,
