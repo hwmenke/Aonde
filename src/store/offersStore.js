@@ -9,6 +9,7 @@
 
 import path from "node:path";
 
+import { auditOfferDates } from "../audit/offerDates.js";
 import { resolveDataDir, readJsonSafe, writeJsonAtomic } from "./dataDir.js";
 
 function offersFile() {
@@ -44,6 +45,14 @@ export function upsert(offer) {
     // Mantem o created_at original; o restante e sobrescrito pela nova versao.
     stored = { ...all[index], ...offer, created_at: all[index].created_at || now, updated_at: now };
     all[index] = stored;
+  }
+
+  const findings = auditOfferDates([stored], now);
+  if (findings.length > 0) {
+    const err = new Error(`Datas inválidas na oferta ${stored.id}: ${findings.map(({ field, message }) => `${field}: ${message}`).join("; ")}`);
+    err.code = "OFERTA_DATAS_INVALIDAS";
+    err.findings = findings;
+    throw err;
   }
 
   writeJsonAtomic(offersFile(), all);
