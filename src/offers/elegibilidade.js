@@ -3,11 +3,20 @@
 // Sem data de ida explícita, a oferta não é tratada como expirada: o código
 // não inventa o ano. Com ida AAAA-MM-DD anterior ao dia pedido, fica de fora.
 
+import { auditOfferDates, dateValue } from '../audit/offerDates.js';
+
 const ISO_DIA = /^\d{4}-\d{2}-\d{2}$/;
+
+export function datasImpossiveis(offer, diaIso) {
+  // Sem dia válido, verifica calendário e ordem, mas não observações futuras.
+  const now = typeof diaIso === "string" && ISO_DIA.test(diaIso) && Number.isFinite(dateValue(diaIso)) ? diaIso : null;
+  return auditOfferDates([offer], now).length > 0;
+}
 
 export function viagemAindaVale(offer, diaIso) {
   if (!offer || typeof offer !== "object") return false;
   if (offer.status && offer.status !== "publicada") return false;
+  if (datasImpossiveis(offer, diaIso)) return false;
   const ida = typeof offer.ida === "string" ? offer.ida : typeof offer.dataIda === "string" ? offer.dataIda : "";
   if (!ISO_DIA.test(ida)) return true;
   if (!ISO_DIA.test(String(diaIso || ""))) return false;
@@ -18,7 +27,7 @@ export function viagemAindaVale(offer, diaIso) {
  * Junta ofertas publicadas do store com o catálogo editorial. Um id guardado
  * de propósito como não publicado não volta pelo texto editorial de mesmo id.
  */
-export function offersParaEscolha(storeOffers, editoriais) {
+export function offersParaEscolha(storeOffers, editoriais, diaIso) {
   const store = Array.isArray(storeOffers) ? storeOffers : [];
   const bloqueados = new Set(
     store.filter((o) => o && o.id && o.status !== "publicada").map((o) => o.id)
@@ -27,5 +36,5 @@ export function offersParaEscolha(storeOffers, editoriais) {
   const idsPublicados = new Set(publicadas.map((o) => o.id));
   const base = Array.isArray(editoriais) ? editoriais : [];
   const resto = base.filter((o) => o && o.id && !bloqueados.has(o.id) && !idsPublicados.has(o.id));
-  return [...publicadas, ...resto];
+  return [...publicadas, ...resto].filter((o) => !datasImpossiveis(o, diaIso));
 }
