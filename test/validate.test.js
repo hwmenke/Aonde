@@ -8,6 +8,38 @@ import {
   validateSearchOptions,
 } from "../src/validate.js";
 
+test("busca rejeita origem e destino iguais depois de normalizar", () => {
+  const result = validateSearchOptions({ origin: " gru ", destination: "GRU" });
+  assert.equal(result.ok, false);
+  assert.match(result.error, /origin.*destination/);
+});
+
+test("busca rejeita intervalos invertidos, inclusive com meses parciais", () => {
+  for (const [dateFrom, dateTo] of [
+    ["2026-10-12", "2026-10-11"],
+    ["2027-01", "2026-12"],
+    ["2026-11", "2026-10-31"],
+    ["2026-11-01", "2026-10"],
+  ]) {
+    const result = validateSearchOptions({ origin: "GRU", destination: "LIS", dateFrom, dateTo });
+    assert.equal(result.ok, false, `${dateFrom} > ${dateTo}`);
+    assert.match(result.error, /dateTo.*dateFrom/);
+  }
+});
+
+test("busca aceita mesmo dia, meses sobrepostos e limites opcionais", () => {
+  for (const [dateFrom, dateTo] of [
+    ["2026-10-12", "2026-10-12"],
+    ["2026-10-31", "2026-10"],
+    ["2026-10", "2026-10-01"],
+    [" 2026-10 ", " 2026-10 "],
+    ["2026-10", undefined],
+    [undefined, "2026-10"],
+  ]) {
+    assert.equal(validateSearchOptions({ origin: "GRU", destination: "LIS", dateFrom, dateTo }).ok, true);
+  }
+});
+
 // ---------------------------------------------------------------------------
 // isIataCode / normalizeIata
 // ---------------------------------------------------------------------------

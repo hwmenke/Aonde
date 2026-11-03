@@ -80,6 +80,22 @@ const TEMPLATES = [
   },
 ];
 
+for (const { nome, build } of TEMPLATES) {
+  test(`${nome}: titulo e cabecalho identificam a mensagem para leitores de tela`, () => {
+    const { html, assunto } = build();
+    assert.ok(html.includes(`<title>${assunto}</title>`));
+    const headings = [...html.matchAll(/<h1\b[^>]*>(.*?)<\/h1>/g)];
+    assert.equal(headings.length, 1);
+    assert.equal(headings[0][1], assunto);
+    assert.match(html, /<span aria-hidden="true" style="display:none/);
+    assert.match(html, /<html lang="pt-BR">/);
+    for (const table of html.matchAll(/<table\b[^>]*>/g)) {
+      assert.match(table[0], /role="presentation"/);
+    }
+    assert.match(html, /Cancelar inscrição/);
+  });
+}
+
 // -----------------------------------------------------------------------
 // 1) Os 3 templates devolvem assunto/texto/html nao-vazios
 // -----------------------------------------------------------------------
