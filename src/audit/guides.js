@@ -1,16 +1,8 @@
 import { AEROPORTOS } from '../render/aeroportos.js';
 const empty = value => value == null || (typeof value === 'string' && !value.trim()) || (Array.isArray(value) && !value.length);
 const normalize = value => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
-const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-/** Last calendar day named by a label like '14 – 21 abr 2026'; null when no explicit year/month. */
-export function windowEnd(label) {
-  const m = /(\d{1,2})\s*(?:de\s+)?([a-zç]{3})[a-zç]*\.?\s+(?:de\s+)?(\d{4})\s*$/i.exec(String(label || '').trim());
-  if (!m) return null;
-  const month = MESES.indexOf(m[2].toLowerCase());
-  if (month < 0) return null;
-  const d = new Date(Date.UTC(Number(m[3]), month, Number(m[1])));
-  return d.getUTCMonth() === month ? d.toISOString().slice(0, 10) : null;
-}
+export { windowEnd } from '../guides/priceWindow.js';
+import { windowEnd } from '../guides/priceWindow.js';
 export function auditGuides(guides, cities = AEROPORTOS, now = null) {
   const findings = [], ids = new Set();
   for (const [index, guide] of guides.entries()) {
@@ -25,7 +17,7 @@ export function auditGuides(guides, cities = AEROPORTOS, now = null) {
       for (const field of present.length ? present : [alternatives[0]]) if (empty(g[field])) add(field,'Required field is missing or empty.');
     }
     const end = now ? windowEnd(g.opt?.window?.label) : null;
-    if (end && end < String(now).slice(0, 10)) add('opt.window.label', `Price window "${g.opt.window.label}" ended ${end}. The guide renderer (withFutureYear) shifts the label to the next year, so the page shows this observed price "${g.opt.window.price || ''}" under a future date it was never seen for.`);
+    if (end && end < String(now).slice(0, 10)) add('opt.window.label', `Price window "${g.opt.window.label}" ended ${end}. Shown with its original year and marked 'janela encerrada' (no year roll-forward); no observation date in the data, so no 'visto em' line.`);
     const name = g.opt?.destName;
     if (empty(name)) add('opt.destName','Required field is missing or empty.');
     else {
