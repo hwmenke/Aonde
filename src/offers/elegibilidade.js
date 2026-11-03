@@ -6,17 +6,40 @@
 import { auditOfferDates, dateValue } from '../audit/offerDates.js';
 
 const ISO_DIA = /^\d{4}-\d{2}-\d{2}$/;
+const logsElegibilidade = new Set();
 
-export function datasImpossiveis(offer, diaIso) {
+function achadosDatas(offer, diaIso) {
   // Sem dia válido, verifica calendário e ordem, mas não observações futuras.
   const now = typeof diaIso === "string" && ISO_DIA.test(diaIso) && Number.isFinite(dateValue(diaIso)) ? diaIso : null;
-  return auditOfferDates([offer], now).length > 0;
+  return auditOfferDates([offer], now);
+}
+
+export function datasImpossiveis(offer, diaIso) {
+  return achadosDatas(offer, diaIso).length > 0;
+}
+
+export function _resetLogElegibilidade() {
+  logsElegibilidade.clear();
+}
+
+function excluirPorDatas(offer, diaIso) {
+  const findings = achadosDatas(offer, diaIso);
+  if (!findings.length) return false;
+  if (process.env.NODE_TEST_CONTEXT && process.env.AONDE_LOG_ELEGIBILIDADE !== '1') return true;
+  const id = offer.id ?? JSON.stringify(offer);
+  const reasons = findings.map(({ field, message }) => `${field}: ${message}`).join('; ');
+  const key = JSON.stringify([id, reasons]);
+  if (!logsElegibilidade.has(key)) {
+    logsElegibilidade.add(key);
+    console.warn(`[elegibilidade] oferta ${id} fora do site: ${reasons}`.replace(/[\r\n]+/g, ' '));
+  }
+  return true;
 }
 
 export function viagemAindaVale(offer, diaIso) {
   if (!offer || typeof offer !== "object") return false;
   if (offer.status && offer.status !== "publicada") return false;
-  if (datasImpossiveis(offer, diaIso)) return false;
+  if (excluirPorDatas(offer, diaIso)) return false;
   const ida = typeof offer.ida === "string" ? offer.ida : typeof offer.dataIda === "string" ? offer.dataIda : "";
   if (!ISO_DIA.test(ida)) return true;
   if (!ISO_DIA.test(String(diaIso || ""))) return false;
@@ -36,5 +59,5 @@ export function offersParaEscolha(storeOffers, editoriais, diaIso) {
   const idsPublicados = new Set(publicadas.map((o) => o.id));
   const base = Array.isArray(editoriais) ? editoriais : [];
   const resto = base.filter((o) => o && o.id && !bloqueados.has(o.id) && !idsPublicados.has(o.id));
-  return [...publicadas, ...resto].filter((o) => !datasImpossiveis(o, diaIso));
+  return [...publicadas, ...resto].filter((o) => !excluirPorDatas(o, diaIso));
 }
