@@ -156,13 +156,15 @@ test("renderGuidePage embute o mini-mapa do Google quando há chave", () => {
   assert.ok(comChave.includes("key=KMAP"), "com chave: usa a chave");
 });
 
-test("datas de viagem usam ano dinâmico (nunca no passado)", () => {
+test("janela de preço do guia mantém o ano original (sem roll-forward) e marca encerrada", async () => {
+  const { GUIDES } = await import("../src/render/aondeContent.js");
+  const label = GUIDES.salvador.opt.window.label;
   const html = renderGuidePage("salvador");
-  const now = new Date();
-  // Salvador: melhor janela em março; o ano exibido é o próximo em que março ocorre.
-  const marYear = 2 >= now.getMonth() ? now.getFullYear() : now.getFullYear() + 1;
-  assert.ok(html.includes(`mar ${marYear}`), `deve exibir março de ${marYear}`);
-  assert.ok(!html.includes(`mar ${marYear - 1}`), "não pode exibir março do ano anterior (data no passado)");
+  assert.ok(html.includes(label), `exibe o rótulo original: ${label}`);
+  const y = Number(/20\d\d/.exec(label)[0]);
+  assert.ok(!html.includes(label.replace(String(y), String(y + 1))), "não reescreve o ano");
+  assert.match(html, /janela encerrada/i, "janela já passada fica marcada, não escondida");
+  assert.ok(!/Visto em/.test(html), "sem data de observação nos dados, não inventa 'visto em'");
 });
 
 test("renderGuidePage com id invalido cai para a home sem quebrar", () => {

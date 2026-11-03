@@ -1,4 +1,5 @@
 import { partnerName } from "./partnerName.js";
+import { guideWindowStatus } from "../guides/priceWindow.js";
 // htmlRenderer — PAGINAS HTML de producao do Aonde.com.br.
 //
 // Este renderizador e a PORTA FIEL do prototipo de design entregue em
@@ -914,7 +915,7 @@ function seasonalRingSvg(months, win) {
     .join("");
 
   const centerPrice = win && win.price ? escapeHtml(win.price) : escapeHtml(brl(min));
-  const centerLabel = win && win.label ? escapeHtml(withFutureYear(win.label)) : "";
+  const centerLabel = win && win.label ? escapeHtml(win.label) : "";
   return (
     `<svg class="season-ring" viewBox="0 0 320 320" role="img" aria-label="Melhor época para viajar, mês a mês">` +
     segs +
@@ -938,40 +939,34 @@ function nextYearForMonth(monthIdx) {
   const now = new Date();
   return monthIdx >= now.getMonth() ? now.getFullYear() : now.getFullYear() + 1;
 }
-// Corrige o ano num rótulo editorial tipo "3 – 10 mar 2026" para o próximo
-// ano em que aquele mês ocorre (ou anexa o ano quando não houver).
-function withFutureYear(label) {
-  if (!label) return label;
-  const low = String(label).toLowerCase();
-  let mi = -1;
-  for (let i = 0; i < MONTH_NAMES.length; i++) {
-    if (low.includes(MONTH_NAMES[i].toLowerCase())) { mi = i; break; }
-  }
-  if (mi < 0) return label;
-  const y = String(nextYearForMonth(mi));
-  return /20\d\d/.test(label) ? label.replace(/20\d\d/, y) : `${label} ${y}`;
-}
-
-function travelDateOptions(opt) {
+function travelDateOptions(opt, today = chaveDoDia(new Date())) {
   if (!opt || !Array.isArray(opt.months) || !opt.months.length) return [];
   const months = opt.months;
   const brl = (n) => "R$ " + n.toLocaleString("pt-BR");
   const idx = months.map((n, i) => [n, i]).sort((a, b) => a[0] - b[0]);
   const bestI = idx[0][1];
   const opts = [];
-  if (opt.window && opt.window.label) {
+  const status = guideWindowStatus(opt.window, today);
+  if (status) {
     opts.push({
-      label: withFutureYear(opt.window.label),
+      // Original wording and year: the fare was observed for these dates.
+      label: status.label,
       price: opt.window.price || brl(months[bestI]),
-      sub: opt.window.save ? `economize ${opt.window.save} vs. a média` : "melhor preço do ano",
-      best: true,
+      sub: status.ended
+        ? "janela encerrada · preço visto para essas datas"
+        : opt.window.save ? `economize ${opt.window.save} vs. a média` : "melhor preço do ano",
+      best: !status.ended,
+      ended: status.ended,
+      // Search intent goes to the destination, never to an expired period.
+      periodo: status.ended ? "" : status.label,
     });
   } else {
-    opts.push({ label: `${MONTH_NAMES[bestI]} ${nextYearForMonth(bestI)}`, price: brl(months[bestI]), sub: "mês mais barato", best: true });
+    opts.push({ label: MONTH_NAMES[bestI], price: brl(months[bestI]), sub: "mês mais barato · preço típico", best: true, periodo: `${MONTH_NAMES[bestI]} ${nextYearForMonth(bestI)}` });
   }
   for (const [n, i] of idx) {
     if (i === bestI) continue;
-    opts.push({ label: `${MONTH_NAMES[i]} ${nextYearForMonth(i)}`, price: brl(n), sub: "boa janela de preço", best: false });
+    // Typical monthly price from the manual survey: no year is attached to it.
+    opts.push({ label: MONTH_NAMES[i], price: brl(n), sub: "preço típico do mês", best: false, periodo: `${MONTH_NAMES[i]} ${nextYearForMonth(i)}` });
     if (opts.length >= 3) break;
   }
   return opts;
@@ -1109,14 +1104,15 @@ function travelDatesHtml(g) {
   const dest = (g.opt && g.opt.destName) || g.titulo || "";
   const cards = opts
     .map((o) => {
-      const href = `/resultados?destino=${encodeURIComponent(dest)}&periodo=${encodeURIComponent(o.label)}`;
+      const href = `/resultados?destino=${encodeURIComponent(dest)}` + (o.periodo ? `&periodo=${encodeURIComponent(o.periodo)}` : "");
       return (
         `<div class="dt-card${o.best ? " dt-card--best" : ""}">` +
         (o.best ? `<span class="dt-flag">melhor preço</span>` : "") +
+        (o.ended ? `<span class="dt-flag dt-flag--encerrada">janela encerrada</span>` : "") +
         `<span class="dt-when">${escapeHtml(o.label)}</span>` +
         `<span class="dt-price">${escapeHtml(o.price)}</span>` +
         `<span class="dt-sub">${escapeHtml(o.sub)}</span>` +
-        `<a class="btn ${o.best ? "btn-green" : "btn-dark"} dt-cta" href="${escapeHtml(href)}">Ver voos nestas datas →</a>` +
+        `<a class="btn ${o.best ? "btn-green" : "btn-dark"} dt-cta" href="${escapeHtml(href)}">${o.ended ? "Buscar voos para este destino →" : "Ver voos nestas datas →"}</a>` +
         `</div>`
       );
     })
@@ -1195,6 +1191,7 @@ function optimizerHtml(opt) {
   const months = opt.months;
   const ring = seasonalRingSvg(months, opt.window || {});
   const win = opt.window || {};
+  const winStatus = guideWindowStatus(win, chaveDoDia(new Date()));
   const sources = Array.isArray(opt.sources) ? opt.sources : [];
   const sourcesHtml = sources
     .map((s) => {
@@ -1228,7 +1225,9 @@ function optimizerHtml(opt) {
     `<div class="opt-side">` +
     (win.label
       ? `<div class="opt-window"><span class="eyebrow eyebrow--lime">Melhor janela para viajar</span>` +
-        `<h3>${escapeHtml(withFutureYear(win.label))}</h3>` +
+        `<h3>${escapeHtml(win.label)}</h3>` +
+        (winStatus && winStatus.ended ? `<p class="opt-encerrada"><strong>Janela encerrada.</strong> Este preço foi visto para essas datas; não vale para a próxima temporada. Confira o preço atual no parceiro.</p>` : "") +
+        (winStatus && winStatus.seenAt ? `<p class="opt-visto">Visto em ${fontePrecoTempoHtml(winStatus.seenAt)}</p>` : "") +
         `<div class="opt-window-price"><span>${escapeHtml(win.price || "")}</span><small>ida e volta</small></div>` +
         (win.save ? `<span class="opt-save">economize ${escapeHtml(win.save)} vs. a média</span>` : "") +
         (win.note ? `<p>${escapeHtml(win.note)}</p>` : "") +
