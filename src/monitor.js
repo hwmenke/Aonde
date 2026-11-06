@@ -49,7 +49,7 @@ function resolveDepartureDate(searchOptions, best) {
  *
  * @param {object} options
  * @param {Array<{origin: string, destination: string}>} options.routes
- * @param {string} [options.currency="BRL"]
+ * @param {string} [options.currency="BRL"] moeda da busca/historico; so BRL gera rascunhos
  * @param {number} [options.windowDays] janela para getRouteStats (default do store: 90)
  * @param {string} [options.draftStatus="rascunho"] status das ofertas geradas
  * @param {object} [options.searchOptions] options extras repassadas ao searchDeals (ex.: dateFrom)
@@ -75,6 +75,7 @@ export async function runMonitor(options = {}) {
   const startedAt = new Date().toISOString();
   const offers = [];
   const perRoute = {};
+  const draftsSkipped = String(currency).toUpperCase() !== "BRL" ? "moeda-nao-brl" : null;
 
   for (const route of routes) {
     const origin = route && route.origin;
@@ -119,6 +120,7 @@ export async function runMonitor(options = {}) {
           dealsFound: 0,
           statsUsed: stats.ok ? stats : null,
           statsSource: stats.ok ? "own-history" : null,
+          ...(draftsSkipped ? { draftsSkipped } : {}),
           error: null,
         };
         continue;
@@ -147,6 +149,21 @@ export async function runMonitor(options = {}) {
             statsSource = "amadeus-median";
           }
         }
+      }
+
+      // Offer nao armazena moeda e seus consumidores interpretam centavos como
+      // BRL. Outras moedas ficam apenas no historico/estatisticas, sem rascunho.
+      if (draftsSkipped) {
+        perRoute[key] = {
+          ok: true,
+          dealsFound: deals.length,
+          statsUsed: stats.ok ? stats : null,
+          statsSource,
+          mediaCentavos: typeof mediaCentavos === "number" ? mediaCentavos : null,
+          draftsSkipped,
+          error: null,
+        };
+        continue;
       }
 
       const offer = toOffer(best, { mediaCentavos, status: draftStatus });
