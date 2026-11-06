@@ -4,7 +4,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { recordPrices } from "../src/store/priceHistory.js";
+import { recordPrices, getRouteStats } from "../src/store/priceHistory.js";
 import { runMonitor } from "../src/monitor.js";
 import { listOffers, getOffer } from "../src/store/offersStore.js";
 import { setFetchImpl, resetFetchImpl, clearHttpCache } from "../src/http.js";
@@ -185,8 +185,47 @@ for (const currency of ["BRL", "USD"]) {
     assert.equal(route.statsUsed.currency, currency);
     assert.equal(route.statsUsed.sampleCount, 6);
     assert.equal(route.mediaCentavos, 100000);
-    assert.equal(route.isFareError, false);
-    assert.equal(result.offers[0].is_erro_tarifa, false);
-    assert.equal(result.offers[0].desconto_pct, 0);
+    assert.equal(route.statsSource, "own-history");
+    if (currency === "BRL") {
+      assert.equal(route.isFareError, false);
+      assert.equal(result.offers.length, 1);
+      assert.equal(result.offers[0].is_erro_tarifa, false);
+      assert.equal(result.offers[0].desconto_pct, 0);
+    } else {
+      assert.equal(result.ok, true);
+      assert.equal(route.draftsSkipped, "moeda-nao-brl");
+      assert.deepEqual(result.offers, []);
+      assert.deepEqual(listOffers(), [], "USD nao deve persistir uma oferta interpretada como BRL");
+    }
+  });
+}
+
+for (const currency of ["USD", "usd", "brl"]) {
+  test(`runMonitor ${currency}: preserva historico e restringe rascunhos a BRL`, async (t) => {
+    await setup(t, async () => jsonResponse({
+      success: true,
+      data: Array.from({ length: 5 }, (_, i) => apiDeal("GRU", "LIS", 500, i)),
+    }));
+    const routes = [{ origin: "GRU", destination: "LIS" }];
+    const result = await runMonitor({ routes, currency });
+    const stats = getRouteStats("GRU", "LIS", { currency });
+    assert.equal(stats.ok, true);
+    assert.equal(stats.sampleCount, 5);
+    assert.equal(stats.mediaCentavos, 50000);
+    assert.equal(result.ok, true);
+    const route = result.perRoute["GRU-LIS"];
+    assert.equal(route.ok, true);
+    assert.equal(route.dealsFound, 5);
+    assert.equal(route.statsSource, "own-history");
+    assert.deepEqual(route.statsUsed, stats);
+    if (currency === "brl") {
+      assert.equal(result.offers.length, 1);
+      assert.equal(getOffer("gru-lis").preco_centavos, 50000);
+      assert.equal(route.draftsSkipped, undefined);
+    } else {
+      assert.equal(route.draftsSkipped, "moeda-nao-brl");
+      assert.deepEqual(result.offers, []);
+      assert.deepEqual(listOffers(), [], "nenhuma oferta BRL ficticia para USD 500");
+    }
   });
 }
