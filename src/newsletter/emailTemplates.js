@@ -103,7 +103,7 @@ function linhaDescadastroTexto(unsubscribeUrl) {
 
 /**
  * E-mail de confirmacao do double opt-in: precisa deixar claro que, sem
- * clicar no link, a pessoa NAO recebe mais nada (nem alerta, nem newsletter).
+ * clicar no link, este pedido nao ativa alertas. Inscricoes anteriores continuam.
  *
  * @param {{
  *   email: string,
@@ -112,6 +112,7 @@ function linhaDescadastroTexto(unsubscribeUrl) {
  *   precoAlvoCentavos?: number|null,
  *   confirmUrl: string,
  *   unsubscribeUrl: string,
+ *   jaInscrito?: boolean,
  * }} input
  * @returns {{assunto: string, textoPlano: string, html: string}}
  */
@@ -126,13 +127,18 @@ export function buildConfirmationEmail({
 } = {}) {
   const alvo = describeAlertTarget(origem, { destino, preco_alvo_centavos: precoAlvoCentavos });
   const confirmHref = safeUrl(confirmUrl);
-  const unsubHref = safeUrl(unsubscribeUrl);
 
   const rotaTexto = alvo.temRotaEspecifica
     ? ` com destino a ${alvo.destinoLabel}`
     : "";
   const precoTexto =
     alvo.precoAlvoCentavos != null ? ` até ${formatBRL(alvo.precoAlvoCentavos)}` : "";
+
+  const confirmLabel = jaInscrito ? "Confirmar novo alerta" : "Confirmar inscrição";
+  const validadeTexto = "Este link vale por 48 horas a partir do pedido. Se expirar ou você fizer outro pedido, use o link do e-mail mais recente ou faça um novo pedido no site.";
+  const pedidoNaoReconhecido = jaInscrito
+    ? "Não foi você quem pediu este novo alerta? Ignore este e-mail: o novo alerta não será ativado e seus alertas atuais continuam como estão. Cancelar inscrição interrompe todos os alertas deste endereço, não apenas este pedido."
+    : "Não foi você quem pediu isso? Ignore este e-mail: sem confirmar, este pedido não ativa alertas. Um novo pedido no site pode gerar outro e-mail de confirmação. Para cancelar a inscrição deste endereço, use o link de cancelamento.";
 
   const assunto = sanitizarAssunto(
     jaInscrito
@@ -149,15 +155,16 @@ export function buildConfirmationEmail({
     "",
     jaInscrito
       ? "O alerta novo só passa a valer depois que você clicar no link abaixo. Sua inscrição atual continua como está."
-      : "Isso só começa a valer depois que você confirmar clicando no link abaixo. Sem confirmar, você não recebe nenhum alerta — nem mais e-mails deste tipo.",
+      : "Isso só começa a valer depois que você confirmar clicando no link abaixo. Sem confirmar, você não recebe alertas deste pedido.",
     "",
-    `Confirmar inscrição: ${confirmHref}`,
+    `${confirmLabel}: ${confirmHref}`,
+    validadeTexto,
     "",
     "O que você vai receber depois de confirmado:",
     "- E-mails só quando encontrarmos um preço que bate com o que você pediu. Sem frequência fixa, sem spam.",
     "- Você pode cancelar quando quiser, em dois cliques e sem perguntas.",
     "",
-    `Não foi você quem pediu isso? Ignore este e-mail: sem confirmação, nada acontece. Se preferir garantir que nunca mais chega nada, cancele agora: ${unsubHref}`,
+    pedidoNaoReconhecido,
     "",
     "--",
     "Aonde — comparador de passagens aéreas",
@@ -175,19 +182,22 @@ export function buildConfirmationEmail({
     `<p style="margin:0 0 16px 0;">${
       jaInscrito
         ? "O alerta novo só passa a valer depois que você clicar no botão abaixo. Sua inscrição atual continua como está."
-        : "Isso só começa a valer depois que você confirmar clicando no botão abaixo. <strong>Sem confirmar, você não recebe nenhum alerta</strong> — nem mais e-mails deste tipo."
+        : "Isso só começa a valer depois que você confirmar clicando no botão abaixo. <strong>Sem confirmar, você não recebe alertas deste pedido.</strong>"
     }</p>` +
     `<p style="margin:0 0 20px 0;">` +
-    `<a href="${escapeHtml(confirmHref)}" style="display:inline-block;background-color:${COR_LINK};color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:bold;">Confirmar inscrição</a>` +
+    `<a href="${escapeHtml(confirmHref)}" style="display:inline-block;background-color:${COR_LINK};color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:bold;">${confirmLabel}</a>` +
     `</p>` +
+    `<p style="margin:0 0 12px 0;">${escapeHtml(validadeTexto)}</p>` +
     `<p style="margin:0 0 4px 0;font-size:13px;color:${COR_MUTED};">Se o botão não funcionar, copie e cole este endereço no navegador:<br>${escapeHtml(confirmHref)}</p>` +
     `<p style="margin:16px 0 0 0;">Depois de confirmado, você só recebe e-mail quando encontrarmos um preço que bate com o que você pediu — sem frequência fixa, sem spam.</p>` +
-    `<p style="margin:16px 0 0 0;">Não foi você quem pediu isso? Pode ignorar: sem confirmação, nada acontece. Se preferir garantir que nunca mais chega nada, use o link abaixo.</p>` +
+    `<p style="margin:16px 0 0 0;">${escapeHtml(pedidoNaoReconhecido)}</p>` +
     linhaDescadastroHtml(unsubscribeUrl);
 
   const html = montarHtml({
     titulo: assunto,
-    tituloPreheader: "Confirme sua inscrição para começar a receber alertas de preço.",
+    tituloPreheader: jaInscrito
+      ? "Confirme o novo alerta. Seus alertas atuais continuam como estão."
+      : "Confirme sua inscrição para começar a receber alertas de preço.",
     corpoHtml,
     unsubscribeUrl,
     email,
