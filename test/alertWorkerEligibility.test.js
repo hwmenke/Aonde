@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setFetchImpl, resetFetchImpl } from "../src/http.js";
-import { subscribe, confirm, hashEmail, listSubscribers } from "../src/newsletter/subscriberStore.js";
+import { subscribe, confirm, unsubscribe, hashEmail, listSubscribers } from "../src/newsletter/subscriberStore.js";
 import { addAlertRule } from "../src/newsletter/alertRules.js";
 import { processarFila } from "../src/newsletter/worker.js";
 import { queuedOfferEligibility } from "../src/newsletter/alertEligibility.js";
@@ -27,6 +27,44 @@ function setup(t) {
 }
 
 const agora = new Date("2026-09-10T23:30:00-03:00"); // UTC September 11
+
+for (const resubscribe of [true, false]) {
+  test(`worker after unsubscribe ${resubscribe ? "sends once to confirmed resubscription" : "still skips without resubscription"}`, async t => {
+    const dir = setup(t);
+    const original = listSubscribers()[0];
+    const email = original.email;
+    unsubscribe(email);
+    const purged = listSubscribers()[0];
+    assert.equal(purged.email, "");
+    assert.equal(purged.email_hash, hashEmail(email));
+    assert.ok(purged.unsubscribed_at);
+    if (resubscribe) {
+      const renewed = confirm(subscribe({ email, origem: "GRU" }).token).subscriber;
+      assert.notEqual(renewed.id, original.id);
+      assert.equal(listSubscribers()[1].id, renewed.id);
+      addAlertRule({ subscriberId: renewed.id, origem: "GRU" });
+    }
+    writeFileSync(path.join(dir, "offers.json"), JSON.stringify([
+      { id: "resub-offer", origem: "GRU", destino: "REC", preco_centavos: 60000, status: "publicada", ida: "2026-09-15" },
+    ]));
+    writeFileSync(path.join(dir, "alert_queue.jsonl"), JSON.stringify({
+      id: "resub-alert", offerId: "resub-offer", subscriberEmailHash: hashEmail(email),
+    }) + "\n");
+    const messages = [];
+    setFetchImpl(async (_url, options) => {
+      messages.push(JSON.parse(options.body));
+      return { ok: true, status: 200, headers: new Map(), text: async () => "{}", json: async () => ({}) };
+    });
+    const expectedSends = resubscribe ? 1 : 0;
+    const result = await processarFila({ agora });
+    assert.equal(result.enviados, expectedSends);
+    assert.equal(result.pulados, 1 - expectedSends);
+    assert.equal(result.falhas, 0);
+    assert.equal((await processarFila({ agora })).enviados, 0);
+    assert.equal(messages.length, expectedSends);
+    if (resubscribe) assert.deepEqual(messages[0].to, [email]);
+  });
+}
 
 test("worker discards ineligible offers, sends valid/store and editorial offers, persists decisions", async t => {
   const dir = setup(t);
