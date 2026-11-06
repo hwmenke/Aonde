@@ -16,6 +16,7 @@ import { hasAmadeusCredentials, searchFlightOffers } from "../partners/amadeus.j
 import { mapAmadeusOffersToFlights } from "./mapAmadeus.js";
 import { parseDataPtBr, dataIdaPadrao, dataVoltaPadrao } from "./datas.js";
 import { coordenarBusca } from "./buscaAoVivoLimite.js";
+import { chaveDoDia } from "../daily/dailyPick.js";
 
 // Timeout de CADA chamada HTTP (token + busca) da tentativa ao vivo.
 // Configuravel via AMADEUS_SEARCH_TIMEOUT_MS (ver .env.example). Curto de
@@ -72,7 +73,7 @@ function resolverDatas({ ida, volta } = {}, agora = new Date()) {
 /**
  * Busca voos ao vivo para origem/destino. Nunca lanca excecao. Retorno:
  *   { ok: true, voos: [...] }                                — sucesso
- *   { ok: false, motivo: "sem-credencial"|"sem-resultados"|"erro"|"timeout-geral", detalhe? }
+ *   { ok: false, motivo: "sem-credencial"|"datas-invalidas"|"datas-passadas"|"sem-resultados"|"erro"|"timeout-geral", detalhe? }
  * `motivo`/`detalhe` sao so para diagnostico interno (logs/testes) — o
  * chamador (src/server.js) so olha `ok` e decide cair no fallback de exemplo.
  *
@@ -82,17 +83,24 @@ function resolverDatas({ ida, volta } = {}, agora = new Date()) {
  * @param {string} [params.ida] data de ida digitada (texto livre pt-BR)
  * @param {string} [params.volta] data de volta digitada (texto livre pt-BR)
  * @param {{adultos?:number, criancas?:number, bebes?:number}} [params.pax]
+ * @param {{agora?:Date}} [ctx] relógio injetável; hoje segue o fuso do produto
  */
-export async function buscarVoosAoVivo({ origem, destino, ida, volta, pax, signal, cliente } = {}) {
+export async function buscarVoosAoVivo({ origem, destino, ida, volta, pax, signal, cliente } = {}, { agora = new Date() } = {}) {
   if (!hasAmadeusCredentials()) {
     return { ok: false, motivo: "sem-credencial" };
   }
 
   const timeoutMs = timeoutMsConfigurado();
   const max = maxResultadosConfigurado();
-  const datas = resolverDatas({ ida, volta });
+  const datas = resolverDatas({ ida, volta }, agora);
   if (!datas) return { ok: false, motivo: "datas-invalidas" };
   const { departureDate, returnDate } = datas;
+  // Chamadas diretas também precisam respeitar o dia do produto, sem depender
+  // da validação do formulário para impedir consultas históricas ao parceiro.
+  const hoje = chaveDoDia(agora);
+  if (departureDate < hoje || returnDate < hoje) {
+    return { ok: false, motivo: "datas-passadas" };
+  }
 
   const adultos = pax && Number.isFinite(pax.adultos) && pax.adultos > 0 ? pax.adultos : 1;
   const criancas = pax && Number.isFinite(pax.criancas) && pax.criancas > 0 ? pax.criancas : 0;
