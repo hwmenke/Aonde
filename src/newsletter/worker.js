@@ -121,13 +121,14 @@ function lerFila() {
 /**
  * Acha o assinante pelo hash do e-mail — a fila NUNCA guarda o endereco, so o
  * hash. Depois do descadastro o registro guarda `email_hash` e perde o e-mail,
- * entao as duas formas precisam casar.
+ * entao as duas formas precisam casar. Uma nova inscrição confirmada tem
+ * prioridade sobre o registro antigo de descadastro com o mesmo hash.
  */
 function assinantePorHash(hash, assinantes) {
+  const matchesHash = (s) => s && (s.email_hash === hash || (s.email && hashEmail(s.email) === hash));
   return (
-    assinantes.find(
-      (s) => s && (s.email_hash === hash || (s.email && hashEmail(s.email) === hash))
-    ) || null
+    assinantes.find((s) => matchesHash(s) && s.double_optin_confirmed && !s.unsubscribed_at && s.email) ||
+    assinantes.find(matchesHash) || null
   );
 }
 
