@@ -343,12 +343,13 @@ export function buildWelcomeEmail({
     `Pronto: ${email} está cadastrado para receber alertas de ${rotaTexto}${precoTexto}.`,
     "",
     "O que esperar:",
-    "- Você só recebe e-mail quando encontrarmos um preço que bate com o que você pediu. Não existe frequência fixa (não é diário nem semanal) — é quando surge, não quando completa um calendário.",
-    "- Cada alerta mostra o preço encontrado, como ele se compara à média da rota, e o link para a oferta.",
-    "- O preço final é sempre confirmado no site do parceiro, na hora da compra — o Aonde não processa pagamento nem emite passagem.",
-    "- Se algo der errado na compra (cancelamento, reembolso, alteração), isso é negociado direto com o parceiro que vendeu a passagem, não com o Aonde. É assim em qualquer comparador de preços — preferimos dizer isso agora a deixar você descobrir depois.",
+    "- Você só recebe alertas quando encontrarmos um preço que bate com o que você pediu. Sem frequência fixa.",
+    "- Cada alerta mostra o preço encontrado e o link para a oferta. Quando há histórico suficiente, também mostra a comparação com a média da rota; caso contrário, informa que não há histórico suficiente para comparar.",
+    "- O preço final é sempre confirmado no site do parceiro, na hora da compra — o Aonde não vende passagens, não processa pagamento nem emite passagem. A compra é feita direto com o parceiro.",
+    "- Se algo der errado na compra (cancelamento, reembolso, alteração), isso é negociado direto com o parceiro que vendeu a passagem, não com o Aonde.",
     "",
     "Cancelar quando quiser, sem perguntas:",
+    "Cancelar inscrição interrompe todos os alertas deste endereço, não apenas este alerta.",
     linhaDescadastroTexto(unsubscribeUrl),
     "",
     "--",
@@ -359,11 +360,12 @@ export function buildWelcomeEmail({
     `<p style="margin:0 0 12px 0;">Pronto: <strong>${escapeHtml(email)}</strong> está cadastrado para receber alertas de ${escapeHtml(rotaTexto)}${escapeHtml(precoTexto)}.</p>` +
     `<p style="margin:0 0 8px 0;font-weight:bold;">O que esperar</p>` +
     `<ul style="margin:0 0 16px 0;padding-left:18px;">` +
-    `<li style="margin-bottom:6px;">Você só recebe e-mail quando encontrarmos um preço que bate com o que você pediu. Sem frequência fixa — não é diário nem semanal.</li>` +
-    `<li style="margin-bottom:6px;">Cada alerta mostra o preço encontrado, como ele se compara à média da rota, e o link para a oferta.</li>` +
-    `<li style="margin-bottom:6px;">O preço final é sempre confirmado no site do parceiro, na hora da compra — o Aonde não processa pagamento nem emite passagem.</li>` +
-    `<li>Se algo der errado na compra (cancelamento, reembolso, alteração), isso é negociado direto com o parceiro que vendeu a passagem, não com o Aonde. Preferimos dizer isso agora a deixar você descobrir depois.</li>` +
+    `<li style="margin-bottom:6px;">Você só recebe alertas quando encontrarmos um preço que bate com o que você pediu. Sem frequência fixa.</li>` +
+    `<li style="margin-bottom:6px;">Cada alerta mostra o preço encontrado e o link para a oferta. Quando há histórico suficiente, também mostra a comparação com a média da rota; caso contrário, informa que não há histórico suficiente para comparar.</li>` +
+    `<li style="margin-bottom:6px;">O preço final é sempre confirmado no site do parceiro, na hora da compra — o Aonde não vende passagens, não processa pagamento nem emite passagem. A compra é feita direto com o parceiro.</li>` +
+    `<li>Se algo der errado na compra (cancelamento, reembolso, alteração), isso é negociado direto com o parceiro que vendeu a passagem, não com o Aonde.</li>` +
     `</ul>` +
+    `<p style="margin:16px 0 0 0;">Cancelar inscrição interrompe todos os alertas deste endereço, não apenas este alerta.</p>` +
     linhaDescadastroHtml(unsubscribeUrl);
 
   const html = montarHtml({
