@@ -115,12 +115,14 @@ export function recordPrices(deals, options = {}) {
  * @param {string} origin código IATA de origem
  * @param {string} destination código IATA de destino
  * @param {object} [options]
+ * @param {string} [options.currency="BRL"] moeda das observacoes (sem moeda sao excluidas)
  * @param {number} [options.windowDays=90] janela em dias a partir de agora
  * @param {number} [options.minSamples=5] minimo de observacoes para ok:true
- * @returns {{ ok: boolean, route: string, mediaCentavos?: number, minCentavos?: number,
+ * @returns {{ ok: boolean, route: string, currency: string, mediaCentavos?: number, minCentavos?: number,
  *   maxCentavos?: number, sampleCount: number, windowDays: number, error?: string }}
  */
 export function getRouteStats(origin, destination, options = {}) {
+  const currency = String(options.currency ?? "BRL").toUpperCase();
   const windowDays = options.windowDays ?? DEFAULT_WINDOW_DAYS;
   const minSamples = options.minSamples ?? DEFAULT_MIN_SAMPLES;
   const route = routeKey(origin, destination);
@@ -128,14 +130,14 @@ export function getRouteStats(origin, destination, options = {}) {
 
   const lido = lerObservacoes(file);
   if (!lido.ok) {
-    return { ok: false, route, sampleCount: 0, windowDays, error: "dados-ilegíveis" };
+    return { ok: false, route, currency, sampleCount: 0, windowDays, error: "dados-ilegíveis" };
   }
   const observations = lido.lista;
 
   const cutoff = Date.now() - windowDays * 24 * 60 * 60 * 1000;
   const centavos = [];
   for (const obs of observations) {
-    if (!obs) continue;
+    if (typeof obs?.currency !== "string" || obs.currency.toUpperCase() !== currency) continue;
     const ts = Date.parse(obs.observedAt);
     if (Number.isNaN(ts) || ts < cutoff) continue;
     const c = priceToCentavos(obs.price);
@@ -149,6 +151,7 @@ export function getRouteStats(origin, destination, options = {}) {
     return {
       ok: false,
       route,
+      currency,
       sampleCount,
       windowDays,
       error: `Dados insuficientes para a rota ${route}: ${sampleCount} observacao(oes) na janela de ${windowDays} dias (minimo ${minSamples}).`,
@@ -163,6 +166,7 @@ export function getRouteStats(origin, destination, options = {}) {
   return {
     ok: true,
     route,
+    currency,
     mediaCentavos,
     minCentavos,
     maxCentavos,
@@ -184,10 +188,11 @@ export function getRouteStats(origin, destination, options = {}) {
  * @param {string} origin código IATA de origem
  * @param {string} destination código IATA de destino
  * @param {object} [options]
+ * @param {string} [options.currency="BRL"] moeda das observacoes (sem moeda sao excluidas)
  * @param {number} [options.windowDays=90] janela em dias a partir de agora
  * @param {number} [options.minSamples=5] minimo de observacoes para ok:true
  * @returns {{
- *   ok: boolean, route: string, origin: string, destination: string,
+ *   ok: boolean, route: string, currency: string, origin: string, destination: string,
  *   points: Array<{observedAt: string, ts: number, priceCentavos: number}>,
  *   sampleCount: number, windowDays: number, minSamples: number,
  *   mediaCentavos?: number, minCentavos?: number, maxCentavos?: number,
@@ -196,6 +201,7 @@ export function getRouteStats(origin, destination, options = {}) {
  * }}
  */
 export function getRouteSeries(origin, destination, options = {}) {
+  const currency = String(options.currency ?? "BRL").toUpperCase();
   const windowDays = options.windowDays ?? DEFAULT_WINDOW_DAYS;
   const minSamples = options.minSamples ?? DEFAULT_MIN_SAMPLES;
   const originUp = String(origin || "").toUpperCase();
@@ -208,6 +214,7 @@ export function getRouteSeries(origin, destination, options = {}) {
     return {
       ok: false,
       route,
+      currency,
       origin: originUp,
       destination: destUp,
       points: [],
@@ -222,7 +229,7 @@ export function getRouteSeries(origin, destination, options = {}) {
   const cutoff = Date.now() - windowDays * 24 * 60 * 60 * 1000;
   const points = [];
   for (const obs of observations) {
-    if (!obs) continue;
+    if (typeof obs?.currency !== "string" || obs.currency.toUpperCase() !== currency) continue;
     const ts = Date.parse(obs.observedAt);
     if (Number.isNaN(ts) || ts < cutoff) continue;
     const c = priceToCentavos(obs.price);
@@ -239,6 +246,7 @@ export function getRouteSeries(origin, destination, options = {}) {
     return {
       ok: false,
       route,
+      currency,
       origin: originUp,
       destination: destUp,
       points,
@@ -260,6 +268,7 @@ export function getRouteSeries(origin, destination, options = {}) {
   return {
     ok: true,
     route,
+    currency,
     origin: originUp,
     destination: destUp,
     points,
