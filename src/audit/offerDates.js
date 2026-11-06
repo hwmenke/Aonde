@@ -7,13 +7,15 @@ export function dateValue(value) {
   return Date.parse(value.length === 10 ? `${day}T00:00:00Z` : value);
 }
 
-// Yearless display ranges can be checked for impossible month/day pairs, but
+// Yearless display dates can be checked for impossible month/day pairs, but
 // cannot establish a travel year or trip ordering. Leap day remains possible.
 function validDisplayRange(value) {
   const months = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const oneWay = /^a partir de (\d{1,2})\s+([a-z]{3})$/i.exec(String(value).trim());
   const match = /^(\d{1,2})(?:\s+([a-z]{3}))?\s*[-–—]\s*(\d{1,2})\s+([a-z]{3})$/i.exec(String(value).trim());
-  if (!match) return false;
-  return [[match[1], match[2] || match[4]], [match[3], match[4]]].every(([day, month]) => {
+  if (!oneWay && !match) return false;
+  const dates = oneWay ? [[oneWay[1], oneWay[2]]] : [[match[1], match[2] || match[4]], [match[3], match[4]]];
+  return dates.every(([day, month]) => {
     const m = months.indexOf(month.toLowerCase()) + 1;
     return Number.isFinite(dateValue(`2000-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`));
   });

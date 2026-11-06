@@ -36,12 +36,27 @@ for (const [name, dates, fields] of [
   ["ida inexistente", { ida: "2026-02-30" }, ["ida"]],
   ["volta antes da ida", { ida: "2026-03-10", volta: "2026-03-09" }, ["volta"]],
   ["intervalo de exibição com 31 fev", { datas: "20–31 fev" }, ["datas"]],
+  ["ida de exibição com 31 fev", { datas_sugeridas: "a partir de 31 fev" }, ["datas_sugeridas"]],
+  ["ida de exibição com 31 abr", { datas_sugeridas: "a partir de 31 abr" }, ["datas_sugeridas"]],
+  ["ida de exibição com dia zero", { datas_sugeridas: "a partir de 00 mar" }, ["datas_sugeridas"]],
+  ["ida de exibição com mês inválido", { datas_sugeridas: "a partir de 10 xyz" }, ["datas_sugeridas"]],
+  ["ida de exibição com lixo adicional", { datas_sugeridas: "a partir de 10 mar lixo" }, ["datas_sugeridas"]],
   ["múltiplas datas inválidas", { ida: "2026-02-30", datas: "20–31 fev" }, ["datas", "ida"]],
 ]) {
   test(`upsert rejeita ${name} sem gravar arquivos`, async (t) => {
     const dir = await withDataDir(t);
     assertInvalid({ id: "gru-lis", ...dates }, fields);
     assert.deepEqual(await readdir(dir), []);
+  });
+}
+
+for (const label of ["a partir de 10 mar", "a partir de 29 fev", "10–20 mar", "28 mar – 02 abr"]) {
+  test(`upsert persiste datas_sugeridas válidas: ${label}`, async (t) => {
+    const dir = await withDataDir(t);
+    const stored = upsert({ id: "gru-lis", datas_sugeridas: label });
+    assert.equal(stored.datas_sugeridas, label);
+    assert.deepEqual(getOffer(stored.id), stored);
+    assert.deepEqual(JSON.parse(await readFile(path.join(dir, "offers.json"), "utf8")), [stored]);
   });
 }
 
