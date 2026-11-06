@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { searchDeals } from "../src/index.js";
 
 import {
   isIataCode,
@@ -7,6 +8,52 @@ import {
   isValidDate,
   validateSearchOptions,
 } from "../src/validate.js";
+
+test("busca rejeita limites passados e preserva hoje e meses ainda utilizaveis", () => {
+  for (const dia of ["2026-03-15", "2024-02-29", "2026-12-31"]) {
+    const [y, m, d] = dia.split("-").map(Number);
+    const ontemDate = new Date(Date.UTC(y, m - 1, d - 1));
+    const ontem = ontemDate.toISOString().slice(0, 10);
+    for (const campo of ["dateFrom", "dateTo"]) {
+      for (const data of ["2020-01-01", "2020-01", ontem]) {
+        const r = validateSearchOptions({ origin: "GRU", destination: "LIS", [campo]: ` ${data} ` }, dia);
+        assert.equal(r.ok, false, `${campo}=${data} em ${dia}`);
+        assert.match(r.error, new RegExp(`${campo}.*hoje`));
+      }
+      for (const data of [dia, dia.slice(0, 7), "2030-01-01", "2030-01"]) {
+        const r = validateSearchOptions({ origin: "GRU", destination: "LIS", [campo]: ` ${data} ` }, dia);
+        assert.equal(r.ok, true, `${campo}=${data} em ${dia}`);
+        assert.equal(r.normalized[campo], data);
+      }
+    }
+  }
+  for (const campo of ["dateFrom", "dateTo"]) {
+    // Dia de calendario do produto (nao meia-noite UTC, que em SP ainda e fevereiro).
+    const r = validateSearchOptions({ origin: "GRU", destination: "LIS", [campo]: "2024-02" }, "2024-03-01");
+    assert.equal(r.ok, false);
+  }
+});
+
+test("busca usa o dia do produto (America/Sao_Paulo), nao UTC puro", () => {
+  const options = { origin: "GRU", destination: "LIS", dateFrom: "2026-03-14" };
+  // 14/03 23:30 em Brasilia ainda é 14/03; um minuto depois em UTC já é 15/03, mas em SP ainda 14/03.
+  assert.equal(validateSearchOptions(options, new Date("2026-03-14T23:30:00-03:00")).ok, true);
+  assert.equal(validateSearchOptions(options, "2026-03-14").ok, true);
+  assert.equal(validateSearchOptions(options, "2026-03-15").ok, false);
+});
+
+test("searchDeals rejeita datas historicas antes de chamar o parceiro", async (t) => {
+  const fetchMock = t.mock.method(globalThis, "fetch", () => {
+    throw new Error("nao deve chamar HTTP");
+  });
+  for (const campo of ["dateFrom", "dateTo"]) {
+    const r = await searchDeals({ origin: "GRU", destination: "LIS", [campo]: "2020-01-01" });
+    assert.equal(r.ok, false);
+    assert.deepEqual(r.deals, []);
+    assert.match(r.error, new RegExp(`${campo}.*hoje`));
+  }
+  assert.equal(fetchMock.mock.callCount(), 0);
+});
 
 test("busca rejeita origem e destino iguais depois de normalizar", () => {
   const result = validateSearchOptions({ origin: " gru ", destination: "GRU" });
@@ -21,7 +68,7 @@ test("busca rejeita intervalos invertidos, inclusive com meses parciais", () => 
     ["2026-11", "2026-10-31"],
     ["2026-11-01", "2026-10"],
   ]) {
-    const result = validateSearchOptions({ origin: "GRU", destination: "LIS", dateFrom, dateTo });
+    const result = validateSearchOptions({ origin: "GRU", destination: "LIS", dateFrom, dateTo }, new Date("2026-09-01T00:00:00Z"));
     assert.equal(result.ok, false, `${dateFrom} > ${dateTo}`);
     assert.match(result.error, /dateTo.*dateFrom/);
   }
@@ -36,7 +83,7 @@ test("busca aceita mesmo dia, meses sobrepostos e limites opcionais", () => {
     ["2026-10", undefined],
     [undefined, "2026-10"],
   ]) {
-    assert.equal(validateSearchOptions({ origin: "GRU", destination: "LIS", dateFrom, dateTo }).ok, true);
+    assert.equal(validateSearchOptions({ origin: "GRU", destination: "LIS", dateFrom, dateTo }, new Date("2026-09-01T00:00:00Z")).ok, true);
   }
 });
 
@@ -99,7 +146,7 @@ test("validateSearchOptions normaliza e mantem datas validas", () => {
     destination: "lis",
     dateFrom: "2026-09",
     dateTo: "2026-09-15",
-  });
+  }, new Date("2026-09-01T00:00:00Z"));
   assert.equal(r.ok, true);
   assert.equal(r.normalized.dateFrom, "2026-09");
   assert.equal(r.normalized.dateTo, "2026-09-15");
