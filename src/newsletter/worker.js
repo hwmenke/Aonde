@@ -185,16 +185,17 @@ async function processarFilaInterna({ limite = 200, agora = new Date() } = {}) {
     gravarEstados(estados);
 
     const base = getConfig().siteUrl;
+    const unsubscribeUrl = `${base}/api/newsletter/unsubscribe?email=${encodeURIComponent(sub.email)}`;
     const { assunto, textoPlano, html } = buildPriceAlertEmail({
       email: sub.email,
       origem: item.offerRoute ? String(item.offerRoute).split("-")[0] : sub.origem_preferida,
       destino: item.offerRoute ? String(item.offerRoute).split("-")[1] : null,
       precoCentavos: item.precoCentavos,
       offerUrl: item.offerId ? `${base}/ofertas/${encodeURIComponent(item.offerId)}` : base,
-      unsubscribeUrl: `${base}/api/newsletter/unsubscribe?email=${encodeURIComponent(sub.email)}`,
+      unsubscribeUrl,
     });
 
-    const r = await enviarEmail({ para: sub.email, assunto, textoPlano, html });
+    const r = await enviarEmail({ para: sub.email, assunto, textoPlano, html, unsubscribeUrl });
     if (r.ok) {
       enviados++;
       estados[chave] = "enviado";

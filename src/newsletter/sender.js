@@ -28,6 +28,7 @@ import path from "node:path";
 
 import { resolveDataDir, ensureDir } from "../store/dataDir.js";
 import { hashEmail } from "./subscriberStore.js";
+import { unsubscribeHeaders } from "./unsubscribeHeaders.js";
 import { httpRequest } from "../http.js";
 
 /** Falhas que ADIANTA repetir: a mensagem ainda pode ser entregue. */
@@ -104,17 +105,22 @@ function registrar(entrada) {
  * Provedores conhecidos. Cada um so precisa saber montar a requisicao HTTP.
  * Adicionar outro e escrever mais um objeto aqui — nada mais no projeto muda.
  */
-const PROVEDORES = {
+export const PROVEDORES = {
   // https://resend.com/docs/api-reference/emails/send-email
   resend: {
     exigeChave: "AONDE_EMAIL_API_KEY",
-    montar({ chave, de, para, assunto, textoPlano, html }) {
+    montar({ chave, de, para, assunto, textoPlano, html, unsubscribeUrl }) {
+      const headers = unsubscribeHeaders(unsubscribeUrl);
+      const payload = { from: de, to: [para], subject: assunto, text: textoPlano, html };
+      if (headers["List-Unsubscribe"]) {
+        payload.headers = headers;
+      }
       return {
         url: "https://api.resend.com/emails",
         opcoes: {
           method: "POST",
           headers: { Authorization: `Bearer ${chave}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ from: de, to: [para], subject: assunto, text: textoPlano, html }),
+          body: JSON.stringify(payload),
         },
       };
     },
@@ -122,21 +128,26 @@ const PROVEDORES = {
   // https://docs.sendgrid.com/api-reference/mail-send/mail-send
   sendgrid: {
     exigeChave: "AONDE_EMAIL_API_KEY",
-    montar({ chave, de, para, assunto, textoPlano, html }) {
+    montar({ chave, de, para, assunto, textoPlano, html, unsubscribeUrl }) {
+      const headers = unsubscribeHeaders(unsubscribeUrl);
+      const payload = {
+        personalizations: [{ to: [{ email: para }] }],
+        from: { email: de },
+        subject: assunto,
+        content: [
+          { type: "text/plain", value: textoPlano },
+          { type: "text/html", value: html },
+        ],
+      };
+      if (headers["List-Unsubscribe"]) {
+        payload.headers = headers;
+      }
       return {
         url: "https://api.sendgrid.com/v3/mail/send",
         opcoes: {
           method: "POST",
           headers: { Authorization: `Bearer ${chave}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            personalizations: [{ to: [{ email: para }] }],
-            from: { email: de },
-            subject: assunto,
-            content: [
-              { type: "text/plain", value: textoPlano },
-              { type: "text/html", value: html },
-            ],
-          }),
+          body: JSON.stringify(payload),
         },
       };
     },
@@ -161,7 +172,7 @@ export function provedorConfigurado() {
  * @returns {Promise<{ok:boolean, estado:"enviado"|"suprimido"|"sem_provedor"|"falha_permanente"|"falha_temporaria", tentativas:number, motivo?:string}>}
  */
 export async function enviarEmail(
-  { para, assunto, textoPlano, html },
+  { para, assunto, textoPlano, html, unsubscribeUrl },
   { tentativasMax = 3, esperaMs = 500, dormir = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}
 ) {
   const hash = hashEmail(para);
@@ -188,7 +199,7 @@ export async function enviarEmail(
 
   let ultima = "";
   for (let tentativa = 1; tentativa <= tentativasMax; tentativa++) {
-    const { url, opcoes } = prov.montar({ chave: prov.chave, de: prov.de, para, assunto, textoPlano, html });
+    const { url, opcoes } = prov.montar({ chave: prov.chave, de: prov.de, para, assunto, textoPlano, html, unsubscribeUrl });
     let resposta;
     try {
       resposta = await httpRequest(url, { ...opcoes, retries: 0 });

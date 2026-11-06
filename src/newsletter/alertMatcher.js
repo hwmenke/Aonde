@@ -1,7 +1,7 @@
 // Casamento de ofertas com regras de alerta e enfileiramento de notificacoes.
 //
-// matchAlerts() e PURO (sem I/O): dado um Offer e os conjuntos de regras +
-// assinantes, retorna os matches. Facil de testar isoladamente.
+// matchAlerts() nao faz I/O: dado um Offer, regras, assinantes e dia de
+// referencia (padrao: hoje UTC), retorna os matches.
 //
 // dispatchAlerts() e a camada com I/O: carrega regras+assinantes dos stores,
 // casa tudo e ENFILEIRA cada notificacao em "<AONDE_DATA_DIR>/alert_queue.jsonl"
@@ -21,22 +21,24 @@ import { appendFileSync, readFileSync } from "node:fs";
 import { resolveDataDir, ensureDir } from "../store/dataDir.js";
 import { listSubscribers, hashEmail } from "./subscriberStore.js";
 import { listAlertRules } from "./alertRules.js";
+import { viagemAindaVale } from "../offers/elegibilidade.js";
 
 /**
- * Casa um conjunto de ofertas/regras. Puro e testavel.
+ * Casa um conjunto de ofertas/regras, usando a elegibilidade do site.
  *
  * Uma regra casa uma oferta quando:
+ *   - a oferta esta publicada e suas datas sao elegiveis no dia de referencia
  *   - offer.origem === rule.origem (IATA, case-insensitive)
  *   - rule.destino ausente OU igual a offer.destino
  *   - rule.preco_alvo_centavos ausente OU offer.preco_centavos <= alvo
  *   - o assinante dono da regra esta confirmado e NAO descadastrado
  *
  * @param {{origem: string, destino: string, preco_centavos: number, id?: string}} offer
- * @param {{rules: object[], subscribers: object[]}} ctx
+ * @param {{rules?: object[], subscribers?: object[], dia?: string}} ctx dia em AAAA-MM-DD (UTC)
  * @returns {Array<{rule: object, subscriber: object, canal: string}>}
  */
-export function matchAlerts(offer, { rules = [], subscribers = [] } = {}) {
-  if (!offer) return [];
+export function matchAlerts(offer, { rules = [], subscribers = [], dia = new Date().toISOString().slice(0, 10) } = {}) {
+  if (!viagemAindaVale(offer, dia)) return [];
 
   const offerOrigem = String(offer.origem || "").toUpperCase();
   const offerDestino = String(offer.destino || "").toUpperCase();
@@ -170,7 +172,7 @@ export function dispatchAlerts(offers = [], { cooldownMs = COOLDOWN_PADRAO_MS, a
   let suprimidos = 0;
 
   for (const offer of list) {
-    const matches = matchAlerts(offer, { rules, subscribers });
+    const matches = matchAlerts(offer, { rules, subscribers, dia: nowIso.slice(0, 10) });
     for (const { subscriber, canal } of matches) {
       const rota = `${String(offer.origem || "").toUpperCase()}-${String(offer.destino || "").toUpperCase()}`;
       const chave = `${hashEmail(subscriber.email)}|${rota}|${canal}`;
