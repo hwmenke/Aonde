@@ -82,9 +82,9 @@ import {
   subscribe as subscribeNewsletter,
   confirm as confirmNewsletter,
   confirmPendingRule,
-  unsubscribe as unsubscribeNewsletter,
   clearPendingAlert,
 } from "./newsletter/subscriberStore.js";
+import { parseUnsubscribeEmail, isOneClickBody, processUnsubscribe } from "./newsletter/unsubscribeRequest.js";
 import { addAlertRule } from "./newsletter/alertRules.js";
 import { enqueueEmailJob, markEmailJob } from "./newsletter/emailJobs.js";
 import {
@@ -336,7 +336,7 @@ function isSafeRedirectUrl(url) {
  * { ok: false, error } (JSON invalido / corpo grande demais). Limite defensivo
  * de 64 KB — os payloads desta API sao pequenos.
  */
-function readJsonBody(req) {
+function readJsonBody(req, { formWithoutContentType = false } = {}) {
   return new Promise((resolve) => {
     const chunks = [];
     let size = 0;
@@ -362,7 +362,7 @@ function readJsonBody(req) {
       // 400 {"error":...} cru na tela, sem HTML e sem caminho de volta — nos
       // tres formularios do site: newsletter, alerta de preco e descadastro.
       const tipo = String((req.headers && req.headers["content-type"]) || "");
-      if (tipo.includes("application/x-www-form-urlencoded")) {
+      if (tipo.includes("application/x-www-form-urlencoded") || (formWithoutContentType && !tipo && !raw.startsWith("{") && !raw.startsWith("["))) {
         const body = {};
         for (const [k, v] of new URLSearchParams(raw)) body[k] = v;
         return resolve({ ok: true, body, form: true });
@@ -687,30 +687,26 @@ function handleNewsletterConfirm(req, res, url) {
   sendJson(res, 200, { ok: true, message: "Inscrição confirmada! Você receberá nossos alertas de preço." });
 }
 
-async function handleNewsletterUnsubscribe(req, res) {
-  const parsed = await readJsonBody(req);
-  const veioDeForm =
-    parsed.form === true ||
+async function handleNewsletterUnsubscribe(req, res, url) {
+  const parsed = await readJsonBody(req, { formWithoutContentType: true });
+  const oneClick = isOneClickBody(parsed.body);
+  const veioDeForm = oneClick || parsed.form === true ||
     String((req.headers && req.headers["content-type"]) || "").includes("application/x-www-form-urlencoded");
   if (!parsed.ok) {
     if (veioDeForm) sendHtml(res, 400, renderNewsletterStatusPage({ ok: false, error: parsed.error }));
     else sendJson(res, 400, { error: parsed.error });
     return;
   }
-  const { email } = parsed.body || {};
-  const result = unsubscribeNewsletter(email);
-  if (!result.ok) {
-    // Unico caso de 400: input invalido (e-mail malformado).
-    if (veioDeForm) sendHtml(res, 400, renderNewsletterStatusPage({ ok: false, error: result.error }));
-    else sendJson(res, 400, { error: result.error });
-    return;
+  const email = parseUnsubscribeEmail({ queryEmail: url.searchParams.get("email"), body: parsed.body });
+  const decision = processUnsubscribe({ email, veioDeForm, oneClick });
+  if (decision.kind === "empty") {
+    res.writeHead(decision.status, { ...securityHeaders(), ...corsHeaders() });
+    res.end();
+  } else if (decision.kind === "html") {
+    sendHtml(res, decision.status, renderNewsletterStatusPage(decision.payload));
+  } else {
+    sendJson(res, decision.status, decision.payload);
   }
-  // Idempotente e sem vazar existencia: sempre a mesma resposta.
-  if (veioDeForm) {
-    sendHtml(res, 200, renderNewsletterStatusPage({ ok: true, descadastrado: true }));
-    return;
-  }
-  sendJson(res, 200, { ok: true, message: "Se o e-mail estava inscrito, foi descadastrado." });
 }
 
 async function handleCreateAlert(req, res) {
@@ -1537,7 +1533,7 @@ export function createServer() {
           return;
         }
         if (enforceInboundRateLimit(req, res, "newsletter-unsubscribe")) return;
-        await handleNewsletterUnsubscribe(req, res);
+        await handleNewsletterUnsubscribe(req, res, url);
         return;
       }
 

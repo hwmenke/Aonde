@@ -18,6 +18,7 @@ import { resolveDataDir, ensureDir } from "../store/dataDir.js";
 import { enviarEmail, provedorConfigurado } from "./sender.js";
 import { buildPriceAlertEmail } from "./emailTemplates.js";
 import { listSubscribers, hashEmail } from "./subscriberStore.js";
+import { queuedOfferEligibility } from "./alertEligibility.js";
 import { getConfig } from "../config.js";
 
 function arquivoFila() {
@@ -152,6 +153,7 @@ async function processarFilaInterna({ limite = 200, agora = new Date() } = {}) {
   let pulados = 0;
   let falhas = 0;
   let processadas = 0;
+  let avisouSemOfferId = false;
 
   for (let i = 0; i < pendentes.length; i++) {
     const linha = pendentes[i];
@@ -165,7 +167,7 @@ async function processarFilaInterna({ limite = 200, agora = new Date() } = {}) {
     }
 
     const chave = item && item.id ? String(item.id) : `linha:${jaFeitos + i}`;
-    if (estados[chave] === "enviado") {
+    if (estados[chave] === "enviado" || estados[chave] === "descartado") {
       pulados++;
       continue;
     }
@@ -178,6 +180,18 @@ async function processarFilaInterna({ limite = 200, agora = new Date() } = {}) {
     // mandar, e isso NAO e falha — e o sistema respeitando o descadastro.
     if (!sub || !sub.email || !sub.double_optin_confirmed || sub.unsubscribed_at) {
       pulados++;
+      continue;
+    }
+
+    const eligibility = queuedOfferEligibility(item, agora.toISOString().slice(0, 10));
+    if (!eligibility.eligible) {
+      estados[chave] = "descartado";
+      gravarEstados(estados);
+      pulados++;
+      if (eligibility.reason === "sem-offerId" && !avisouSemOfferId) {
+        console.warn("[aonde-affiliates] Alerta descartado: sem offerId para verificar elegibilidade.");
+        avisouSemOfferId = true;
+      }
       continue;
     }
 

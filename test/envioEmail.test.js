@@ -131,8 +131,15 @@ test("o worker e idempotente: rodar duas vezes nao reenvia", async (t) => {
   const dir = comDataDir(t);
   comProvedor(t, { AONDE_EMAIL_PROVIDER: "resend", AONDE_EMAIL_API_KEY: "k", AONDE_EMAIL_FROM: "a@b.com" });
   const { subscribe, confirm, hashEmail } = await import("../src/newsletter/subscriberStore.js");
+  const { upsert } = await import("../src/store/offersStore.js");
   const s = subscribe({ email: "leitor@exemplo.com", origem: "GRU" });
   if (s.token) confirm(s.token);
+
+  // Ofertas publicadas com ida futura — o worker revalida elegibilidade antes de enviar.
+  const ida = "2099-01-15";
+  for (const i of [1, 2]) {
+    upsert({ id: `oferta-${i}`, status: "publicada", origem: "GRU", destino: "REC", ida, volta: "2099-01-22", preco_centavos: 58700 });
+  }
 
   // Enfileira duas notificacoes na mao, no mesmo formato do dispatchAlerts.
   const linhas = [1, 2].map((i) =>
