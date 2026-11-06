@@ -109,13 +109,14 @@ function mapOneOffer(offer, dictionaries, pax) {
   const cia = nomeCia(codigoCia, dictionaries);
   const numeroDoVoo = `${codigoCia}${primeiro.number ? " " + primeiro.number : ""}`.trim() || "Voo";
 
-  const paradas = segmentos.length - 1;
+  const paradas = totalParadas(segmentos);
   const direto = paradas === 0;
-  const codigoConexao = !direto ? primeiro.arrival && primeiro.arrival.iataCode : "";
+  const codigoConexao = segmentos.length > 1 ? primeiro.arrival && primeiro.arrival.iataCode : "";
   const paradasLabel = direto
     ? "Direto"
     : `${paradas} parada${paradas > 1 ? "s" : ""}${codigoConexao ? " · " + codigoConexao : ""}`;
-  const numero = `${numeroDoVoo} · ${direto ? "direto" : "via " + (codigoConexao || "conexão")}`;
+  const descricao = direto ? "direto" : segmentos.length > 1 ? "via " + (codigoConexao || "conexão") : "parada técnica";
+  const numero = `${numeroDoVoo} · ${descricao}`;
 
   return {
     cia,
@@ -332,6 +333,10 @@ function trechosDe(segmentos, dictionaries) {
   return saida;
 }
 
+function totalParadas(segmentos) {
+  return segmentos.length - 1 + segmentos.reduce((total, segmento) => total + (segmento?.numberOfStops || 0), 0);
+}
+
 function resumoItinerario(itinerario, dictionaries) {
   if (!itinerario || typeof itinerario !== "object") return null;
   const segmentos = Array.isArray(itinerario.segments) ? itinerario.segments : null;
@@ -342,7 +347,7 @@ function resumoItinerario(itinerario, dictionaries) {
   const chegada = formatHora(ultimo && ultimo.arrival && ultimo.arrival.at);
   const duracao = formatDuracao(itinerario.duration);
   if (!saida || !chegada || !duracao) return null;
-  const paradas = segmentos.length - 1;
+  const paradas = totalParadas(segmentos);
   return {
     saida,
     chegada,
