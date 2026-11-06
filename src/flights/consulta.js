@@ -4,6 +4,7 @@
 
 import { resolveAeroporto } from "../render/aeroportos.js";
 import { parseDataPtBr } from "./datas.js";
+import { chaveDoDia } from "../daily/dailyPick.js";
 
 const ISO_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -40,7 +41,7 @@ function erro(campo, mensagem) {
  * @param {object} entrada o que veio na query, ainda cru
  * @param {{hoje: string}} ctx dia de calendário AAAA-MM-DD no fuso do produto
  */
-export function validarConsulta(entrada = {}, { hoje, exigirDatas = true } = {}) {
+export function validarConsulta(entrada = {}, { hoje = chaveDoDia(), exigirDatas = true } = {}) {
   const informada = {
     origem: String(entrada.origem || "").trim(),
     destino: String(entrada.destino || "").trim(),

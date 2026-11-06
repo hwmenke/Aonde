@@ -295,7 +295,7 @@ test("buscarVoosAoVivo: com credencial e resposta valida, devolve voos mapeados"
     return jsonResponse({}, 404);
   });
 
-  const res = await buscarVoosAoVivo({ origem: "GRU", destino: "REC", ida: "12 ago 2026", volta: "19 ago 2026" });
+  const res = await buscarVoosAoVivo({ origem: "GRU", destino: "REC", ida: "12 ago 2026", volta: "19 ago 2026" }, { agora: new Date("2026-08-01T12:00:00Z") });
   assert.equal(res.ok, true);
   assert.equal(res.voos.length, 1);
   assert.equal(res.voos[0].preco, "R$ 1.184");
