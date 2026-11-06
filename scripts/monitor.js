@@ -16,6 +16,8 @@
 // Agendamento (cron / GitHub Actions): ver a secao "Curadoria: historico,
 // monitoramento e API" do README.md.
 
+import { pathToFileURL } from "node:url";
+
 import { runMonitor } from "../src/monitor.js";
 
 function parseArgs(argv) {
@@ -75,6 +77,10 @@ async function main() {
     mediaFallback,
   });
 
+  runCli(result, currency);
+}
+
+export function runCli(result, currency = "BRL") {
   console.log("\n=== Resumo por rota ===");
   for (const [route, info] of Object.entries(result.perRoute)) {
     if (info.ok) {
@@ -114,9 +120,15 @@ async function main() {
     `\nTotal: ${result.offers.length} oferta(s) em rascunho, ${suspeitas.length} suspeita(s) de erro de tarifa.`
   );
   console.log("Rascunhos persistidos em data/offers.json. Revise na curadoria antes de publicar.");
+  if (result.ok === false) {
+    process.exitCode = 1;
+    console.error("Monitor falhou: nenhuma rota com sucesso.");
+  }
 }
 
-main().catch((err) => {
-  console.error("Erro inesperado no monitor:", err);
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((err) => {
+    console.error("Erro inesperado no monitor:", err);
+    process.exitCode = 1;
+  });
+}
