@@ -166,6 +166,27 @@ export function provedorConfigurado() {
   return { nome, chave, de, montar: p.montar };
 }
 
+/** Sem evidencia sobre o destinatario, erro do provedor nao e bounce. */
+function recusaDestinatario(resposta, para) {
+  const corpo = resposta.bodyText || JSON.stringify(resposta.data ?? "");
+  const texto = corpo.toLowerCase();
+  const endereco = String(para || "").trim().toLowerCase();
+  if (endereco && texto.includes(endereco)) return true;
+  if (/\b(?:bounce(?:d)?|undeliverable)\b|\binvalid[ _-]+recipient\b|\brecipient[ _-]+(?:invalid|rejected)\b/.test(texto)) return true;
+  const campoTo = /(?:^|[.\[\s"'`])to(?:$|[.\]\s"'`:])/;
+  function erroTo(valor) {
+    if (!valor || typeof valor !== "object") return false;
+    return Object.entries(valor).some(([campo, detalhe]) => {
+      if (["field", "param", "path"].includes(campo)) {
+        return campoTo.test(Array.isArray(detalhe) ? detalhe.join(".") : String(detalhe));
+      }
+      return (campo === "to" && /invalid|rejected|undeliverable|error/i.test(JSON.stringify(detalhe))) || erroTo(detalhe);
+    });
+  }
+  return erroTo(resposta.data) ||
+    /(?:invalid|rejected|undeliverable|not valid)[^\n.]{0,60}["'`]to["'`]|["'`]to["'`][^\n.]{0,60}(?:invalid|rejected|not valid)/.test(texto);
+}
+
 /**
  * Envia UMA mensagem. Nunca lanca: devolve o que aconteceu.
  *
@@ -221,8 +242,10 @@ export async function enviarEmail(
     if (!vaiAdiantar) {
       const saida = { ok: false, estado: "falha_permanente", tentativas: tentativa, motivo: `HTTP ${status}` };
       registrar({ ...base, ...saida, provedor: prov.nome });
-      // Endereco que o provedor recusa nao deve ser tentado de novo nunca.
-      if (status === 400 || status === 422) suprimir(para, "bounce_permanente");
+      // Configuracao, remetente e payload invalidos nao condenam o assinante.
+      if ((status === 400 || status === 422) && recusaDestinatario(resposta, para)) {
+        suprimir(para, "bounce_permanente");
+      }
       return saida;
     }
     if (tentativa < tentativasMax) await dormir(esperaMs * 2 ** (tentativa - 1));

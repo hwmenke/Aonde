@@ -264,6 +264,7 @@ async function doFetchOnce(url, { method, headers, body, timeoutMs, signal }) {
         ok: false,
         status: response.status,
         data,
+        bodyText: text,
         error: `HTTP ${response.status} ${response.statusText || ""}`.trim(),
         networkError: false,
         retryAfterMs,
@@ -394,7 +395,7 @@ export async function httpRequest(url, options = {}) {
 
     if (attempt >= retries || !isRetryableResult(res)) {
       // Devolve o formato publico estavel (sem os campos internos de controle).
-      return { ok: false, status: res.status, data: res.data, error: res.error };
+      return { ok: false, status: res.status, data: res.data, error: res.error, bodyText: res.bodyText };
     }
 
     let delay = backoffDelay(attempt, retryBaseMs, retryMaxMs, jitterFn);

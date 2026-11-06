@@ -100,19 +100,52 @@ test("endereco recusado pelo provedor entra na supressao e nunca mais e tentado"
   let chamadas = 0;
   setFetchImpl(async () => {
     chamadas++;
-    return { ok: false, status: 422, headers: new Map(), text: async () => "", json: async () => ({}) };
+    return { ok: false, status: 422, headers: new Map(), text: async () => JSON.stringify({ message: "Invalid recipient: invalido@exemplo.com" }), json: async () => ({}) };
   });
   t.after(() => resetFetchImpl());
 
   const alvo = { ...MSG, para: "invalido@exemplo.com" };
   await enviarEmail(alvo, { tentativasMax: 2, dormir: async () => {} });
-  assert.equal(estaSuprimido("invalido@exemplo.com"), true, "422 precisa suprimir o endereco");
+  assert.equal(estaSuprimido("invalido@exemplo.com"), true, "recusa explicita do destinatario precisa suprimir o endereco");
 
   const antes = chamadas;
   const r2 = await enviarEmail(alvo);
   assert.equal(r2.estado, "suprimido");
   assert.equal(chamadas, antes, "endereco suprimido nao pode gerar nova chamada de rede");
 });
+
+for (const [nome, status, corpo, suprime] of [
+  ["422 vazio", 422, "", false],
+  ["422 generico", 422, '{"message":"Validation error"}', false],
+  ["400 remetente invalido", 400, '{"message":"Invalid from address","field":"from"}', false],
+  ["400 chave invalida", 400, '{"message":"Invalid API key"}', false],
+  ["422 payload invalido", 422, '{"message":"Invalid payload","field":"subject"}', false],
+  ["422 campo to", 422, '{"errors":[{"message":"Invalid email","field":"personalizations.0.to.0.email"}]}', true],
+  ["400 destinatario invalido", 400, '{"name":"invalid_recipient"}', true],
+  ["422 bounce", 422, '{"message":"Recipient bounced"}', true],
+  ["422 texto com endereco", 422, "Invalid address pessoa@exemplo.com", true],
+  ["422 texto com to", 422, 'Invalid `to` field', true],
+]) {
+  test(`${nome}: supressao exige evidencia do destinatario`, async (t) => {
+    comDataDir(t);
+    comProvedor(t, { AONDE_EMAIL_PROVIDER: "resend", AONDE_EMAIL_API_KEY: "k", AONDE_EMAIL_FROM: "a@b.com" });
+    const { enviarEmail, estaSuprimido, historicoEnvios } = await import("../src/newsletter/sender.js");
+    let chamadas = 0;
+    setFetchImpl(async () => {
+      chamadas++;
+      return { ok: chamadas > 1, status: chamadas > 1 ? 200 : status, text: async () => chamadas > 1 ? "{}" : corpo };
+    });
+    t.after(() => resetFetchImpl());
+    const falha = await enviarEmail(MSG, { dormir: async () => {} });
+    assert.equal(falha.estado, "falha_permanente");
+    assert.equal(falha.tentativas, 1);
+    assert.equal(estaSuprimido(MSG.para), suprime);
+    const proximo = await enviarEmail(MSG);
+    assert.equal(proximo.estado, suprime ? "suprimido" : "enviado");
+    assert.equal(chamadas, suprime ? 1 : 2);
+    assert.doesNotMatch(JSON.stringify(historicoEnvios()), /pessoa@exemplo\.com/);
+  });
+}
 
 test("a supressao vale para quem pediu para sair", async (t) => {
   comDataDir(t);
