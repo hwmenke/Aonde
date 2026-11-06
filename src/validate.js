@@ -5,6 +5,8 @@
 // e esperado. Nao substitui a validacao do provedor upstream — apenas evita
 // requisicoes garantidamente inuteis e melhora a mensagem de erro.
 
+import { chaveDoDia } from "./daily/dailyPick.js";
+
 const IATA_RE = /^[A-Za-z]{3}$/;
 const DATE_RE = /^(\d{4})-(\d{2})(?:-(\d{2}))?$/;
 
@@ -49,12 +51,15 @@ export function isValidDate(str) {
 /**
  * Valida as opcoes de busca de ofertas. origin/destination sao obrigatorios;
  * dateFrom/dateTo sao opcionais (validados apenas se informados).
+ * Hoje e o dia do produto (America/Sao_Paulo via chaveDoDia), nao o fuso do servidor.
+ * YYYY-MM representa o mes inteiro: o mes atual continua valido ate seu fim.
+ * @param {Date|string} [hoje] Relogio injetavel; omitido = agora no fuso do produto.
  *
  * @param {{origin?: string, destination?: string, dateFrom?: string, dateTo?: string}} options
  * @returns {{ok: true, normalized: {origin: string, destination: string, dateFrom?: string, dateTo?: string}}
  *          | {ok: false, error: string}}
  */
-export function validateSearchOptions(options = {}) {
+export function validateSearchOptions(options = {}, hoje) {
   const { origin, destination, dateFrom, dateTo } = options;
 
   if (origin === undefined || origin === null || String(origin).trim() === "") {
@@ -115,6 +120,18 @@ export function validateSearchOptions(options = {}) {
       ? `${normalized.dateTo}-31` : normalized.dateTo;
     if (primeiraIda > ultimaVolta) {
       return { ok: false, error: "dateTo deve ser igual ou posterior a dateFrom" };
+    }
+  }
+
+  // Para meses, comparar apenas ano/mes preserva a janela inteira, inclusive
+  // fevereiro e anos bissextos, sem inventar um ultimo dia do mes.
+  if (normalized.dateFrom || normalized.dateTo) {
+    const hojeIso = chaveDoDia(hoje === undefined ? new Date() : hoje);
+    for (const campo of ["dateFrom", "dateTo"]) {
+      const data = normalized[campo];
+      if (data && data < hojeIso.slice(0, data.length)) {
+        return { ok: false, error: `${campo} deve incluir hoje ou uma data futura (hoje: ${hojeIso})` };
+      }
     }
   }
 
