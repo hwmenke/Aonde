@@ -4,6 +4,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
+import { recordPrices } from "../src/store/priceHistory.js";
 import { runMonitor } from "../src/monitor.js";
 import { listOffers, getOffer } from "../src/store/offersStore.js";
 import { setFetchImpl, resetFetchImpl, clearHttpCache } from "../src/http.js";
@@ -160,3 +161,32 @@ test("runMonitor retorna ok:false quando todas as rotas falham", async (t) => {
   assert.equal(result.perRoute["GRU-LIS"].ok, false);
   assert.equal(result.offers.length, 0);
 });
+
+for (const currency of ["BRL", "USD"]) {
+  test(`runMonitor compares ${currency} live prices only with matching history`, async (t) => {
+    await setup(t, async () => jsonResponse({
+      success: true, data: [apiDeal("GRU", "LIS", 1000, 0)],
+    }));
+    recordPrices([
+      ...Array.from({ length: 5 }, () => ({
+        origin: "GRU", destination: "LIS", price: 1000, currency,
+      })),
+      ...Array.from({ length: 10 }, () => ({
+        origin: "GRU", destination: "LIS", price: 10000,
+        currency: currency === "BRL" ? "USD" : "BRL",
+      })),
+      { origin: "GRU", destination: "LIS", price: 99999 },
+    ]);
+    const result = await runMonitor({
+      routes: [{ origin: "GRU", destination: "LIS" }], currency, windowDays: 30,
+    });
+    const route = result.perRoute["GRU-LIS"];
+    assert.equal(route.ok, true);
+    assert.equal(route.statsUsed.currency, currency);
+    assert.equal(route.statsUsed.sampleCount, 6);
+    assert.equal(route.mediaCentavos, 100000);
+    assert.equal(route.isFareError, false);
+    assert.equal(result.offers[0].is_erro_tarifa, false);
+    assert.equal(result.offers[0].desconto_pct, 0);
+  });
+}

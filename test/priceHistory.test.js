@@ -7,6 +7,7 @@ import path from "node:path";
 import {
   recordPrices,
   getRouteStats,
+  getRouteSeries,
   listRoutes,
   priceToCentavos,
   routeKey,
@@ -148,3 +149,42 @@ test("listRoutes lista as rotas com historico", async (t) => {
 test("routeKey normaliza para maiusculas", () => {
   assert.equal(routeKey("gru", "lis"), "GRU-LIS");
 });
+
+for (const query of [getRouteStats, getRouteSeries]) {
+  test(`${query.name} isolates currencies and excludes legacy rows`, async (t) => {
+    const dir = await withTempDataDir(t);
+    recordPrices([
+      makeDeal(1000), makeDeal(1200, { currency: "brl" }),
+      makeDeal(10000, { currency: "USD" }), makeDeal(12000, { currency: "usd" }),
+      makeDeal(99999, { currency: null }),
+    ]);
+    // A legacy row can lack the currency field entirely.
+    const file = path.join(dir, "history", "GRU-LIS.json");
+    const rows = JSON.parse(await readFile(file, "utf-8"));
+    rows.push({ observedAt: new Date().toISOString(), price: 99999 });
+    await writeFile(file, JSON.stringify(rows));
+
+    for (const options of [{ minSamples: 2 }, { minSamples: 2, currency: "bRl" }]) {
+      const brl = query("GRU", "LIS", options);
+      assert.equal(brl.ok, true);
+      assert.equal(brl.currency, "BRL");
+      assert.equal(brl.sampleCount, 2);
+      assert.equal(brl.mediaCentavos, 110000);
+      assert.equal(brl.minCentavos, 100000);
+      assert.equal(brl.maxCentavos, 120000);
+      if (brl.points) assert.deepEqual(brl.points.map(p => p.priceCentavos), [100000, 120000]);
+    }
+    const usd = query("GRU", "LIS", { minSamples: 2, currency: "usd" });
+    assert.equal(usd.ok, true);
+    assert.equal(usd.currency, "USD");
+    assert.equal(usd.sampleCount, 2);
+    assert.equal(usd.mediaCentavos, 1100000);
+    assert.equal(usd.minCentavos, 1000000);
+    assert.equal(usd.maxCentavos, 1200000);
+    if (usd.points) assert.deepEqual(usd.points.map(p => p.priceCentavos), [1000000, 1200000]);
+    const insufficient = query("GRU", "LIS");
+    assert.equal(insufficient.ok, false);
+    assert.equal(insufficient.currency, "BRL");
+    assert.equal(insufficient.sampleCount, 2);
+  });
+}

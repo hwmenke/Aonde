@@ -110,7 +110,7 @@ export async function runMonitor(options = {}) {
       // (assim a rodada atual ja entra na media).
       recordPrices(deals);
 
-      const stats = getRouteStats(origin, destination, windowDays !== undefined ? { windowDays } : {});
+      const stats = getRouteStats(origin, destination, { currency, ...(windowDays !== undefined ? { windowDays } : {}) });
 
       const best = bestDeal(deals);
       if (!best) {
