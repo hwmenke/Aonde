@@ -57,6 +57,45 @@ test("formatDateRangePtBr retorna null para datas invalidas sem lancar excecao",
   assert.equal(formatDateRangePtBr("nao-e-uma-data", "tambem-nao"), null);
 });
 
+test("datas_sugeridas preserva dias de calendario em diferentes fusos", () => {
+  const originalTZ = process.env.TZ;
+  try {
+    for (const TZ of ["America/Sao_Paulo", "UTC", "Asia/Tokyo"]) {
+      process.env.TZ = TZ;
+      for (const [departDate, returnDate, label] of [
+        ["2027-03-12", "2027-03-24", "12–24 mar"],
+        ["2027-03-31", "2027-04-01", "31 mar–01 abr"],
+        ["2027-12-31", "2028-01-01", "31 dez–01 jan"],
+        ["2028-02-29", null, "a partir de 29 fev"],
+        ["2027-03-12", null, "a partir de 12 mar"],
+      ]) {
+        const offer = toOffer({ departDate, returnDate });
+        assert.equal(offer.ida, departDate);
+        assert.equal(offer.volta, returnDate);
+        assert.equal(offer.datas_sugeridas, label, TZ);
+      }
+    }
+  } finally {
+    if (originalTZ === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTZ;
+  }
+});
+
+test("formatDateRangePtBr preserva timestamps com offset em Sao Paulo", () => {
+  const originalTZ = process.env.TZ;
+  try {
+    process.env.TZ = "America/Sao_Paulo";
+    assert.equal(
+      formatDateRangePtBr("2027-03-12T00:30:00-03:00", "2027-03-24T23:30:00-03:00"),
+      "12–24 mar"
+    );
+    assert.equal(formatDateRangePtBr("2027-03-12T01:00:00Z", null), "a partir de 11 mar");
+  } finally {
+    if (originalTZ === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTZ;
+  }
+});
+
 // -----------------------------------------------------------------------
 // centavosFromPrice
 // -----------------------------------------------------------------------

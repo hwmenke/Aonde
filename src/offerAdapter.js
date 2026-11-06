@@ -112,7 +112,14 @@ function parseDateSafe(value) {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  return date;
+  // YYYY-MM-DD é um dia de calendário, interpretado por Date em UTC.
+  // Timestamps mantêm a interpretação local já usada pelo adapter.
+  const dateOnly = typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  return {
+    day: dateOnly ? date.getUTCDate() : date.getDate(),
+    month: dateOnly ? date.getUTCMonth() : date.getMonth(),
+    year: dateOnly ? date.getUTCFullYear() : date.getFullYear(),
+  };
 }
 
 function padDay(day) {
@@ -120,8 +127,8 @@ function padDay(day) {
 }
 
 function formatDayMonth(date) {
-  const day = padDay(date.getDate());
-  const month = MONTHS_PT_BR[date.getMonth()];
+  const day = padDay(date.day);
+  const month = MONTHS_PT_BR[date.month];
   return `${day} ${month}`;
 }
 
@@ -141,8 +148,8 @@ export function formatDateRangePtBr(departDate, returnDate) {
 
   if (depart && ret) {
     // Mesmo mes: "12-24 out". Meses diferentes: "28 set-03 out".
-    if (depart.getMonth() === ret.getMonth() && depart.getFullYear() === ret.getFullYear()) {
-      return `${padDay(depart.getDate())}–${formatDayMonth(ret)}`;
+    if (depart.month === ret.month && depart.year === ret.year) {
+      return `${padDay(depart.day)}–${formatDayMonth(ret)}`;
     }
     return `${formatDayMonth(depart)}–${formatDayMonth(ret)}`;
   }
