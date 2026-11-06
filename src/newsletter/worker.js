@@ -49,15 +49,29 @@ function gravarEstados(estados) {
 }
 
 // Dois workers ao mesmo tempo não podem mandar a mesma linha. O lock é
-// exclusivo (wx). Lock abandonado há mais de 2 minutos é descartado.
+// exclusivo (wx). Só recupera locks antigos quando o dono já morreu.
+function pidAlive(pid) {
+  if (!Number.isSafeInteger(pid) || pid <= 0) return false;
+  if (existsSync(`/proc/${pid}`)) return true;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (erro) {
+    return erro.code !== "ESRCH"; // EPERM também indica um processo vivo.
+  }
+}
+
 function adquirirLock() {
   const lock = arquivoLock();
+  let recuperado = false;
   ensureDir(resolveDataDir());
   try {
     if (existsSync(lock)) {
       const idade = Date.now() - statSync(lock).mtimeMs;
-      if (idade < 120000) return null;
+      const dono = Number(readFileSync(lock, "utf-8"));
+      if (pidAlive(dono) || idade < 120000) return null;
       unlinkSync(lock);
+      recuperado = true;
     }
   } catch {
     return null;
@@ -66,6 +80,13 @@ function adquirirLock() {
     const fd = openSync(lock, "wx");
     writeSync(fd, String(process.pid));
     closeSync(fd);
+    if (recuperado) {
+      const estados = lerEstados();
+      for (const chave of Object.keys(estados)) {
+        if (estados[chave] === "reivindicado") delete estados[chave];
+      }
+      gravarEstados(estados);
+    }
     return lock;
   } catch {
     return null;
@@ -133,9 +154,9 @@ export async function processarFila({ limite = 200, agora = new Date() } = {}) {
     return await processarFilaInterna({ limite, agora });
   } finally {
     try {
-      unlinkSync(lock);
+      if (readFileSync(lock, "utf-8") === String(process.pid)) unlinkSync(lock);
     } catch {
-      // O próximo worker descarta lock antigo pelo prazo.
+      // Lock removido ou substituído pertence ao próximo worker.
     }
   }
 }
@@ -167,7 +188,7 @@ async function processarFilaInterna({ limite = 200, agora = new Date() } = {}) {
     }
 
     const chave = item && item.id ? String(item.id) : `linha:${jaFeitos + i}`;
-    if (estados[chave] === "enviado" || estados[chave] === "descartado") {
+    if (estados[chave] === "enviado" || estados[chave] === "descartado" || estados[chave] === "reivindicado") {
       pulados++;
       continue;
     }
