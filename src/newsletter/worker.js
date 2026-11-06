@@ -183,7 +183,7 @@ async function processarFilaInterna({ limite = 200, agora = new Date() } = {}) {
       continue;
     }
 
-    const eligibility = queuedOfferEligibility(item, agora.toISOString().slice(0, 10));
+    const eligibility = queuedOfferEligibility(item, sub, { today: agora.toISOString().slice(0, 10) });
     if (!eligibility.eligible) {
       estados[chave] = "descartado";
       gravarEstados(estados);
@@ -202,9 +202,9 @@ async function processarFilaInterna({ limite = 200, agora = new Date() } = {}) {
     const unsubscribeUrl = `${base}/api/newsletter/unsubscribe?email=${encodeURIComponent(sub.email)}`;
     const { assunto, textoPlano, html } = buildPriceAlertEmail({
       email: sub.email,
-      origem: item.offerRoute ? String(item.offerRoute).split("-")[0] : sub.origem_preferida,
-      destino: item.offerRoute ? String(item.offerRoute).split("-")[1] : null,
-      precoCentavos: item.precoCentavos,
+      origem: eligibility.offer.origem,
+      destino: eligibility.offer.destino,
+      precoCentavos: eligibility.offer.preco_centavos,
       offerUrl: item.offerId ? `${base}/ofertas/${encodeURIComponent(item.offerId)}` : base,
       unsubscribeUrl,
     });

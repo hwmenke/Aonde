@@ -133,7 +133,9 @@ test("o worker e idempotente: rodar duas vezes nao reenvia", async (t) => {
   const { subscribe, confirm, hashEmail } = await import("../src/newsletter/subscriberStore.js");
   const { upsert } = await import("../src/store/offersStore.js");
   const s = subscribe({ email: "leitor@exemplo.com", origem: "GRU" });
-  if (s.token) confirm(s.token);
+  const confirmed = s.token ? confirm(s.token).subscriber : null;
+  const { addAlertRule } = await import("../src/newsletter/alertRules.js");
+  addAlertRule({ subscriberId: confirmed.id, origem: "GRU", destino: "REC" });
 
   // Ofertas publicadas com ida futura — o worker revalida elegibilidade antes de enviar.
   const ida = "2099-01-15";
