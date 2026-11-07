@@ -21,7 +21,7 @@ import { appendFileSync, readFileSync } from "node:fs";
 import { resolveDataDir, ensureDir } from "../store/dataDir.js";
 import { listSubscribers, hashEmail } from "./subscriberStore.js";
 import { listAlertRules } from "./alertRules.js";
-import { viagemAindaVale } from "../offers/elegibilidade.js";
+import { datasImpossiveis, viagemAindaVale } from "../offers/elegibilidade.js";
 
 /**
  * Casa um conjunto de ofertas/regras, usando a elegibilidade do site.
@@ -119,36 +119,58 @@ function queueFile() {
 export const COOLDOWN_PADRAO_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Le a fila ja gravada e devolve, por chave (assinante+rota+canal), o instante
- * do ultimo envio. Usada para nao notificar a mesma pessoa sobre a mesma rota
- * varias vezes no mesmo dia.
+ * Le as linhas validas da fila sem alterar arquivos ou criar diretorios.
+ * O planejador usa essas linhas para calcular o ultimo envio por rota/canal.
  *
  * A fila e a fonte da verdade porque e o unico registro persistente do que ja
  * saiu. Fila ilegivel ou inexistente => mapa vazio: na duvida a gente NAO
  * bloqueia um alerta legitimo (perder um aviso e pior que repetir um).
  */
-function ultimosEnvios() {
-  const mapa = new Map();
+export function readAlertQueue() {
   try {
-    const txt = readFileSync(queueFile(), "utf-8");
-    for (const linha of txt.split("\n")) {
-      if (!linha.trim()) continue;
-      let item;
-      try {
-        item = JSON.parse(linha);
-      } catch {
-        continue; // linha corrompida nao invalida o resto da fila
-      }
-      const chave = `${item.subscriberEmailHash}|${item.offerRoute}|${item.canal}`;
-      const t = Date.parse(item.queuedAt || "");
-      if (!Number.isFinite(t)) continue;
-      const anterior = mapa.get(chave);
-      if (anterior === undefined || t > anterior) mapa.set(chave, t);
-    }
-  } catch {
-    return mapa;
+    return readFileSync(queueFile(), "utf-8").split("\n").flatMap(line => {
+      try { const item = JSON.parse(line); return item && typeof item === "object" ? [item] : []; }
+      catch { return []; }
+    });
+  } catch { return []; }
+}
+
+/** Pure plan: queue drafts have no random id; dispatch supplies it at write time. */
+export function planAlerts({ offers = [], rules = [], subscribers = [], queueItems = [],
+  agora, cooldownMs = COOLDOWN_PADRAO_MS } = {}) {
+  const items = [];
+  const suppressedItems = [];
+  const nowIso = new Date(agora).toISOString();
+  const enviados = new Map();
+  for (const item of queueItems) {
+    if (!item) continue;
+    const key = `${item.subscriberEmailHash}|${item.offerRoute}|${item.canal}`;
+    const time = Date.parse(item.queuedAt || "");
+    if (Number.isFinite(time) && (enviados.get(key) === undefined || time > enviados.get(key))) enviados.set(key, time);
   }
-  return mapa;
+  for (const offer of Array.isArray(offers) ? offers : [offers]) {
+    // Avoid eligibility's diagnostic logging: the planner has no side effects.
+    if (offer && datasImpossiveis(offer, nowIso.slice(0, 10))) continue;
+    for (const { subscriber, canal } of matchAlerts(offer, { rules, subscribers, dia: nowIso.slice(0, 10) })) {
+      const item = {
+        queuedAt: nowIso,
+        subscriberEmailHash: hashEmail(subscriber.email),
+        canal,
+        offerId: offer.id || null,
+        offerRoute: `${String(offer.origem || "").toUpperCase()}-${String(offer.destino || "").toUpperCase()}`,
+        precoCentavos: offer.preco_centavos ?? null,
+      };
+      const key = `${item.subscriberEmailHash}|${item.offerRoute}|${canal}`;
+      const last = enviados.get(key);
+      if (last !== undefined && agora - last < cooldownMs) {
+        suppressedItems.push(item);
+        continue;
+      }
+      enviados.set(key, agora);
+      items.push(item);
+    }
+  }
+  return { ok: true, queued: items.length, suprimidos: suppressedItems.length, items, suppressedItems };
 }
 
 /**
@@ -161,42 +183,17 @@ function ultimosEnvios() {
  * volta a ser notificado depois de `cooldownMs`.
  */
 export function dispatchAlerts(offers = [], { cooldownMs = COOLDOWN_PADRAO_MS, agora = Date.now() } = {}) {
-  const list = Array.isArray(offers) ? offers : [offers];
-  const rules = listAlertRules();
-  const subscribers = listSubscribers();
-
+  const plan = planAlerts({ offers, rules: listAlertRules(), subscribers: listSubscribers(),
+    queueItems: readAlertQueue(), cooldownMs, agora });
   const items = [];
   const lines = [];
-  const nowIso = new Date(agora).toISOString();
-  const enviados = ultimosEnvios();
-  let suprimidos = 0;
-
-  for (const offer of list) {
-    const matches = matchAlerts(offer, { rules, subscribers, dia: nowIso.slice(0, 10) });
-    for (const { subscriber, canal } of matches) {
-      const rota = `${String(offer.origem || "").toUpperCase()}-${String(offer.destino || "").toUpperCase()}`;
-      const chave = `${hashEmail(subscriber.email)}|${rota}|${canal}`;
-      const ultimo = enviados.get(chave);
-      if (ultimo !== undefined && agora - ultimo < cooldownMs) {
-        suprimidos++;
-        continue;
-      }
-      enviados.set(chave, agora); // conta tambem dentro da MESMA chamada
-      const item = {
-        id: crypto.randomUUID(),
-        queuedAt: nowIso,
-        subscriberEmailHash: hashEmail(subscriber.email),
-        canal,
-        offerId: offer.id || null,
-        offerRoute: `${String(offer.origem || "").toUpperCase()}-${String(offer.destino || "").toUpperCase()}`,
-        precoCentavos: offer.preco_centavos ?? null,
-      };
-      // Ponto de integracao: sender real substituiria o default via setSenderImpl.
-      senderImpl(item);
-      items.push(item);
-      lines.push(JSON.stringify(item));
-    }
+  for (const draft of plan.items) {
+    const item = { id: crypto.randomUUID(), ...draft };
+    senderImpl(item);
+    items.push(item);
+    lines.push(JSON.stringify(item));
   }
+  const suprimidos = plan.suprimidos;
 
   if (lines.length > 0) {
     const dir = resolveDataDir();
