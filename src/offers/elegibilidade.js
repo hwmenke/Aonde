@@ -40,8 +40,12 @@ export function viagemAindaVale(offer, diaIso) {
   if (!offer || typeof offer !== "object") return false;
   if (offer.status && offer.status !== "publicada") return false;
   if (excluirPorDatas(offer, diaIso)) return false;
-  const ida = typeof offer.ida === "string" ? offer.ida : typeof offer.dataIda === "string" ? offer.dataIda : "";
-  if (!ISO_DIA.test(ida)) return true;
+  let ida = typeof offer.ida === "string" ? offer.ida : typeof offer.dataIda === "string" ? offer.dataIda : "";
+  if (!ISO_DIA.test(ida)) {
+    const timestamp = dateValue(ida);
+    if (!Number.isFinite(timestamp)) return true;
+    ida = new Date(timestamp).toISOString().slice(0, 10);
+  }
   if (!ISO_DIA.test(String(diaIso || ""))) return false;
   return ida >= diaIso;
 }
