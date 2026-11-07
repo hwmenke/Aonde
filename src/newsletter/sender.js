@@ -190,7 +190,7 @@ function recusaDestinatario(resposta, para) {
 /**
  * Envia UMA mensagem. Nunca lanca: devolve o que aconteceu.
  *
- * @returns {Promise<{ok:boolean, estado:"enviado"|"suprimido"|"sem_provedor"|"falha_permanente"|"falha_temporaria", tentativas:number, motivo?:string}>}
+ * @returns {Promise<{ok:boolean, estado:"enviado"|"suprimido"|"sem_provedor"|"falha_permanente"|"falha_temporaria"|"falha_provedor", tentativas:number, motivo?:string}>}
  */
 export async function enviarEmail(
   { para, assunto, textoPlano, html, unsubscribeUrl },
@@ -236,8 +236,14 @@ export async function enviarEmail(
     }
 
     const status = resposta ? resposta.status : 0;
-    // 4xx que nao seja 408/429 e erro nosso (endereco invalido, chave errada):
-    // repetir so gasta cota e piora a reputacao de envio.
+    // Autenticacao/permissao afeta o provedor inteiro: preserve a fila ate
+    // corrigirem a configuracao, sem repetir a mesma requisicao nesta rodada.
+    if (status === 401 || status === 403) {
+      const saida = { ok: false, estado: "falha_provedor", tentativas: tentativa, motivo: `HTTP ${status}` };
+      registrar({ ...base, ...saida, provedor: prov.nome });
+      return saida;
+    }
+    // Outros erros permanentes nao melhoram repetindo a mesma mensagem.
     const vaiAdiantar = status === 0 || TEMPORARIAS.has(status);
     if (!vaiAdiantar) {
       const saida = { ok: false, estado: "falha_permanente", tentativas: tentativa, motivo: `HTTP ${status}` };

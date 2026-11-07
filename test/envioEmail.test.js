@@ -68,7 +68,7 @@ test("com provedor, envia e registra", async (t) => {
   assert.ok(log.at(-1).emailHash, "o log precisa do hash para dar para auditar");
 });
 
-test("falha temporaria e retentada; permanente nao", async (t) => {
+test("falha temporaria e retentada; autenticacao para sem repetir", async (t) => {
   comDataDir(t);
   comProvedor(t, { AONDE_EMAIL_PROVIDER: "resend", AONDE_EMAIL_API_KEY: "k", AONDE_EMAIL_FROM: "a@b.com" });
   const { enviarEmail } = await import("../src/newsletter/sender.js");
@@ -88,8 +88,8 @@ test("falha temporaria e retentada; permanente nao", async (t) => {
     n++;
     return { ok: false, status: 401, headers: new Map(), text: async () => "", json: async () => ({}) };
   });
-  const perm = await enviarEmail({ ...MSG, para: "outra@exemplo.com" }, { tentativasMax: 3, dormir: async () => {} });
-  assert.equal(perm.estado, "falha_permanente");
+  const auth = await enviarEmail({ ...MSG, para: "outra@exemplo.com" }, { tentativasMax: 3, dormir: async () => {} });
+  assert.equal(auth.estado, "falha_provedor");
   assert.equal(n, 1, "401 e erro nosso: repetir so gasta cota e piora a reputacao");
 });
 

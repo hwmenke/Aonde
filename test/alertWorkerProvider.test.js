@@ -8,7 +8,7 @@ import { subscribe, confirm, hashEmail } from "../src/newsletter/subscriberStore
 import { addAlertRule } from "../src/newsletter/alertRules.js";
 import { processarFila } from "../src/newsletter/worker.js";
 
-function setup(t) {
+function setup(t, ida = "2026-09-15") {
   const dir = mkdtempSync(path.join(tmpdir(), "aonde-worker-provider-"));
   const vars = { AONDE_DATA_DIR: dir, AONDE_EMAIL_PROVIDER: "", AONDE_EMAIL_API_KEY: "fake", AONDE_EMAIL_FROM: "sender@example.com" };
   const previous = Object.fromEntries(Object.keys(vars).map(k => [k, process.env[k]]));
@@ -23,7 +23,7 @@ function setup(t) {
   const sub = confirm(subscribe({ email: "reader@example.com", origem: "GRU" }).token).subscriber;
   addAlertRule({ subscriberId: sub.id, origem: "GRU" });
   writeFileSync(path.join(dir, "offers.json"), JSON.stringify([
-    { id: "offer", origem: "GRU", destino: "REC", preco_centavos: 60000, status: "publicada", ida: "2026-09-15" },
+    { id: "offer", origem: "GRU", destino: "REC", preco_centavos: 60000, status: "publicada", ida },
   ]));
   writeFileSync(path.join(dir, "alert_queue.jsonl"), JSON.stringify({
     id: "queued", offerId: "offer", subscriberEmailHash: hashEmail(sub.email),
@@ -81,5 +81,81 @@ for (const args of [[], ["--json"]]) {
     }
     assert.equal(readFileSync(path.join(dir, "alert_queue.checkpoint"), "utf8"), "0");
     assert.equal(readFileSync(path.join(dir, "alert_queue.states.json"), "utf8"), '{"previous":"enviado"}');
+  });
+}
+
+for (const status of [401, 403]) {
+  test(`HTTP ${status} preserves the alert for exactly one delivery after recovery`, async t => {
+    const dir = setup(t, "2099-09-15");
+    process.env.AONDE_EMAIL_PROVIDER = "resend";
+    let calls = 0;
+    setFetchImpl(async () => {
+      calls++;
+      return new Response('{"message":"Invalid API key"}', { status });
+    });
+    const result = await processarFila();
+    assert.equal(result.falhas, 1);
+    assert.equal(result.pulados, 0);
+    assert.equal(result.enviados, 0);
+    assert.equal(result.pendentesRestantes, 1);
+    assert.equal(calls, 1);
+    assert.equal(readFileSync(path.join(dir, "alert_queue.checkpoint"), "utf8"), "0");
+    assert.deepEqual(JSON.parse(readFileSync(path.join(dir, "alert_queue.states.json"), "utf8")), { previous: "enviado" });
+
+    const previous = { argv: process.argv, exitCode: process.exitCode, log: console.log, error: console.error };
+    const stdout = [];
+    const stderr = [];
+    try {
+      process.argv = [process.execPath, "scripts/enviar-alertas.js", "--json"];
+      process.exitCode = 0;
+      console.log = value => stdout.push(value);
+      console.error = (...values) => stderr.push(values.join(" "));
+      await import(`../scripts/enviar-alertas.js?auth=${status}`);
+      assert.equal(process.exitCode, 1);
+    } finally {
+      process.argv = previous.argv;
+      process.exitCode = previous.exitCode;
+      console.log = previous.log;
+      console.error = previous.error;
+    }
+    assert.equal(JSON.parse(stdout.join("\n")).falhas, 1);
+    assert.match(stderr.join("\n"), new RegExp(`HTTP ${status}`));
+    assert.equal(calls, 2);
+    assert.equal(readFileSync(path.join(dir, "alert_queue.checkpoint"), "utf8"), "0");
+    assert.deepEqual(JSON.parse(readFileSync(path.join(dir, "alert_queue.states.json"), "utf8")), { previous: "enviado" });
+
+    let sent = 0;
+    setFetchImpl(async () => {
+      sent++;
+      return new Response("{}", { status: 200 });
+    });
+    assert.equal((await processarFila()).enviados, 1);
+    assert.equal((await processarFila()).enviados, 0);
+    assert.equal(sent, 1);
+    assert.equal(readFileSync(path.join(dir, "alert_queue.checkpoint"), "utf8"), "1");
+  });
+}
+
+for (const status of [400, 422]) {
+  test(`HTTP ${status} recipient rejection is consumed and never retried`, async t => {
+    const dir = setup(t, "2099-09-15");
+    process.env.AONDE_EMAIL_PROVIDER = "resend";
+    let calls = 0;
+    setFetchImpl(async () => {
+      calls++;
+      return new Response('{"message":"recipient rejected"}', { status });
+    });
+    const result = await processarFila();
+    assert.equal(result.pulados, 1);
+    assert.equal(result.falhas, 0);
+    assert.equal(result.pendentesRestantes, 0);
+    assert.equal(readFileSync(path.join(dir, "alert_queue.checkpoint"), "utf8"), "1");
+    assert.equal(JSON.parse(readFileSync(path.join(dir, "alert_queue.states.json"), "utf8")).queued, "falha");
+    setFetchImpl(async () => {
+      calls++;
+      return new Response("{}", { status: 200 });
+    });
+    assert.equal((await processarFila()).enviados, 0);
+    assert.equal(calls, 1);
   });
 }
