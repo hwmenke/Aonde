@@ -7,6 +7,8 @@
 // do monitor: se a oferta ja existe, atualiza preco/timestamp em vez de criar
 // uma nova.
 
+import { isPositiveCentavos } from "../offers/price.js";
+
 import path from "node:path";
 
 import { auditOfferDates } from "../audit/offerDates.js";
@@ -45,6 +47,12 @@ export function upsert(offer) {
     // Mantem o created_at original; o restante e sobrescrito pela nova versao.
     stored = { ...all[index], ...offer, created_at: all[index].created_at || now, updated_at: now };
     all[index] = stored;
+  }
+
+  if (stored.preco_centavos != null && !isPositiveCentavos(stored.preco_centavos)) {
+    const err = new Error("Preço inválido: preco_centavos deve ser um inteiro seguro maior que zero.");
+    err.code = "OFERTA_PRECO_INVALIDO";
+    throw err;
   }
 
   const findings = auditOfferDates([stored], now);
