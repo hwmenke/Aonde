@@ -13,6 +13,7 @@
 //   { route: "GRU-LIS", observedAt, departDate, price, currency, airline }
 
 import path from "node:path";
+import { isPositiveCentavos } from "../offers/price.js";
 import { readdirSync, existsSync } from "node:fs";
 
 import { resolveDataDir, readJsonSafe, writeJsonAtomic } from "./dataDir.js";
@@ -51,13 +52,14 @@ function lerObservacoes(file) {
  */
 export function priceToCentavos(price) {
   if (typeof price !== "number" || Number.isNaN(price)) return null;
-  return Math.round(price * 100);
+  const cents = Math.round(price * 100);
+  return isPositiveCentavos(cents) ? cents : null;
 }
 
 /**
  * Grava uma observacao por deal do array normalizado do modulo. Agrupa por
  * rota e faz append no arquivo da rota (escrita atomica). Deals sem
- * origin/destination ou sem preco numerico sao ignorados.
+ * origin/destination ou com preco invalido sao ignorados.
  *
  * @param {Array<object>} deals array de deals de searchDeals()/searchDealsTravelpayouts()
  * @param {object} [options]
@@ -76,7 +78,7 @@ export function recordPrices(deals, options = {}) {
   const byRoute = new Map();
   for (const deal of deals) {
     if (!deal || !deal.origin || !deal.destination) continue;
-    if (typeof deal.price !== "number" || Number.isNaN(deal.price)) continue;
+    if (priceToCentavos(deal.price) === null) continue;
 
     const route = routeKey(deal.origin, deal.destination);
     const observation = {
