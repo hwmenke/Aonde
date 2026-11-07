@@ -114,6 +114,29 @@ test("endereco recusado pelo provedor entra na supressao e nunca mais e tentado"
   assert.equal(chamadas, antes, "endereco suprimido nao pode gerar nova chamada de rede");
 });
 
+for (const status of [400, 422]) {
+  for (const para of ["reader@example.test", "error@x.com", "invalid@x.com", "rejected@x.com"]) {
+    test(`${status} subject invalido com eco de ${para} nao suprime`, async (t) => {
+      comDataDir(t);
+      comProvedor(t, { AONDE_EMAIL_PROVIDER: "resend", AONDE_EMAIL_API_KEY: "k", AONDE_EMAIL_FROM: "a@b.com" });
+      const { enviarEmail, estaSuprimido } = await import("../src/newsletter/sender.js");
+      let chamadas = 0;
+      setFetchImpl(async () => {
+        chamadas++;
+        return { ok: false, status, text: async () => JSON.stringify({ message: "Invalid subject", field: "subject", to: para }) };
+      });
+      t.after(() => resetFetchImpl());
+      const alvo = { ...MSG, para };
+      const primeiro = await enviarEmail(alvo);
+      const segundo = await enviarEmail(alvo);
+      assert.equal(primeiro.estado, "falha_permanente");
+      assert.equal(segundo.estado, "falha_permanente");
+      assert.equal(chamadas, 2, "segundo envio precisa chegar ao provedor");
+      assert.equal(estaSuprimido(para), false);
+    });
+  }
+}
+
 for (const [nome, status, corpo, suprime] of [
   ["422 vazio", 422, "", false],
   ["422 generico", 422, '{"message":"Validation error"}', false],
@@ -121,6 +144,10 @@ for (const [nome, status, corpo, suprime] of [
   ["400 chave invalida", 400, '{"message":"Invalid API key"}', false],
   ["422 payload invalido", 422, '{"message":"Invalid payload","field":"subject"}', false],
   ["422 campo to", 422, '{"errors":[{"message":"Invalid email","field":"personalizations.0.to.0.email"}]}', true],
+  ["422 detalhe to", 422, '{"errors":{"to":"Invalid email"}}', true],
+  ["422 param to", 422, '{"message":"Invalid email","param":"to"}', true],
+  ["422 path to", 422, '{"message":"Invalid email","path":["to",0]}', true],
+  ["422 mensagem com to", 422, '{"message":"Rejected `to` field"}', true],
   ["400 destinatario invalido", 400, '{"name":"invalid_recipient"}', true],
   ["422 bounce", 422, '{"message":"Recipient bounced"}', true],
   ["422 texto com endereco", 422, "Invalid address pessoa@exemplo.com", true],
