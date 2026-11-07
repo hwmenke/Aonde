@@ -188,3 +188,42 @@ for (const query of [getRouteStats, getRouteSeries]) {
     assert.equal(insufficient.sampleCount, 2);
   });
 }
+
+for (const query of [getRouteStats, getRouteSeries]) {
+  test(`${query.name} skips invalid legacy prices without rewriting history`, async (t) => {
+    t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-07-22T12:00:00Z") });
+    const dir = await withTempDataDir(t);
+    const file = path.join(dir, "history", "GRU-LIS.json");
+    await mkdir(path.dirname(file), { recursive: true });
+    const raw = JSON.stringify([0, -10, 100, 100, 100].map(price => ({
+      price, currency: "BRL", observedAt: new Date().toISOString(),
+    })));
+    await writeFile(file, raw);
+    const stats = query("GRU", "LIS");
+    assert.equal(stats.sampleCount, 3, JSON.stringify(stats));
+    assert.equal(stats.ok, false);
+    const usable = query("GRU", "LIS", { minSamples: 3 });
+    assert.equal(usable.ok, true);
+    assert.equal(usable.mediaCentavos, 10000);
+    assert.equal(usable.minCentavos, 10000);
+    assert.equal(usable.maxCentavos, 10000);
+    if (usable.points) assert.deepEqual(usable.points.map(p => p.priceCentavos), [10000, 10000, 10000]);
+    assert.equal(await readFile(file, "utf-8"), raw);
+  });
+}
+
+test("recordPrices rejects invalid converted cents and preserves valid rounding", async (t) => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-07-22T12:00:00Z") });
+  await withTempDataDir(t);
+  for (const price of [0, -10, 0.001, NaN, Infinity, -Infinity, Number.MAX_SAFE_INTEGER]) {
+    assert.equal(priceToCentavos(price), null, String(price));
+  }
+  assert.equal(priceToCentavos(1.235), 124);
+  const result = recordPrices([0, -10, 0.001, NaN, Infinity, Number.MAX_SAFE_INTEGER, 1.235, 100].map(p => makeDeal(p)));
+  assert.equal(result.recorded, 2);
+  const stats = getRouteStats("GRU", "LIS", { minSamples: 2 });
+  assert.equal(stats.sampleCount, 2);
+  assert.equal(stats.minCentavos, 124);
+  assert.equal(stats.maxCentavos, 10000);
+  assert.equal(stats.mediaCentavos, 5062);
+});

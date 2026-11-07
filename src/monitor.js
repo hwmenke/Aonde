@@ -13,15 +13,15 @@
 import { searchDealsTravelpayouts } from "./partners/travelpayouts.js";
 import { getTypicalPrices, hasAmadeusCredentials } from "./partners/amadeus.js";
 import { toOffer } from "./offerAdapter.js";
-import { recordPrices, getRouteStats, routeKey } from "./store/priceHistory.js";
+import { recordPrices, getRouteStats, routeKey, priceToCentavos } from "./store/priceHistory.js";
 import { detectFareError } from "./fareError.js";
 import { upsert } from "./store/offersStore.js";
 
-/** Escolhe o deal de menor preco (ignora precos nao numericos). */
+/** Escolhe o deal de menor preco (ignora precos invalidos). */
 function bestDeal(deals) {
   let best = null;
   for (const deal of deals) {
-    if (!deal || typeof deal.price !== "number" || Number.isNaN(deal.price)) continue;
+    if (!deal || priceToCentavos(deal.price) === null) continue;
     if (best === null || deal.price < best.price) best = deal;
   }
   return best;

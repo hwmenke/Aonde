@@ -229,3 +229,29 @@ for (const currency of ["USD", "usd", "brl"]) {
     }
   });
 }
+
+for (const prices of [[0, 100], [0, -10, 0.001, Number.MAX_SAFE_INTEGER]]) {
+  test(`runMonitor skips invalid fares: ${prices.join(',')}`, async (t) => {
+    t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-07-22T12:00:00Z") });
+    await setup(t, async () => jsonResponse({
+      success: true, data: prices.map((price) => ({ price })),
+    }));
+    const result = await runMonitor({ routes: [{ origin: "GRU", destination: "LIS" }] });
+    assert.equal(result.ok, true, JSON.stringify(result));
+    const route = result.perRoute["GRU-LIS"];
+    assert.equal(route.ok, true);
+    assert.equal(route.error, null);
+    if (prices.includes(100)) {
+      assert.equal(result.offers.length, 1);
+      assert.equal(result.offers[0].preco_centavos, 10000);
+      assert.equal(result.offers[0].status, "rascunho");
+      assert.equal(getOffer("gru-lis").preco_centavos, 10000);
+      assert.equal(getRouteStats("GRU", "LIS").sampleCount, 1);
+    } else {
+      assert.equal(route.dealsFound, 0);
+      assert.deepEqual(result.offers, []);
+      assert.deepEqual(listOffers(), []);
+      assert.equal(getRouteStats("GRU", "LIS").sampleCount, 0);
+    }
+  });
+}
