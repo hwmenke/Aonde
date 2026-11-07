@@ -249,7 +249,7 @@ async function processarFilaInterna({ limite = 200, agora = new Date() } = {}) {
       enviados++;
       estados[chave] = "enviado";
       gravarEstados(estados);
-    } else if (r.estado === "falha_temporaria") {
+    } else if (r.estado === "falha_temporaria" || r.estado === "falha_provedor") {
       // Para AQUI e nao avanca o checkpoint alem desta linha: na proxima
       // rodada ela e retentada, em vez de ser perdida.
       delete estados[chave];
