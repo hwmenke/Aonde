@@ -169,9 +169,15 @@ export function provedorConfigurado() {
 /** Sem evidencia sobre o destinatario, erro do provedor nao e bounce. */
 function recusaDestinatario(resposta, para) {
   const corpo = resposta.bodyText || JSON.stringify(resposta.data ?? "");
-  const texto = corpo.toLowerCase();
+  // Um endereco ecoado e dado do pedido, nao evidencia de rejeicao.
+  const semEnderecos = (valor) => String(valor).replace(/[^\s"'<>:,\[\]{}]+@[^\s"'<>:,\[\]{}]+/g, "");
+  const texto = semEnderecos(corpo).toLowerCase();
   const endereco = String(para || "").trim().toLowerCase();
-  if (endereco && texto.includes(endereco)) return true;
+  function mensagemRecusa(mensagem) {
+    if (typeof mensagem !== "string") return false;
+    if (endereco && mensagem.toLowerCase().includes(endereco) && /\binvalid[ _-]+address\b/i.test(semEnderecos(mensagem))) return true;
+    return /(?:invalid|rejected|undeliverable|not valid)[^\n.]{0,60}["'`]to["'`]|["'`]to["'`][^\n.]{0,60}(?:invalid|rejected|not valid)/i.test(semEnderecos(mensagem));
+  }
   if (/\b(?:bounce(?:d)?|undeliverable)\b|\binvalid[ _-]+recipient\b|\brecipient[ _-]+(?:invalid|rejected)\b/.test(texto)) return true;
   const campoTo = /(?:^|[.\[\s"'`])to(?:$|[.\]\s"'`:])/;
   function erroTo(valor) {
@@ -180,11 +186,11 @@ function recusaDestinatario(resposta, para) {
       if (["field", "param", "path"].includes(campo)) {
         return campoTo.test(Array.isArray(detalhe) ? detalhe.join(".") : String(detalhe));
       }
-      return (campo === "to" && /invalid|rejected|undeliverable|error/i.test(JSON.stringify(detalhe))) || erroTo(detalhe);
+      return (campo === "to" && /invalid|rejected|undeliverable|error/i.test(semEnderecos(JSON.stringify(detalhe)))) ||
+        (campo === "message" && mensagemRecusa(detalhe)) || erroTo(detalhe);
     });
   }
-  return erroTo(resposta.data) ||
-    /(?:invalid|rejected|undeliverable|not valid)[^\n.]{0,60}["'`]to["'`]|["'`]to["'`][^\n.]{0,60}(?:invalid|rejected|not valid)/.test(texto);
+  return erroTo(resposta.data) || (!resposta.data && mensagemRecusa(corpo));
 }
 
 /**
