@@ -14,6 +14,8 @@
 // LGPD (minimizacao de dados): a fila grava o HASH SHA-256 do e-mail, nunca o
 // e-mail em claro.
 
+import { precoCentavosOferta } from "../offers/price.js";
+
 import path from "node:path";
 import crypto from "node:crypto";
 import { appendFileSync, readFileSync } from "node:fs";
@@ -42,7 +44,8 @@ export function matchAlerts(offer, { rules = [], subscribers = [], dia = new Dat
 
   const offerOrigem = String(offer.origem || "").toUpperCase();
   const offerDestino = String(offer.destino || "").toUpperCase();
-  const offerPreco = offer.preco_centavos;
+  const offerPreco = precoCentavosOferta(offer);
+  if (offerPreco === null) return [];
 
   // Indexa assinantes elegiveis (confirmados e ativos) por id.
   const eligibleById = new Map();
@@ -158,7 +161,7 @@ export function planAlerts({ offers = [], rules = [], subscribers = [], queueIte
         canal,
         offerId: offer.id || null,
         offerRoute: `${String(offer.origem || "").toUpperCase()}-${String(offer.destino || "").toUpperCase()}`,
-        precoCentavos: offer.preco_centavos ?? null,
+        precoCentavos: precoCentavosOferta(offer),
       };
       const key = `${item.subscriberEmailHash}|${item.offerRoute}|${canal}`;
       const last = enviados.get(key);
