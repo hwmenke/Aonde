@@ -11,8 +11,9 @@
 // e a forma mais rapida de perder um assinante.
 // ---------------------------------------------------------------------------
 
-import { readFileSync, writeFileSync, openSync, closeSync, writeSync, unlinkSync, existsSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, openSync, closeSync, writeSync, unlinkSync, existsSync, statSync, mkdirSync, rmdirSync } from "node:fs";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 
 import { resolveDataDir, ensureDir } from "../store/dataDir.js";
 import { enviarEmail, provedorConfigurado } from "./sender.js";
@@ -49,7 +50,8 @@ function gravarEstados(estados) {
 }
 
 // Dois workers ao mesmo tempo não podem mandar a mesma linha. O lock é
-// exclusivo (wx). Só recupera locks antigos quando o dono já morreu.
+// exclusivo (wx), com mutações serializadas pelo gate. Só recupera locks
+// antigos quando o dono já morreu.
 function pidAlive(pid) {
   if (!Number.isSafeInteger(pid) || pid <= 0) return false;
   if (existsSync(`/proc/${pid}`)) return true;
@@ -61,35 +63,128 @@ function pidAlive(pid) {
   }
 }
 
-function adquirirLock() {
-  const lock = arquivoLock();
-  let recuperado = false;
-  ensureDir(resolveDataDir());
-  try {
-    if (existsSync(lock)) {
-      const idade = Date.now() - statSync(lock).mtimeMs;
-      const dono = Number(readFileSync(lock, "utf-8"));
-      if (pidAlive(dono) || idade < 120000) return null;
-      unlinkSync(lock);
-      recuperado = true;
-    }
-  } catch {
-    return null;
+// Synchronous cross-process handshake, inert outside explicitly configured tests.
+function barreiraTesteLock() {
+  const base = process.env.AONDE_TEST_LOCK_BARRIER;
+  if (!base) return;
+  writeFileSync(`${base}.ready`, "");
+  const deadline = Date.now() + 15000;
+  while (!existsSync(`${base}.go`)) {
+    if (Date.now() > deadline) throw new Error("Lock test barrier timed out");
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5);
   }
+}
+
+// Never reclaim the gate automatically: a paused owner may still mutate the lock.
+// If a crash leaves it behind, stop ALL workers before manually removing the
+// empty <dataDir>/alert_queue.lock.gate directory, then restart workers.
+function comGateLock(operacao) {
+  const gate = `${arquivoLock()}.gate`;
   try {
-    const fd = openSync(lock, "wx");
-    writeSync(fd, String(process.pid));
-    closeSync(fd);
-    if (recuperado) {
-      const estados = lerEstados();
-      for (const chave of Object.keys(estados)) {
-        if (estados[chave] === "reivindicado") delete estados[chave];
-      }
-      gravarEstados(estados);
+    ensureDir(resolveDataDir());
+    // Fault injection is inert unless explicitly enabled by a test.
+    if (process.env.AONDE_TEST_LOCK_MKDIR_ERROR) {
+      throw Object.assign(new Error("Injected gate failure"), { code: process.env.AONDE_TEST_LOCK_MKDIR_ERROR });
     }
-    return lock;
+    mkdirSync(gate);
+  } catch (erro) {
+    if (erro.code === "EEXIST") return { contendido: true };
+    return { erro };
+  }
+  let resultado;
+  try {
+    resultado = operacao();
+  } catch (erro) {
+    resultado = { erro };
+  } finally {
+    try {
+      rmdirSync(gate);
+    } catch (erro) {
+      resultado = { erro };
+    }
+  }
+  return resultado;
+}
+
+function lerDonoLock() {
+  const raw = readFileSync(arquivoLock(), "utf-8");
+  try {
+    const value = JSON.parse(raw);
+    if (value && typeof value === "object") return value;
   } catch {
-    return null;
+    // Legacy locks contain just a PID (or an empty/corrupt value).
+  }
+  return { pid: Number(raw) };
+}
+
+function adquirirLock() {
+  barreiraTesteLock();
+  return comGateLock(() => {
+    const lock = arquivoLock();
+    let recuperado = false;
+    try {
+      if (existsSync(lock)) {
+        const idade = Date.now() - statSync(lock).mtimeMs;
+        if (pidAlive(lerDonoLock().pid) || idade < 120000) return null;
+        unlinkSync(lock);
+        recuperado = true;
+      }
+      const dono = { pid: process.pid, token: randomUUID(), acquiredAt: new Date().toISOString() };
+      const fd = openSync(lock, "wx");
+      try {
+        writeSync(fd, JSON.stringify(dono));
+      } finally {
+        closeSync(fd);
+      }
+      if (recuperado) {
+        // Legacy claim states have no owner identity. Clear only after confirmed
+        // abandonment, with the gate held and the replacement lock published.
+        const estados = lerEstados();
+        for (const chave of Object.keys(estados)) {
+          if (estados[chave] === "reivindicado") delete estados[chave];
+        }
+        gravarEstados(estados);
+      }
+      return dono;
+    } catch (erro) {
+      return { erro };
+    }
+  });
+}
+
+const LOCK_RELEASE_TIMEOUT_MS = 2000;
+const LOCK_RELEASE_BACKOFF_MS = 10;
+const lockWait = new Int32Array(new SharedArrayBuffer(4));
+
+function liberarLock(dono) {
+  const testTimeout = Number(process.env.AONDE_TEST_LOCK_RELEASE_TIMEOUT_MS);
+  const timeout = Number.isFinite(testTimeout) && testTimeout > 0
+    ? Math.min(testTimeout, LOCK_RELEASE_TIMEOUT_MS) : LOCK_RELEASE_TIMEOUT_MS;
+  const deadline = performance.now() + timeout;
+  let sinalizado = false;
+  for (;;) {
+    const resultado = comGateLock(() => {
+      try {
+        // Ownership must be read again only after acquiring the gate.
+        if (lerDonoLock().token === dono.token) unlinkSync(arquivoLock());
+        return { liberado: true };
+      } catch (erro) {
+        if (erro.code === "ENOENT") return { liberado: true };
+        return { erro };
+      }
+    });
+    if (resultado.liberado) return true;
+    if (resultado.contendido && !sinalizado) {
+      sinalizado = true;
+      const base = process.env.AONDE_TEST_LOCK_RELEASE_BARRIER;
+      if (base) writeFileSync(`${base}.retrying`, "");
+    }
+    const restante = deadline - performance.now();
+    if (resultado.erro || restante <= 0) {
+      console.error(`[aonde-affiliates] Falha ao liberar lock ${arquivoLock()} (${resultado.erro?.code || "EEXIST"}). Recuperação manual: pare TODOS os workers, inspecione o dono e remova o gate/lock abandonado antes de reiniciar.`);
+      return false;
+    }
+    Atomics.wait(lockWait, 0, 0, Math.min(LOCK_RELEASE_BACKOFF_MS, restante));
   }
 }
 
@@ -139,7 +234,8 @@ function assinantePorHash(hash, assinantes) {
  */
 export async function processarFila({ limite = 200, agora = new Date() } = {}) {
   const lock = adquirirLock();
-  if (!lock) {
+  if (!lock || lock.contendido || lock.erro) {
+    if (lock?.erro) console.error(`[aonde-affiliates] Erro ao adquirir lock ${arquivoLock()}: ${lock.erro.code || "UNKNOWN"}`);
     return {
       ok: true,
       lidos: 0,
@@ -148,13 +244,14 @@ export async function processarFila({ limite = 200, agora = new Date() } = {}) {
       falhas: 0,
       modo: "bloqueado",
       pendentesRestantes: 0,
-      motivo: "em-andamento",
+      motivo: lock?.erro ? "erro-lock" : "em-andamento",
     };
   }
+  let resultado;
   try {
     const prov = provedorConfigurado();
     if (!prov || prov.erro) {
-      return {
+      resultado = {
         ok: true,
         lidos: 0,
         enviados: 0,
@@ -164,15 +261,17 @@ export async function processarFila({ limite = 200, agora = new Date() } = {}) {
         pendentesRestantes: Math.max(0, lerFila().length - lerCheckpoint()),
         motivo: prov?.erro || "AONDE_EMAIL_PROVIDER nao definida.",
       };
+    } else {
+      resultado = await processarFilaInterna({ limite, agora });
     }
-    return await processarFilaInterna({ limite, agora });
   } finally {
-    try {
-      if (readFileSync(lock, "utf-8") === String(process.pid)) unlinkSync(lock);
-    } catch {
-      // Lock removido ou substituído pertence ao próximo worker.
+    const liberado = liberarLock(lock);
+    if (resultado && !liberado) {
+      resultado.lockLiberado = false;
+      resultado.motivoLock = "erro-liberar-lock";
     }
   }
+  return resultado;
 }
 
 async function processarFilaInterna({ limite = 200, agora = new Date() } = {}) {
