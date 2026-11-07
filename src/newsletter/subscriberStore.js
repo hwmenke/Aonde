@@ -245,6 +245,9 @@ export function confirm(token) {
   }
 
   const subscriber = all[index];
+  if (subscriber.unsubscribed_at || subscriber.pii_purged_at || !isValidEmail(subscriber.email)) {
+    return { ok: false, error: "Esse link de confirmação não vale mais: já foi usado ou não existe." };
+  }
   const expiresAt = subscriber.optin_token_expires_at
     ? new Date(subscriber.optin_token_expires_at).getTime()
     : 0;
@@ -303,6 +306,10 @@ export function unsubscribe(email) {
       whatsapp: "",
       unsubscribed_at: new Date().toISOString(),
       pii_purged_at: new Date().toISOString(),
+      optin_token: null,
+      optin_token_expires_at: null,
+      pending_alert: null,
+      pending_rule: null,
     };
     writeAll(all);
   }
