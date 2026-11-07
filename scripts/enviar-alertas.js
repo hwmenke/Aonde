@@ -9,8 +9,8 @@
 // Feito para rodar num cron. E IDEMPOTENTE: rodar duas vezes seguidas nao
 // reenvia o que ja saiu (checkpoint em data/alert_queue.checkpoint).
 //
-// Sem AONDE_EMAIL_PROVIDER configurado ele roda em modo "registro": processa a
-// fila, grava o log e DIZ que nao enviou nada. Nao finge envio — quem confia
+// Sem provedor pronto ele roda em modo "registro": preserva a fila e sai com
+// erro, informando quantos alertas continuam pendentes. Quem confia
 // num alerta que nunca chega perde a viagem, nao o e-mail.
 // ---------------------------------------------------------------------------
 
@@ -41,8 +41,12 @@ if (arg("json")) {
   }
   console.log(`Lidos da fila:        ${r.lidos}`);
   console.log(`Enviados:             ${r.enviados}`);
-  console.log(`Pulados:              ${r.pulados}   (descadastrado, sem provedor ou linha invalida)`);
+  console.log(`Pulados:              ${r.pulados}   (descadastrado ou linha invalida)`);
   console.log(`Falhas temporarias:   ${r.falhas}   (ficam na fila para a proxima rodada)`);
   console.log(`Ainda pendentes:      ${r.pendentesRestantes}`);
+}
+if (r.modo === "registro") {
+  console.error(`MODO REGISTRO — ${r.motivo} Fila preservada: ${r.pendentesRestantes} alerta(s) pendente(s). Configure AONDE_EMAIL_PROVIDER, AONDE_EMAIL_API_KEY e AONDE_EMAIL_FROM.`);
+  process.exitCode = 1;
 }
 if (r.falhas > 0) process.exitCode = 1;

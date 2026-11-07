@@ -152,6 +152,19 @@ export async function processarFila({ limite = 200, agora = new Date() } = {}) {
     };
   }
   try {
+    const prov = provedorConfigurado();
+    if (!prov || prov.erro) {
+      return {
+        ok: true,
+        lidos: 0,
+        enviados: 0,
+        pulados: 0,
+        falhas: 0,
+        modo: "registro",
+        pendentesRestantes: Math.max(0, lerFila().length - lerCheckpoint()),
+        motivo: prov?.erro || "AONDE_EMAIL_PROVIDER nao definida.",
+      };
+    }
     return await processarFilaInterna({ limite, agora });
   } finally {
     try {
