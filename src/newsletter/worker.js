@@ -207,6 +207,14 @@ async function processarFilaInterna({ limite = 200, agora = new Date() } = {}) {
       continue;
     }
 
+    if (item.canal !== undefined && item.canal !== "email") {
+      estados[chave] = "descartado";
+      gravarEstados(estados);
+      console.warn("[aonde-affiliates] Alerta descartado: canal-nao-suportado", item.canal);
+      pulados++;
+      continue;
+    }
+
     // Relê o store imediatamente antes do envio: descadastro no meio da fila
     // não pode receber o e-mail que já estava na linha.
     const assinantes = listSubscribers();
