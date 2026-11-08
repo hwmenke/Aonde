@@ -299,6 +299,10 @@ async function processarFilaInterna({ limite = 200, agora = new Date() } = {}) {
       pulados++;
       continue; // linha corrompida nao trava a fila
     }
+    if (item === null || typeof item !== "object" || Array.isArray(item)) {
+      pulados++;
+      continue;
+    }
 
     const chave = item && item.id ? String(item.id) : `linha:${jaFeitos + i}`;
     if (estados[chave] === "enviado" || estados[chave] === "descartado" || estados[chave] === "reivindicado") {
