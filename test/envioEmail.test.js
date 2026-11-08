@@ -115,6 +115,39 @@ test("endereco recusado pelo provedor entra na supressao e nunca mais e tentado"
 });
 
 for (const status of [400, 422]) {
+  for (const [nome, eco] of [
+    ["from", { from: "Bounce <sender@example.test>" }],
+    ["sender", { sender: "Bounce <sender@example.test>" }],
+    ["from aninhado", { request: { from: { name: "Bounce", email: "sender@example.test" } } }],
+    ["sender aninhado", { errors: [{ request: { sender: "Bounce <sender@example.test>" } }] }],
+  ]) {
+    test(`${status} ${nome} com nome Bounce nao suprime o destinatario`, async (t) => {
+      comDataDir(t);
+      comProvedor(t, { AONDE_EMAIL_PROVIDER: "resend", AONDE_EMAIL_API_KEY: "dummy", AONDE_EMAIL_FROM: "sender@example.test" });
+      const { enviarEmail, estaSuprimido } = await import("../src/newsletter/sender.js");
+      let chamadas = 0;
+      setFetchImpl(async () => {
+        chamadas++;
+        return {
+          ok: chamadas > 1,
+          status: chamadas > 1 ? 200 : status,
+          text: async () => chamadas > 1 ? "{}" : JSON.stringify({ message: "Invalid from address", field: "from", ...eco }),
+        };
+      });
+      t.after(() => resetFetchImpl());
+      const alvo = { ...MSG, para: "reader@example.test" };
+      const primeiro = await enviarEmail(alvo);
+      assert.equal(primeiro.estado, "falha_permanente");
+      const suprimido = estaSuprimido(alvo.para);
+      const segundo = await enviarEmail(alvo);
+      assert.equal(segundo.estado, "enviado");
+      assert.equal(chamadas, 2, "segundo envio precisa chegar ao provedor");
+      assert.equal(suprimido, false);
+    });
+  }
+}
+
+for (const status of [400, 422]) {
   for (const para of ["reader@example.test", "error@x.com", "invalid@x.com", "rejected@x.com"]) {
     test(`${status} subject invalido com eco de ${para} nao suprime`, async (t) => {
       comDataDir(t);
@@ -150,6 +183,8 @@ for (const [nome, status, corpo, suprime] of [
   ["422 mensagem com to", 422, '{"message":"Rejected `to` field"}', true],
   ["400 destinatario invalido", 400, '{"name":"invalid_recipient"}', true],
   ["422 bounce", 422, '{"message":"Recipient bounced"}', true],
+  ["422 bounce com remetente ecoado", 422, '{"message":"Recipient bounced","from":"Bounce <sender@example.test>"}', true],
+  ["422 campo to dentro de sender", 422, '{"sender":{"errors":[{"field":"to","message":"Invalid email"}]}}', true],
   ["422 texto com endereco", 422, "Invalid address pessoa@exemplo.com", true],
   ["422 texto com to", 422, 'Invalid `to` field', true],
 ]) {
