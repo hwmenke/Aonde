@@ -162,8 +162,12 @@ export function getRouteStats(origin, destination, options = {}) {
 
   const sum = centavos.reduce((acc, c) => acc + c, 0);
   const mediaCentavos = Math.round(sum / sampleCount);
-  const minCentavos = Math.min(...centavos);
-  const maxCentavos = Math.max(...centavos);
+  let minCentavos = Infinity;
+  let maxCentavos = -Infinity;
+  for (const c of centavos) {
+    minCentavos = Math.min(minCentavos, c);
+    maxCentavos = Math.max(maxCentavos, c);
+  }
 
   return {
     ok: true,
@@ -262,8 +266,12 @@ export function getRouteSeries(origin, destination, options = {}) {
   const centavosList = points.map((p) => p.priceCentavos);
   const sum = centavosList.reduce((acc, c) => acc + c, 0);
   const mediaCentavos = Math.round(sum / sampleCount);
-  const minCentavos = Math.min(...centavosList);
-  const maxCentavos = Math.max(...centavosList);
+  let minCentavos = Infinity;
+  let maxCentavos = -Infinity;
+  for (const c of centavosList) {
+    minCentavos = Math.min(minCentavos, c);
+    maxCentavos = Math.max(maxCentavos, c);
+  }
   const latest = points[points.length - 1];
   const first = points[0];
 
