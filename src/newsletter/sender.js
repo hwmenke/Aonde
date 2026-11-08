@@ -171,7 +171,10 @@ function recusaDestinatario(resposta, para) {
   const corpo = resposta.bodyText || JSON.stringify(resposta.data ?? "");
   // Um endereco ecoado e dado do pedido, nao evidencia de rejeicao.
   const semEnderecos = (valor) => String(valor).replace(/[^\s"'<>:,\[\]{}]+@[^\s"'<>:,\[\]{}]+/g, "");
-  const texto = semEnderecos(corpo).toLowerCase();
+  // Remetentes ecoados tambem sao dados do pedido, inclusive nomes como Bounce.
+  const corpoSemRemetente = resposta.data == null ? corpo : JSON.stringify(resposta.data,
+    (campo, valor) => ["from", "sender"].includes(campo) ? undefined : valor);
+  const texto = semEnderecos(corpoSemRemetente).toLowerCase();
   const endereco = String(para || "").trim().toLowerCase();
   function mensagemRecusa(mensagem) {
     if (typeof mensagem !== "string") return false;
