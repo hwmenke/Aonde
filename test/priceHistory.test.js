@@ -40,6 +40,30 @@ function makeDeal(price, overrides = {}) {
   };
 }
 
+for (const query of [getRouteStats, getRouteSeries]) {
+  test(`${query.name} aggregates 200000 recent observations without argument limits`, async (t) => {
+    const dir = await withTempDataDir(t);
+    const file = path.join(dir, "history", "GRU-LIS.json");
+    const observedAt = new Date().toISOString();
+    const observations = Array.from({ length: 200000 }, (_, i) => ({
+      route: "GRU-LIS",
+      observedAt,
+      currency: "BRL",
+      price: 1000 + (i % 5) * 500,
+    }));
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, JSON.stringify(observations));
+
+    const stats = query("GRU", "LIS");
+    assert.equal(stats.ok, true);
+    assert.equal(stats.sampleCount, 200000);
+    assert.equal(stats.minCentavos, 100000);
+    assert.equal(stats.maxCentavos, 300000);
+    assert.equal(stats.mediaCentavos, 200000);
+    if (stats.points) assert.equal(stats.points.length, 200000);
+  });
+}
+
 test("priceToCentavos usa Math.round(price*100) e rejeita invalidos", () => {
   assert.equal(priceToCentavos(3200), 320000);
   assert.equal(priceToCentavos(19.99), 1999);
