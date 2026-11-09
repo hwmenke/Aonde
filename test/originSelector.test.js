@@ -33,17 +33,14 @@ test.after(async () => {
 // OFERTA GRU-EZE: origem alteravel
 // ---------------------------------------------------------------------------
 
-test("GET /ofertas/gig-ssa mostra seletor de origem", async () => {
+test("GET /ofertas/gig-ssa encerrada nao mostra seletor de origem", async () => {
   const res = await fetch(`${baseUrl}/ofertas/gig-ssa`);
   assert.strictEqual(res.status, 200, "deve devolver 200 OK");
   const html = await res.text();
   
-  // Deve ter o seletor de origem. gig-ssa (7 nov) ainda esta no ar; gru-eze ja encerrou.
-  assert.ok(html.includes('data-origin-selector'), "deve ter o seletor de origem");
-  assert.ok(html.includes('Saindo de'), "deve ter o rotulo 'Saindo de'");
-  assert.ok(html.includes('value="GRU"'), "deve ter GRU como opcao");
-  assert.ok(html.includes('value="REC"'), "deve ter REC como opcao");
-  assert.ok(html.includes('value="GIG"'), "deve ter GIG como opcao");
+  assert.ok(!html.includes("data-origin-selector"), "encerrada nao deve ter seletor de origem");
+  assert.match(html, /class="det-encerrada"/);
+  assert.ok(html.includes("Salvador"), "deve manter o destino");
 });
 
 test("GET /ofertas/gru-eze marca preco como especifico de GRU", async () => {
@@ -141,7 +138,7 @@ test("GET /hoje sem seletor de origem para ofertas sem aviasalesUrl", async () =
 // ---------------------------------------------------------------------------
 
 test("JavaScript esconde preco quando origem != original", async () => {
-  const res = await fetch(`${baseUrl}/ofertas/gig-ssa`);
+  const res = await fetch(`${baseUrl}/hoje?dia=2026-08-21`);
   assert.strictEqual(res.status, 200, "deve devolver 200 OK");
   const html = await res.text();
   
@@ -151,7 +148,9 @@ test("JavaScript esconde preco quando origem != original", async () => {
   assert.ok(html.includes('data-origin-selector'), "deve ter o seletor de origem");
   const asset = html.match(/<script defer src="(\/assets\/site-[0-9a-f]{12}\.js)"><\/script>/);
   assert.ok(asset, "deve carregar o JS compartilhado por asset");
-  const js = await (await fetch(`${baseUrl}${asset[1]}`)).text();
+  const assetRes = await fetch(`${baseUrl}${asset[1]}`);
+  assert.strictEqual(assetRes.status, 200, "deve servir o JS compartilhado");
+  const js = await assetRes.text();
   assert.ok(js.includes('el.hidden=true'), "deve ter logica para esconder o preco");
   assert.ok(js.includes('novaOrigem!=='), "deve checar se origem mudou");
 });

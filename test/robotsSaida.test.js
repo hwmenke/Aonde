@@ -1,7 +1,7 @@
 // /saida/:id sem TRAVELPAYOUTS_MARKER devolve a pagina da oferta sem botao de
 // reserva. E uma copia de /ofertas/:id sob outra URL: precisa de noindex.
-// Com marker, a interstitial continua noindex como sempre. /ofertas/:id segue
-// indexavel nos dois casos.
+// Com marker, a interstitial continua noindex como sempre. Ofertas encerradas
+// tambem sao noindex com e sem marker.
 
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -65,13 +65,13 @@ test("GET /saida/gru-fln COM marker continua noindex e com o mesmo link tp.media
   assert.ok(html.includes("tp.media/r?marker=test-marker-robots.gru-fln"), "logica do marker intacta");
 });
 
-test("GET /ofertas/gig-ssa continua indexavel com e sem marker", async (t) => {
+test("GET /ofertas/gig-ssa encerrada e noindex com e sem marker", async (t) => {
   for (const marker of [undefined, "test-marker-robots"]) {
     const { baseUrl } = await withServer(t, { marker });
     const res = await fetch(`${baseUrl}/ofertas/gig-ssa`);
     assert.equal(res.status, 200);
-    assert.equal(res.headers.get("x-robots-tag"), null);
-    assert.doesNotMatch(await res.text(), /name="robots"/);
+    assert.equal(res.headers.get("x-robots-tag"), "noindex, nofollow");
+    assert.match(await res.text(), META_NOINDEX);
   }
 });
 

@@ -104,17 +104,15 @@ test("GET /hoje para 2026-08-23 mostra GIG-SSA com roteiro de Salvador", async (
   assert.ok(html.includes("data-origin-selector"), "deve ter seletor de origem");
 });
 
-test("GET /ofertas/gig-ssa mostra seletor de origem", async (t) => {
+test("GET /ofertas/gig-ssa encerrada nao mostra seletor de origem", async (t) => {
   const { baseUrl } = await withServer(t);
   const res = await fetch(`${baseUrl}/ofertas/gig-ssa`);
   assert.strictEqual(res.status, 200, "deve devolver 200 OK");
   const html = await res.text();
   
-  // Deve ter o seletor de origem.
-  assert.ok(html.includes("data-origin-selector"), "deve ter seletor de origem");
-  assert.ok(html.includes("Saindo de"), "deve ter rotulo 'Saindo de'");
-  assert.ok(html.includes('value="GIG"'), "deve ter GIG como opcao");
-  assert.ok(html.includes('value="REC"'), "deve ter REC como opcao");
+  assert.ok(!html.includes("data-origin-selector"), "encerrada nao deve ter seletor de origem");
+  assert.match(html, /class="det-encerrada"/);
+  assert.ok(html.includes("Salvador"), "deve manter o destino");
 });
 
 test("GIG-SSA marca preco como especifico de GIG (nao GRU)", async (t) => {
