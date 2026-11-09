@@ -318,6 +318,14 @@ async function processarFilaInterna({ limite = 200, agora = new Date() } = {}) {
       continue;
     }
 
+    if (typeof item.subscriberEmailHash !== "string" || !item.subscriberEmailHash.trim()) {
+      estados[chave] = "descartado";
+      gravarEstados(estados);
+      console.warn("[aonde-affiliates] Alerta descartado: subscriberEmailHash ausente ou invalido.");
+      pulados++;
+      continue;
+    }
+
     // Relê o store imediatamente antes do envio: descadastro no meio da fila
     // não pode receber o e-mail que já estava na linha.
     const assinantes = listSubscribers();
