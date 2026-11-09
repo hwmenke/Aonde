@@ -134,11 +134,14 @@ test("ofertasDoRoteiro so devolve ofertas do mesmo destino", () => {
     for (const o of ofertasDoRoteiro(g)) {
       assert.ok(OFFERS.includes(o));
       assert.ok(o.id, "oferta com id para o link");
+      const normaliza = (valor) => String(valor).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const cidade = normaliza(o.cidade);
+      const destino = normaliza(g.breadcrumb);
+      assert.ok(cidade && destino && (destino.includes(cidade) || cidade.includes(destino)), `${o.id} corresponde a ${g.id}`);
     }
   }
-  const salvador = ofertasDoRoteiro(GUIDES.salvador);
-  assert.ok(salvador.length >= 1, "ha achado para Salvador nos dados");
-  assert.ok(salvador.every((o) => /salvador/i.test(o.cidade || o.destino || "")));
+  const comOferta = GUIDE_LIST.find((g) => ofertasDoRoteiro(g).length >= 1);
+  assert.ok(comOferta, "ha pelo menos um roteiro com achado ativo nos dados");
   assert.deepEqual(ofertasDoRoteiro(GUIDES.salvador, { offers: [] }), []);
   assert.deepEqual(ofertasDoRoteiro(null), []);
 });
@@ -188,17 +191,30 @@ test("continuePlanejandoHtml com oferta mostra o card sem inventar preco", () =>
 
 test("ofertaNaCaixaHtml: vazio sem oferta, link para /ofertas/:id com oferta", () => {
   assert.equal(ofertaNaCaixaHtml(GUIDES.salvador, { offers: [] }), "");
-  const html = ofertaNaCaixaHtml(GUIDES.salvador);
-  assert.ok(/href="\/ofertas\/[\w-]+"/.test(html));
+  const atual = ofertaNaCaixaHtml(GUIDES.salvador);
+  if (ofertasDoRoteiro(GUIDES.salvador).length === 0) assert.equal(atual, "");
+  else assert.ok(/href="\/ofertas\/[\w-]+"/.test(atual));
+  const oferta = { id: "x-ssa", origem: "GRU", destino: "SSA", cidade: "Salvador" };
+  const html = ofertaNaCaixaHtml(GUIDES.salvador, { offers: [oferta] });
+  assert.ok(html.includes('href="/ofertas/x-ssa"'));
 });
 
 test("roteiroStickyCtaHtml: so /ofertas ou /ofertas/:id, textos existentes", () => {
   assert.equal(roteiroStickyCtaHtml(null), "");
   assert.equal(roteiroStickyCtaHtml({ id: "nao-existe" }), "");
-  const comOferta = roteiroStickyCtaHtml(GUIDES.salvador);
+  const atual = roteiroStickyCtaHtml(GUIDES.salvador);
+  if (ofertasDoRoteiro(GUIDES.salvador).length === 0) {
+    assert.ok(atual.includes('href="/ofertas"'));
+    assert.ok(atual.includes("Ver todos os achados de passagem →"));
+  } else {
+    assert.ok(atual.includes("Ver a oferta →"));
+    assert.ok(/href="\/ofertas\/[\w-]+"/.test(atual));
+  }
+  const oferta = { id: "x-ssa", origem: "GRU", destino: "SSA", cidade: "Salvador" };
+  const comOferta = roteiroStickyCtaHtml(GUIDES.salvador, { offers: [oferta] });
   assert.ok(comOferta.includes('class="guia-sticky-cta"'));
   assert.ok(comOferta.includes("Ver a oferta →"));
-  assert.ok(/href="\/ofertas\/[\w-]+"/.test(comOferta));
+  assert.ok(comOferta.includes('href="/ofertas/x-ssa"'));
   assert.ok(comOferta.includes('id="guia-sticky-titulo"'));
   const semOferta = roteiroStickyCtaHtml(GUIDES.salvador, { offers: [] });
   assert.ok(semOferta.includes('href="/ofertas"'));

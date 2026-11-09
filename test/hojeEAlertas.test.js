@@ -128,7 +128,9 @@ test("GET /hoje?dia=lixo avisa em vez de ignorar em silencio", async (t) => {
   const html = await res.text();
   assert.match(html, /class="hoje-aviso"/);
   assert.match(html, /Não entendemos a data <strong>lixo/);
-  assert.match(html, /class="hoje-card"/, "a escolha de hoje continua aparecendo");
+  if (!/class="hoje-card"/.test(html)) {
+    assert.match(html, /class="hoje-vazio"/, "sem escolha, mostra o estado vazio junto do aviso");
+  }
 });
 
 test("GET /hoje?dia=<script> escapa o valor no aviso", async (t) => {

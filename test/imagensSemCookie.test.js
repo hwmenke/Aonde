@@ -59,7 +59,7 @@ test("servidor: /, /hoje e /ofertas servem as fotos sem cookie", async (t) => {
     await rm(dir, { recursive: true, force: true });
   });
   const base = `http://127.0.0.1:${server.address().port}`;
-  for (const rota of ["/", "/hoje", "/ofertas"]) {
+  for (const rota of ["/", "/hoje?dia=2026-08-23", "/ofertas"]) {
     const res = await fetch(base + rota);
     assert.equal(res.status, 200);
     checaPagina(await res.text(), rota);

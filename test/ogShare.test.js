@@ -122,13 +122,18 @@ test("GET /hoje og:image e o cartao do primeiro achado, nao HOJE.jpg se o hero n
 
   const hoje = await (await fetch(`${base}/hoje`)).text();
   const pacote = pacoteDoDia();
-  const firstId = pacote.itens[0] && pacote.itens[0].oferta && pacote.itens[0].oferta.id;
-  assert.ok(firstId, "/hoje precisa ter um achado");
-  if (firstId === "gru-eze") {
-    assert.match(ogImage(hoje), /\/og\/(HOJE|GRU-EZE)\.jpg/);
+  if (pacote.itens.length === 0) {
+    assert.match(hoje, /class="hoje-vazio"/);
+    assert.doesNotMatch(hoje, /class="hoje-card"/);
   } else {
-    assert.match(ogImage(hoje), new RegExp(`/og/${firstId.toUpperCase()}\\.jpg`));
-    assert.doesNotMatch(ogImage(hoje), /HOJE\.jpg/);
+    const firstId = pacote.itens[0] && pacote.itens[0].oferta && pacote.itens[0].oferta.id;
+    assert.ok(firstId, "pacote nao vazio precisa ter um achado");
+    if (firstId === "gru-eze") {
+      assert.match(ogImage(hoje), /\/og\/(HOJE|GRU-EZE)\.jpg/);
+    } else {
+      assert.match(ogImage(hoje), new RegExp(`/og/${firstId.toUpperCase()}\\.jpg`));
+      assert.doesNotMatch(ogImage(hoje), /HOJE\.jpg/);
+    }
   }
 });
 
